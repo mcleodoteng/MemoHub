@@ -67,6 +67,7 @@ export const memos: Memo[] = [
     pinned: true,
     archived: false,
     referencedMemoIds: [],
+    editHistory: [],
     createdAt: '2024-12-01T08:00:00Z',
     updatedAt: '2024-12-01T08:00:00Z',
   },
@@ -89,6 +90,7 @@ export const memos: Memo[] = [
     pinned: false,
     archived: false,
     referencedMemoIds: [],
+    editHistory: [],
     createdAt: '2024-12-02T08:00:00Z',
     updatedAt: '2024-12-02T08:00:00Z',
   },
@@ -110,6 +112,7 @@ export const memos: Memo[] = [
     pinned: false,
     archived: false,
     referencedMemoIds: [],
+    editHistory: [],
     createdAt: '2024-12-03T09:00:00Z',
     updatedAt: '2024-12-03T09:00:00Z',
   },
@@ -136,8 +139,18 @@ export const memos: Memo[] = [
     pinned: true,
     archived: false,
     referencedMemoIds: [],
+    editHistory: [
+      {
+        id: 'eh1',
+        editedAt: '2024-12-04T12:00:00Z',
+        editedBy: 'u6',
+        changes: [
+          { field: 'body', oldValue: 'We are updating our remote work policy.', newValue: 'We are updating our remote work policy effective January 1st. Key changes include flexible hours and home office stipend. All employees must acknowledge this memo.' },
+        ],
+      },
+    ],
     createdAt: '2024-12-04T08:00:00Z',
-    updatedAt: '2024-12-04T08:00:00Z',
+    updatedAt: '2024-12-04T12:00:00Z',
   },
   {
     id: 'm5',
@@ -157,6 +170,7 @@ export const memos: Memo[] = [
     pinned: false,
     archived: false,
     referencedMemoIds: ['m4'],
+    editHistory: [],
     createdAt: '2024-12-05T08:00:00Z',
     updatedAt: '2024-12-05T08:00:00Z',
   },
@@ -182,20 +196,20 @@ export const groups: Group[] = [
 
 // ===== CONVERSATIONS =====
 export const conversations: Conversation[] = [
-  { id: 'conv1', type: 'direct', participantIds: ['u1', 'u2'], lastMessage: { id: 'msg3', conversationId: 'conv1', senderId: 'u2', body: 'Sure, I\'ll send the mockups over!', attachments: [], readBy: ['u2'], createdAt: '2024-12-05T14:30:00Z' }, updatedAt: '2024-12-05T14:30:00Z' },
-  { id: 'conv2', type: 'direct', participantIds: ['u1', 'u3'], lastMessage: { id: 'msg5', conversationId: 'conv2', senderId: 'u3', body: 'The API changes are deployed to staging', attachments: [], readBy: ['u3'], createdAt: '2024-12-05T13:00:00Z' }, updatedAt: '2024-12-05T13:00:00Z' },
-  { id: 'conv3', type: 'group', participantIds: ['u1', 'u2', 'u3', 'u5'], name: 'Engineering Chat', lastMessage: { id: 'msg8', conversationId: 'conv3', senderId: 'u5', body: 'Has anyone tested the new build?', attachments: [], readBy: ['u5'], createdAt: '2024-12-05T15:00:00Z' }, updatedAt: '2024-12-05T15:00:00Z' },
+  { id: 'conv1', type: 'direct', participantIds: ['u1', 'u2'], lastMessage: { id: 'msg3', conversationId: 'conv1', senderId: 'u2', body: 'Sure, I\'ll send the mockups over!', attachments: [], reactions: [], readBy: ['u2'], createdAt: '2024-12-05T14:30:00Z' }, updatedAt: '2024-12-05T14:30:00Z' },
+  { id: 'conv2', type: 'direct', participantIds: ['u1', 'u3'], lastMessage: { id: 'msg5', conversationId: 'conv2', senderId: 'u3', body: 'The API changes are deployed to staging', attachments: [], reactions: [], readBy: ['u3'], createdAt: '2024-12-05T13:00:00Z' }, updatedAt: '2024-12-05T13:00:00Z' },
+  { id: 'conv3', type: 'group', participantIds: ['u1', 'u2', 'u3', 'u5'], name: 'Engineering Chat', lastMessage: { id: 'msg8', conversationId: 'conv3', senderId: 'u5', body: 'Has anyone tested the new build?', attachments: [], reactions: [], readBy: ['u5'], createdAt: '2024-12-05T15:00:00Z' }, updatedAt: '2024-12-05T15:00:00Z' },
 ];
 
 export const messages: Message[] = [
-  { id: 'msg1', conversationId: 'conv1', senderId: 'u1', body: 'Hey Sarah, did you get a chance to look at the new components?', attachments: [], readBy: ['u1', 'u2'], createdAt: '2024-12-05T14:00:00Z' },
-  { id: 'msg2', conversationId: 'conv1', senderId: 'u2', body: 'Yes! They look fantastic. A few tweaks needed on the spacing.', attachments: [], readBy: ['u1', 'u2'], createdAt: '2024-12-05T14:15:00Z' },
-  { id: 'msg3', conversationId: 'conv1', senderId: 'u2', body: 'Sure, I\'ll send the mockups over!', attachments: [], readBy: ['u2'], createdAt: '2024-12-05T14:30:00Z' },
-  { id: 'msg4', conversationId: 'conv2', senderId: 'u1', body: 'Marcus, how\'s the API refactoring going?', attachments: [], readBy: ['u1', 'u3'], createdAt: '2024-12-05T12:00:00Z' },
-  { id: 'msg5', conversationId: 'conv2', senderId: 'u3', body: 'The API changes are deployed to staging', attachments: [], readBy: ['u3'], createdAt: '2024-12-05T13:00:00Z' },
-  { id: 'msg6', conversationId: 'conv3', senderId: 'u1', body: 'Team, let\'s sync on the sprint progress', attachments: [], readBy: ['u1', 'u2', 'u3', 'u5'], createdAt: '2024-12-05T14:00:00Z' },
-  { id: 'msg7', conversationId: 'conv3', senderId: 'u3', body: 'I\'ve completed the database migration task', attachments: [], readBy: ['u1', 'u3', 'u5'], createdAt: '2024-12-05T14:45:00Z' },
-  { id: 'msg8', conversationId: 'conv3', senderId: 'u5', body: 'Has anyone tested the new build?', attachments: [], readBy: ['u5'], createdAt: '2024-12-05T15:00:00Z' },
+  { id: 'msg1', conversationId: 'conv1', senderId: 'u1', body: 'Hey Sarah, did you get a chance to look at the new components?', attachments: [], reactions: [{ emoji: '👍', users: ['u2'] }], readBy: ['u1', 'u2'], createdAt: '2024-12-05T14:00:00Z' },
+  { id: 'msg2', conversationId: 'conv1', senderId: 'u2', body: 'Yes! They look fantastic. A few tweaks needed on the spacing.', attachments: [], reactions: [], readBy: ['u1', 'u2'], createdAt: '2024-12-05T14:15:00Z' },
+  { id: 'msg3', conversationId: 'conv1', senderId: 'u2', body: 'Sure, I\'ll send the mockups over!', attachments: [], reactions: [], readBy: ['u2'], createdAt: '2024-12-05T14:30:00Z' },
+  { id: 'msg4', conversationId: 'conv2', senderId: 'u1', body: 'Marcus, how\'s the API refactoring going?', attachments: [], reactions: [], readBy: ['u1', 'u3'], createdAt: '2024-12-05T12:00:00Z' },
+  { id: 'msg5', conversationId: 'conv2', senderId: 'u3', body: 'The API changes are deployed to staging', attachments: [], reactions: [{ emoji: '🚀', users: ['u1'] }], readBy: ['u3'], createdAt: '2024-12-05T13:00:00Z' },
+  { id: 'msg6', conversationId: 'conv3', senderId: 'u1', body: 'Team, let\'s sync on the sprint progress', attachments: [], reactions: [], readBy: ['u1', 'u2', 'u3', 'u5'], createdAt: '2024-12-05T14:00:00Z' },
+  { id: 'msg7', conversationId: 'conv3', senderId: 'u3', body: 'I\'ve completed the database migration task', attachments: [], reactions: [{ emoji: '🎉', users: ['u1', 'u5'] }], readBy: ['u1', 'u3', 'u5'], createdAt: '2024-12-05T14:45:00Z' },
+  { id: 'msg8', conversationId: 'conv3', senderId: 'u5', body: 'Has anyone tested the new build?', attachments: [], reactions: [], readBy: ['u5'], createdAt: '2024-12-05T15:00:00Z' },
 ];
 
 // ===== NOTIFICATIONS =====
