@@ -5,7 +5,8 @@ import { memos as initialMemos, comments as initialComments, currentUser } from 
 interface MemoContextType {
   memos: Memo[];
   comments: Comment[];
-  addMemo: (memo: Omit<Memo, 'id' | 'createdAt' | 'updatedAt' | 'recipientStatuses' | 'reactions' | 'editHistory' | 'hiddenBy'>) => Memo;
+  addMemo: (memo: Omit<Memo, 'id' | 'createdAt' | 'updatedAt' | 'recipientStatuses' | 'reactions' | 'editHistory' | 'hiddenBy' | 'activityLog'>) => Memo;
+  updateMemo: (id: string, updates: Partial<Memo>) => void;
   updateMemo: (id: string, updates: Partial<Memo>) => void;
   editMemo: (id: string, updates: { title?: string; body?: string; tags?: string[]; visibility?: MemoVisibility; attachments?: Attachment[]; recipientIds?: string[]; referencedMemoIds?: string[] }, editorId: string) => void;
   deleteMemo: (id: string) => void;
