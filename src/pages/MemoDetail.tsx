@@ -12,7 +12,7 @@ import { MemoEditHistory } from "@/components/memo/MemoEditHistory";
 import { MentionInput } from "@/components/editor/MentionInput";
 import { AttachmentViewer } from "@/components/attachment/AttachmentManager";
 import {
-  Globe, Lock, Shield, Pin, Archive, Trash2,
+  Globe, Lock, Shield, Pin, Archive, Trash2, EyeOff,
   ArrowLeft, FileText, Edit3, Send,
 } from "lucide-react";
 import { formatDistanceToNow, format } from "date-fns";
@@ -30,7 +30,7 @@ const MemoDetail = () => {
   const navigate = useNavigate();
   const [replyText, setReplyText] = useState("");
   const [editOpen, setEditOpen] = useState(false);
-  const { getMemoById, getCommentsByMemoId, togglePin, toggleArchive, deleteMemo, addComment, addReaction, updateMemo } = useMemos();
+  const { getMemoById, getCommentsByMemoId, togglePin, toggleArchive, deleteMemo, hideMemo, addComment, addReaction, updateMemo } = useMemos();
 
   const memo = getMemoById(id || "");
 
@@ -50,6 +50,7 @@ const MemoDetail = () => {
   const VisIcon = vis.icon;
   const memoComments = getCommentsByMemoId(memo.id);
   const isCreator = memo.creatorId === currentUser.id;
+  const isAdmin = currentUser.role === 'admin';
   const isDraft = memo.status === 'draft';
 
   const handleReply = () => {
@@ -71,23 +72,24 @@ const MemoDetail = () => {
           <ArrowLeft className="h-4 w-4" /> Back to Memos
         </Button>
 
-        {/* Draft banner */}
         {isDraft && isCreator && (
           <div className="flex items-center gap-3 p-3 rounded-lg bg-warning/10 border border-warning/20">
             <Badge variant="outline" className="text-warning border-warning/30">Draft</Badge>
             <span className="text-sm text-muted-foreground flex-1">This memo hasn't been sent yet.</span>
+            <Button size="sm" variant="outline" onClick={() => navigate(`/compose/${memo.id}`)} className="gap-1.5">
+              <Edit3 className="h-3.5 w-3.5" /> Edit Draft
+            </Button>
             <Button size="sm" onClick={handleSendDraft} className="gap-1.5">
               <Send className="h-3.5 w-3.5" /> Send Now
             </Button>
           </div>
         )}
 
-        {/* Main Card */}
         <div className="widget-card space-y-4">
           <div className="flex items-start gap-3">
             {creator ? (
               <UserHoverCard user={creator}>
-                <Avatar className="h-10 w-10">
+                <Avatar className="h-10 w-10 cursor-pointer" onClick={() => navigate(`/profile/${creator.id}`)}>
                   <AvatarFallback className="bg-primary/10 text-primary font-semibold">
                     {getUserInitials(creator.name)}
                   </AvatarFallback>
@@ -102,7 +104,9 @@ const MemoDetail = () => {
               <div className="flex items-center gap-2 flex-wrap">
                 {creator ? (
                   <UserHoverCard user={creator}>
-                    <span className="font-semibold cursor-pointer hover:underline">{creator.name}</span>
+                    <span className="font-semibold cursor-pointer hover:underline" onClick={() => navigate(`/profile/${creator.id}`)}>
+                      {creator.name}
+                    </span>
                   </UserHoverCard>
                 ) : (
                   <span className="font-semibold">Unknown</span>
@@ -122,11 +126,13 @@ const MemoDetail = () => {
               </p>
             </div>
             <div className="flex gap-1">
-              {isCreator && (
+              {/* Only creator can edit */}
+              {isCreator && !isDraft && (
                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditOpen(true)}>
                   <Edit3 className="h-4 w-4" />
                 </Button>
               )}
+              {/* Everyone can pin/archive */}
               <Button variant="ghost" size="icon" className={`h-8 w-8 ${memo.pinned ? 'text-warning' : ''}`}
                 onClick={() => { togglePin(memo.id); toast.success(memo.pinned ? 'Unpinned' : 'Pinned!'); }}>
                 <Pin className="h-4 w-4" />
@@ -135,7 +141,15 @@ const MemoDetail = () => {
                 onClick={() => { toggleArchive(memo.id); toast.success(memo.archived ? 'Unarchived' : 'Archived!'); }}>
                 <Archive className="h-4 w-4" />
               </Button>
-              {isCreator && (
+              {/* Non-creators can hide */}
+              {!isCreator && (
+                <Button variant="ghost" size="icon" className="h-8 w-8"
+                  onClick={() => { hideMemo(memo.id, currentUser.id); toast.success('Hidden from feed'); navigate('/memos'); }}>
+                  <EyeOff className="h-4 w-4" />
+                </Button>
+              )}
+              {/* Creator can delete, admin can delete */}
+              {(isCreator || isAdmin) && (
                 <Button variant="ghost" size="icon" className="h-8 w-8"
                   onClick={() => { deleteMemo(memo.id); toast.success('Memo deleted!'); navigate('/memos'); }}>
                   <Trash2 className="h-4 w-4 text-destructive" />
@@ -144,7 +158,6 @@ const MemoDetail = () => {
             </div>
           </div>
 
-          {/* Recipients */}
           {memo.recipientIds.length > 0 && (
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-xs text-muted-foreground">To:</span>
@@ -152,7 +165,7 @@ const MemoDetail = () => {
                 const user = getUserById(uid);
                 return user ? (
                   <UserHoverCard key={uid} user={user}>
-                    <Badge variant="secondary" className="gap-1 text-xs cursor-pointer">
+                    <Badge variant="secondary" className="gap-1 text-xs cursor-pointer" onClick={() => navigate(`/profile/${uid}`)}>
                       <Avatar className="h-4 w-4">
                         <AvatarFallback className="text-[7px] bg-primary/10 text-primary">
                           {getUserInitials(user.name)}
@@ -222,7 +235,6 @@ const MemoDetail = () => {
 
         <MemoEditHistory history={memo.editHistory} />
 
-        {/* Comments */}
         {!isDraft && (
           <div className="widget-card">
             <h3 className="font-display font-semibold mb-3">Comments ({memoComments.length})</h3>
@@ -233,7 +245,7 @@ const MemoDetail = () => {
                   <div key={comment.id} className="flex gap-3 animate-slide-in">
                     {author ? (
                       <UserHoverCard user={author}>
-                        <Avatar className="h-7 w-7 shrink-0">
+                        <Avatar className="h-7 w-7 shrink-0 cursor-pointer" onClick={() => navigate(`/profile/${author.id}`)}>
                           <AvatarFallback className="text-[10px] bg-primary/10 text-primary font-semibold">
                             {getUserInitials(author.name)}
                           </AvatarFallback>
@@ -248,7 +260,9 @@ const MemoDetail = () => {
                       <div className="flex items-center gap-2">
                         {author ? (
                           <UserHoverCard user={author}>
-                            <span className="text-sm font-medium cursor-pointer hover:underline">{author.name}</span>
+                            <span className="text-sm font-medium cursor-pointer hover:underline" onClick={() => navigate(`/profile/${author.id}`)}>
+                              {author.name}
+                            </span>
                           </UserHoverCard>
                         ) : (
                           <span className="text-sm font-medium">Unknown</span>

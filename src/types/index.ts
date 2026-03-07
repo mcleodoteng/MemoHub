@@ -68,6 +68,7 @@ export interface Memo {
   archived: boolean;
   referencedMemoIds: string[];
   editHistory: MemoEditEntry[];
+  hiddenBy?: string[]; // user IDs who hid this memo
   createdAt: string;
   updatedAt: string;
 }
@@ -125,6 +126,7 @@ export interface Conversation {
   type: 'direct' | 'group';
   participantIds: string[];
   name?: string;
+  groupId?: string; // link to a group
   lastMessage?: Message;
   typingUsers?: string[];
   updatedAt: string;

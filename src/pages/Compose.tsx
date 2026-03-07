@@ -13,14 +13,19 @@ import { AttachmentUploader } from "@/components/attachment/AttachmentManager";
 import { MemoReferencePicker } from "@/components/memo/MemoReferencePicker";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { MemoVisibility, Attachment } from "@/types";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Globe, Lock, Shield, Send, X, FileText, Save } from "lucide-react";
 import { toast } from "sonner";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 
 const Compose = () => {
   const navigate = useNavigate();
-  const { addMemo, getMemoById } = useMemos();
+  const { draftId } = useParams<{ draftId?: string }>();
+  const { addMemo, getMemoById, updateMemo, editMemo } = useMemos();
+
+  const draft = draftId ? getMemoById(draftId) : undefined;
+  const isEditingDraft = !!draft && draft.status === 'draft' && draft.creatorId === currentUser.id;
+
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [visibility, setVisibility] = useState<MemoVisibility>("public");
@@ -30,6 +35,19 @@ const Compose = () => {
   const [referencedMemoIds, setReferencedMemoIds] = useState<string[]>([]);
   const [recipientSearch, setRecipientSearch] = useState("");
   const [customTagInput, setCustomTagInput] = useState("");
+
+  // Load draft data
+  useEffect(() => {
+    if (isEditingDraft && draft) {
+      setTitle(draft.title);
+      setBody(draft.body);
+      setVisibility(draft.visibility);
+      setSelectedRecipients(draft.recipientIds);
+      setSelectedTags(draft.tags);
+      setAttachments(draft.attachments);
+      setReferencedMemoIds(draft.referencedMemoIds);
+    }
+  }, [draftId]);
 
   const otherUsers = users.filter((u) => u.id !== currentUser.id);
   const filteredUsers = useMemo(() =>
@@ -62,28 +80,51 @@ const Compose = () => {
   const handleSend = () => {
     if (!title.trim()) { toast.error("Please add a title"); return; }
     if (!body.trim() && body !== '<p></p>') { toast.error("Please add content"); return; }
-    addMemo({
-      title, body, creatorId: currentUser.id, visibility, status: 'sent',
-      recipientIds: selectedRecipients, tags: selectedTags, attachments,
-      pinned: false, archived: false, referencedMemoIds, groupId: undefined,
-    });
-    toast.success("Memo sent successfully!");
+
+    if (isEditingDraft && draft) {
+      updateMemo(draft.id, {
+        title, body, visibility, status: 'sent',
+        recipientIds: selectedRecipients, tags: selectedTags,
+        attachments, referencedMemoIds,
+        recipientStatuses: selectedRecipients.map(uid => ({
+          userId: uid, opened: false, acknowledged: false, approved: false, replied: false,
+        })),
+      });
+      toast.success("Memo sent!");
+    } else {
+      addMemo({
+        title, body, creatorId: currentUser.id, visibility, status: 'sent',
+        recipientIds: selectedRecipients, tags: selectedTags, attachments,
+        pinned: false, archived: false, referencedMemoIds, groupId: undefined,
+      });
+      toast.success("Memo sent successfully!");
+    }
     navigate("/memos");
   };
 
   const handleSaveDraft = () => {
     if (!title.trim()) { toast.error("Please add a title for the draft"); return; }
-    addMemo({
-      title, body, creatorId: currentUser.id, visibility, status: 'draft',
-      recipientIds: selectedRecipients, tags: selectedTags, attachments,
-      pinned: false, archived: false, referencedMemoIds, groupId: undefined,
-    });
-    toast.success("Draft saved!");
-    navigate("/memos");
+
+    if (isEditingDraft && draft) {
+      updateMemo(draft.id, {
+        title, body, visibility,
+        recipientIds: selectedRecipients, tags: selectedTags,
+        attachments, referencedMemoIds,
+      });
+      toast.success("Draft updated!");
+    } else {
+      addMemo({
+        title, body, creatorId: currentUser.id, visibility, status: 'draft',
+        recipientIds: selectedRecipients, tags: selectedTags, attachments,
+        pinned: false, archived: false, referencedMemoIds, groupId: undefined,
+      });
+      toast.success("Draft saved!");
+    }
+    navigate("/drafts");
   };
 
   return (
-    <AppLayout title="Compose Memo">
+    <AppLayout title={isEditingDraft ? "Edit Draft" : "Compose Memo"}>
       <div className="max-w-3xl mx-auto space-y-6">
         <div className="widget-card space-y-5">
           {/* Title */}
@@ -92,7 +133,7 @@ const Compose = () => {
             <Input placeholder="Enter memo title..." value={title} onChange={(e) => setTitle(e.target.value)} className="font-display text-lg" />
           </div>
 
-          {/* Visibility - fixed: no duplicate icon */}
+          {/* Visibility */}
           <div>
             <label className="text-sm font-medium mb-1.5 block">Visibility</label>
             <Select value={visibility} onValueChange={(v) => setVisibility(v as MemoVisibility)}>
@@ -127,7 +168,6 @@ const Compose = () => {
               onChange={(e) => setRecipientSearch(e.target.value)}
               className="mb-2 h-8 text-sm"
             />
-            {/* Selected recipients */}
             {selectedRecipients.length > 0 && (
               <div className="flex flex-wrap gap-1.5 mb-2">
                 {selectedRecipients.map((userId) => {
@@ -148,7 +188,6 @@ const Compose = () => {
                 })}
               </div>
             )}
-            {/* Available recipients */}
             <div className="flex flex-wrap gap-2 max-h-32 overflow-auto">
               {filteredUsers
                 .filter((u) => !selectedRecipients.includes(u.id))
@@ -190,7 +229,6 @@ const Compose = () => {
                   {selectedTags.includes(tag.name) && <X className="h-3 w-3 ml-1" />}
                 </Badge>
               ))}
-              {/* Custom tags not in predefined list */}
               {selectedTags.filter(t => !tags.some(pt => pt.name === t)).map(tag => (
                 <Badge key={tag} variant="default" className="cursor-pointer transition-colors" onClick={() => toggleTag(tag)}>
                   {tag} <X className="h-3 w-3 ml-1" />
@@ -250,7 +288,7 @@ const Compose = () => {
             <div className="flex-1" />
             <Button variant="outline" onClick={() => navigate("/memos")}>Cancel</Button>
             <Button variant="secondary" onClick={handleSaveDraft} className="gap-2">
-              <Save className="h-4 w-4" /> Save Draft
+              <Save className="h-4 w-4" /> {isEditingDraft ? "Update Draft" : "Save Draft"}
             </Button>
             <Button onClick={handleSend} className="gap-2">
               <Send className="h-4 w-4" /> Send Memo

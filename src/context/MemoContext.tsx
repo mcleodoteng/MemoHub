@@ -1,16 +1,17 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
-import { Memo, Comment, MemoVisibility, MemoEditEntry } from '@/types';
+import { Memo, Comment, MemoVisibility, MemoEditEntry, Attachment } from '@/types';
 import { memos as initialMemos, comments as initialComments, currentUser } from '@/data/mock';
 
 interface MemoContextType {
   memos: Memo[];
   comments: Comment[];
-  addMemo: (memo: Omit<Memo, 'id' | 'createdAt' | 'updatedAt' | 'recipientStatuses' | 'reactions' | 'editHistory'>) => Memo;
+  addMemo: (memo: Omit<Memo, 'id' | 'createdAt' | 'updatedAt' | 'recipientStatuses' | 'reactions' | 'editHistory' | 'hiddenBy'>) => Memo;
   updateMemo: (id: string, updates: Partial<Memo>) => void;
-  editMemo: (id: string, updates: { title?: string; body?: string; tags?: string[]; visibility?: MemoVisibility }, editorId: string) => void;
+  editMemo: (id: string, updates: { title?: string; body?: string; tags?: string[]; visibility?: MemoVisibility; attachments?: Attachment[]; recipientIds?: string[]; referencedMemoIds?: string[] }, editorId: string) => void;
   deleteMemo: (id: string) => void;
   togglePin: (id: string) => void;
   toggleArchive: (id: string) => void;
+  hideMemo: (memoId: string, userId: string) => void;
   acknowledgeMemo: (memoId: string, userId: string) => void;
   approveMemo: (memoId: string, userId: string) => void;
   addComment: (memoId: string, body: string, authorId: string) => void;
@@ -22,19 +23,20 @@ interface MemoContextType {
 const MemoContext = createContext<MemoContextType | undefined>(undefined);
 
 export function MemoProvider({ children }: { children: React.ReactNode }) {
-  const [memos, setMemos] = useState<Memo[]>(initialMemos);
+  const [memos, setMemos] = useState<Memo[]>(initialMemos.map(m => ({ ...m, hiddenBy: m.hiddenBy || [] })));
   const [comments, setComments] = useState<Comment[]>(initialComments);
 
   const getMemoById = useCallback((id: string) => memos.find(m => m.id === id), [memos]);
   const getCommentsByMemoId = useCallback((memoId: string) => comments.filter(c => c.memoId === memoId), [comments]);
 
-  const addMemo = useCallback((memoData: Omit<Memo, 'id' | 'createdAt' | 'updatedAt' | 'recipientStatuses' | 'reactions' | 'editHistory'>) => {
+  const addMemo = useCallback((memoData: Omit<Memo, 'id' | 'createdAt' | 'updatedAt' | 'recipientStatuses' | 'reactions' | 'editHistory' | 'hiddenBy'>) => {
     const now = new Date().toISOString();
     const newMemo: Memo = {
       ...memoData,
       id: `m${Date.now()}`,
       reactions: [],
       editHistory: [],
+      hiddenBy: [],
       recipientStatuses: memoData.recipientIds.map(userId => ({
         userId,
         opened: false,
@@ -53,7 +55,7 @@ export function MemoProvider({ children }: { children: React.ReactNode }) {
     setMemos(prev => prev.map(m => m.id === id ? { ...m, ...updates, updatedAt: new Date().toISOString() } : m));
   }, []);
 
-  const editMemo = useCallback((id: string, updates: { title?: string; body?: string; tags?: string[]; visibility?: MemoVisibility }, editorId: string) => {
+  const editMemo = useCallback((id: string, updates: { title?: string; body?: string; tags?: string[]; visibility?: MemoVisibility; attachments?: Attachment[]; recipientIds?: string[]; referencedMemoIds?: string[] }, editorId: string) => {
     setMemos(prev => prev.map(m => {
       if (m.id !== id || m.creatorId !== editorId) return m;
       const now = new Date().toISOString();
@@ -70,6 +72,12 @@ export function MemoProvider({ children }: { children: React.ReactNode }) {
       if (updates.visibility !== undefined && updates.visibility !== m.visibility) {
         changes.push({ field: 'visibility', oldValue: m.visibility, newValue: updates.visibility });
       }
+      if (updates.attachments !== undefined) {
+        changes.push({ field: 'attachments', oldValue: `${m.attachments.length} files`, newValue: `${updates.attachments.length} files` });
+      }
+      if (updates.recipientIds !== undefined && JSON.stringify(updates.recipientIds) !== JSON.stringify(m.recipientIds)) {
+        changes.push({ field: 'recipients', oldValue: `${m.recipientIds.length} recipients`, newValue: `${updates.recipientIds.length} recipients` });
+      }
       if (changes.length === 0) return m;
       const entry: MemoEditEntry = { id: `eh${Date.now()}`, editedAt: now, editedBy: editorId, changes };
       return {
@@ -78,6 +86,15 @@ export function MemoProvider({ children }: { children: React.ReactNode }) {
         ...(updates.body !== undefined && { body: updates.body }),
         ...(updates.tags !== undefined && { tags: updates.tags }),
         ...(updates.visibility !== undefined && { visibility: updates.visibility }),
+        ...(updates.attachments !== undefined && { attachments: updates.attachments }),
+        ...(updates.recipientIds !== undefined && {
+          recipientIds: updates.recipientIds,
+          recipientStatuses: updates.recipientIds.map(uid => {
+            const existing = m.recipientStatuses.find(s => s.userId === uid);
+            return existing || { userId: uid, opened: false, acknowledged: false, approved: false, replied: false };
+          }),
+        }),
+        ...(updates.referencedMemoIds !== undefined && { referencedMemoIds: updates.referencedMemoIds }),
         editHistory: [...m.editHistory, entry],
         updatedAt: now,
       };
@@ -94,6 +111,17 @@ export function MemoProvider({ children }: { children: React.ReactNode }) {
 
   const toggleArchive = useCallback((id: string) => {
     setMemos(prev => prev.map(m => m.id === id ? { ...m, archived: !m.archived } : m));
+  }, []);
+
+  const hideMemo = useCallback((memoId: string, userId: string) => {
+    setMemos(prev => prev.map(m => {
+      if (m.id !== memoId) return m;
+      const hidden = m.hiddenBy || [];
+      if (hidden.includes(userId)) {
+        return { ...m, hiddenBy: hidden.filter(id => id !== userId) };
+      }
+      return { ...m, hiddenBy: [...hidden, userId] };
+    }));
   }, []);
 
   const acknowledgeMemo = useCallback((memoId: string, userId: string) => {
@@ -173,7 +201,7 @@ export function MemoProvider({ children }: { children: React.ReactNode }) {
   return (
     <MemoContext.Provider value={{
       memos, comments, addMemo, updateMemo, editMemo, deleteMemo, togglePin, toggleArchive,
-      acknowledgeMemo, approveMemo, addComment, addReaction, getMemoById, getCommentsByMemoId,
+      hideMemo, acknowledgeMemo, approveMemo, addComment, addReaction, getMemoById, getCommentsByMemoId,
     }}>
       {children}
     </MemoContext.Provider>
