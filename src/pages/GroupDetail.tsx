@@ -37,6 +37,22 @@ const GroupDetail = () => {
   const [newMessage, setNewMessage] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  const isAdmin = group ? group.adminIds.includes(currentUser.id) : false;
+  const otherUsers = users.filter(u => u.id !== currentUser.id);
+  const groupMemos = group ? memos.filter(m => m.groupId === group.id && m.status !== 'draft') : [];
+  const groupConv = group ? (
+    conversations.find(c => c.groupId === group.id) ||
+    conversations.find(c => c.type === 'group' && c.name === group.name)
+  ) : undefined;
+  const convMessages = groupConv ? getConversationMessages(groupConv.id) : [];
+
+  useEffect(() => {
+    if (groupConv) {
+      markAsRead(groupConv.id, currentUser.id);
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [groupConv?.id, convMessages.length]);
+
   // Check membership
   if (!group || !group.memberIds.includes(currentUser.id)) {
     return (
@@ -49,25 +65,6 @@ const GroupDetail = () => {
       </AppLayout>
     );
   }
-
-  const isAdmin = group.adminIds.includes(currentUser.id);
-  const otherUsers = users.filter(u => u.id !== currentUser.id);
-
-  // Group memos
-  const groupMemos = memos.filter(m => m.groupId === group.id && m.status !== 'draft');
-
-  // Group conversation - find or we'll create on first message
-  const groupConv = conversations.find(c => c.groupId === group.id) ||
-    conversations.find(c => c.type === 'group' && c.name === group.name);
-
-  const convMessages = groupConv ? getConversationMessages(groupConv.id) : [];
-
-  useEffect(() => {
-    if (groupConv) {
-      markAsRead(groupConv.id, currentUser.id);
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [groupConv?.id, convMessages.length]);
 
   const handleSendGroupMemo = () => {
     if (!memoTitle.trim()) { toast.error("Title is required"); return; }
