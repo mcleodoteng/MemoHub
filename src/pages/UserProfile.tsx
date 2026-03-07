@@ -1,4 +1,5 @@
 import { useParams, useNavigate } from "react-router-dom";
+import { useEffect } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { getUserById, getUserInitials, currentUser, groups } from "@/data/mock";
 import { useMemos } from "@/context/MemoContext";
@@ -15,21 +16,25 @@ const UserProfile = () => {
   const { memos } = useMemos();
 
   const user = getUserById(userId || "");
+  const isOwnProfile = user?.id === currentUser.id;
 
-  if (!user) {
-    return (
-      <AppLayout title="User Not Found">
-        <div className="flex flex-col items-center justify-center py-20">
-          <p className="text-muted-foreground">User not found</p>
-          <Button variant="outline" className="mt-4" onClick={() => navigate(-1)}>Go Back</Button>
-        </div>
-      </AppLayout>
-    );
-  }
+  useEffect(() => {
+    if (isOwnProfile) {
+      navigate("/profile", { replace: true });
+    }
+  }, [isOwnProfile, navigate]);
 
-  // If viewing own profile, redirect
-  if (user.id === currentUser.id) {
-    navigate("/profile", { replace: true });
+  if (!user || isOwnProfile) {
+    if (!user) {
+      return (
+        <AppLayout title="User Not Found">
+          <div className="flex flex-col items-center justify-center py-20">
+            <p className="text-muted-foreground">User not found</p>
+            <Button variant="outline" className="mt-4" onClick={() => navigate(-1)}>Go Back</Button>
+          </div>
+        </AppLayout>
+      );
+    }
     return null;
   }
 

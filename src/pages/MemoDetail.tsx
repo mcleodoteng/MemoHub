@@ -6,17 +6,19 @@ import { UserHoverCard } from "@/components/user/UserHoverCard";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MemoActions, StatusTracker } from "@/components/memo/MemoActions";
 import { MemoEditDialog } from "@/components/memo/MemoEditDialog";
 import { MemoEditHistory } from "@/components/memo/MemoEditHistory";
+import { MemoActivityLog } from "@/components/memo/MemoActivityLog";
 import { MentionInput } from "@/components/editor/MentionInput";
 import { AttachmentViewer } from "@/components/attachment/AttachmentManager";
 import {
   Globe, Lock, Shield, Pin, Archive, Trash2, EyeOff,
   ArrowLeft, FileText, Edit3, Send,
+  CheckCircle2, ThumbsUp, XCircle, Smile,
 } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { formatDistanceToNow, format } from "date-fns";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 
 const visConfig = {
@@ -25,14 +27,33 @@ const visConfig = {
   protected: { icon: Shield, label: "Protected", className: "visibility-protected" },
 };
 
+const quickEmojis = ['👍', '❤️', '🎉', '🚀', '👏', '😊', '🔥', '💯'];
+
 const MemoDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [replyText, setReplyText] = useState("");
   const [editOpen, setEditOpen] = useState(false);
-  const { getMemoById, getCommentsByMemoId, togglePin, toggleArchive, deleteMemo, hideMemo, addComment, addReaction, updateMemo } = useMemos();
+  const {
+    getMemoById, getCommentsByMemoId, togglePin, toggleArchive, deleteMemo,
+    hideMemo, addComment, addReaction, updateMemo, markOpened,
+    acknowledgeMemo, unacknowledgeMemo, approveMemo, unapproveMemo,
+  } = useMemos();
 
   const memo = getMemoById(id || "");
+
+  // Auto-acknowledge on open
+  useEffect(() => {
+    if (memo && memo.status !== 'draft') {
+      const isRecipient = memo.recipientIds.includes(currentUser.id);
+      if (isRecipient) {
+        const status = memo.recipientStatuses.find(s => s.userId === currentUser.id);
+        if (status && !status.opened) {
+          markOpened(memo.id, currentUser.id);
+        }
+      }
+    }
+  }, [memo?.id]);
 
   if (!memo) {
     return (
@@ -52,6 +73,8 @@ const MemoDetail = () => {
   const isCreator = memo.creatorId === currentUser.id;
   const isAdmin = currentUser.role === 'admin';
   const isDraft = memo.status === 'draft';
+  const myStatus = memo.recipientStatuses.find(s => s.userId === currentUser.id);
+  const isRecipient = memo.recipientIds.includes(currentUser.id);
 
   const handleReply = () => {
     if (!replyText.trim()) return;
@@ -126,13 +149,11 @@ const MemoDetail = () => {
               </p>
             </div>
             <div className="flex gap-1">
-              {/* Only creator can edit */}
               {isCreator && !isDraft && (
                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditOpen(true)}>
                   <Edit3 className="h-4 w-4" />
                 </Button>
               )}
-              {/* Everyone can pin/archive */}
               <Button variant="ghost" size="icon" className={`h-8 w-8 ${memo.pinned ? 'text-warning' : ''}`}
                 onClick={() => { togglePin(memo.id); toast.success(memo.pinned ? 'Unpinned' : 'Pinned!'); }}>
                 <Pin className="h-4 w-4" />
@@ -141,14 +162,12 @@ const MemoDetail = () => {
                 onClick={() => { toggleArchive(memo.id); toast.success(memo.archived ? 'Unarchived' : 'Archived!'); }}>
                 <Archive className="h-4 w-4" />
               </Button>
-              {/* Non-creators can hide */}
               {!isCreator && (
                 <Button variant="ghost" size="icon" className="h-8 w-8"
                   onClick={() => { hideMemo(memo.id, currentUser.id); toast.success('Hidden from feed'); navigate('/memos'); }}>
                   <EyeOff className="h-4 w-4" />
                 </Button>
               )}
-              {/* Creator can delete, admin can delete */}
               {(isCreator || isAdmin) && (
                 <Button variant="ghost" size="icon" className="h-8 w-8"
                   onClick={() => { deleteMemo(memo.id); toast.success('Memo deleted!'); navigate('/memos'); }}>
@@ -196,19 +215,35 @@ const MemoDetail = () => {
 
           <AttachmentViewer attachments={memo.attachments} />
 
-          {memo.reactions.length > 0 && (
-            <div className="flex gap-2 flex-wrap">
-              {memo.reactions.map(r => {
-                const isActive = r.users.includes(currentUser.id);
-                return (
-                  <Button key={r.emoji} variant={isActive ? "secondary" : "outline"} size="sm" className="gap-1 h-7 text-xs"
-                    onClick={() => addReaction(memo.id, r.emoji, currentUser.id)}>
-                    {r.emoji} {r.users.length}
-                  </Button>
-                );
-              })}
-            </div>
-          )}
+          {/* Reactions */}
+          <div className="flex items-center gap-2 flex-wrap">
+            {memo.reactions.map(r => {
+              const isActive = r.users.includes(currentUser.id);
+              return (
+                <Button key={r.emoji} variant={isActive ? "secondary" : "outline"} size="sm" className="gap-1 h-7 text-xs"
+                  onClick={() => addReaction(memo.id, r.emoji, currentUser.id)}>
+                  {r.emoji} {r.users.length}
+                </Button>
+              );
+            })}
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
+                  <Smile className="h-4 w-4" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-2" align="start">
+                <div className="flex gap-1">
+                  {quickEmojis.map(emoji => (
+                    <button key={emoji} className="h-8 w-8 flex items-center justify-center rounded hover:bg-secondary transition-colors text-lg"
+                      onClick={() => addReaction(memo.id, emoji, currentUser.id)}>
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
+          </div>
 
           {memo.referencedMemoIds.length > 0 && (
             <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
@@ -224,16 +259,75 @@ const MemoDetail = () => {
             </div>
           )}
 
-          {!isDraft && (
-            <div className="pt-2 border-t">
-              <MemoActions memoId={memo.id} />
+          {/* Acknowledge/Approve actions for recipients */}
+          {!isDraft && isRecipient && !isCreator && myStatus && (
+            <div className="flex items-center gap-2 pt-3 border-t">
+              {myStatus.acknowledged ? (
+                <Button variant="secondary" size="sm" className="gap-1.5 h-8 text-xs"
+                  onClick={() => { unacknowledgeMemo(memo.id, currentUser.id); toast.success('Unacknowledged'); }}>
+                  <XCircle className="h-3.5 w-3.5" /> Unacknowledge
+                </Button>
+              ) : (
+                <Button variant="outline" size="sm" className="gap-1.5 h-8 text-xs"
+                  onClick={() => { acknowledgeMemo(memo.id, currentUser.id); toast.success('Acknowledged!'); }}>
+                  <CheckCircle2 className="h-3.5 w-3.5" /> Acknowledge
+                </Button>
+              )}
+              {myStatus.approved ? (
+                <Button variant="secondary" size="sm" className="gap-1.5 h-8 text-xs"
+                  onClick={() => { unapproveMemo(memo.id, currentUser.id); toast.success('Unapproved'); }}>
+                  <XCircle className="h-3.5 w-3.5" /> Unapprove
+                </Button>
+              ) : (
+                <Button variant="outline" size="sm" className="gap-1.5 h-8 text-xs"
+                  onClick={() => { approveMemo(memo.id, currentUser.id); toast.success('Approved!'); }}>
+                  <ThumbsUp className="h-3.5 w-3.5" /> Approve
+                </Button>
+              )}
             </div>
           )}
         </div>
 
-        {!isDraft && <StatusTracker memoId={memo.id} />}
+        {/* Status Tracker */}
+        {!isDraft && (
+          <div className="widget-card">
+            <h3 className="font-display font-semibold mb-4">Recipient Status</h3>
+            <div className="space-y-2.5">
+              {memo.recipientStatuses.map((status) => {
+                const user = getUserById(status.userId);
+                return (
+                  <div key={status.userId} className="flex items-center gap-3">
+                    <Avatar className="h-7 w-7 shrink-0">
+                      <AvatarFallback className="text-[10px] bg-primary/10 text-primary font-semibold">
+                        {user ? getUserInitials(user.name) : '?'}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="text-sm font-medium min-w-[110px]">{user?.name}</span>
+                    <div className="flex gap-1.5 flex-wrap">
+                      <span className={status.opened ? 'status-badge-opened' : 'status-badge opacity-30'}>
+                        Opened
+                      </span>
+                      <span className={status.acknowledged ? 'status-badge-acknowledged' : 'status-badge opacity-30'}>
+                        Acknowledged
+                      </span>
+                      <span className={status.approved ? 'status-badge-approved' : 'status-badge opacity-30'}>
+                        Approved
+                      </span>
+                      <span className={status.replied ? 'status-badge-replied' : 'status-badge opacity-30'}>
+                        Replied
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         <MemoEditHistory history={memo.editHistory} />
+
+        {/* Activity History */}
+        <MemoActivityLog activityLog={memo.activityLog || []} />
 
         {!isDraft && (
           <div className="widget-card">
@@ -272,13 +366,6 @@ const MemoDetail = () => {
                         </span>
                       </div>
                       <p className="text-sm mt-0.5">{comment.body}</p>
-                      {comment.reactions.length > 0 && (
-                        <div className="flex gap-1.5 mt-1">
-                          {comment.reactions.map(r => (
-                            <span key={r.emoji} className="text-xs bg-secondary px-1.5 py-0.5 rounded-full">{r.emoji} {r.users.length}</span>
-                          ))}
-                        </div>
-                      )}
                     </div>
                   </div>
                 );

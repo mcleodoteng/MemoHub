@@ -51,6 +51,14 @@ export interface MemoEditEntry {
   }[];
 }
 
+export interface MemoActivityEntry {
+  id: string;
+  userId: string;
+  action: 'opened' | 'acknowledged' | 'unacknowledged' | 'approved' | 'unapproved' | 'commented' | 'reacted';
+  timestamp: string;
+  detail?: string;
+}
+
 export interface Memo {
   id: string;
   title: string;
@@ -68,7 +76,8 @@ export interface Memo {
   archived: boolean;
   referencedMemoIds: string[];
   editHistory: MemoEditEntry[];
-  hiddenBy?: string[]; // user IDs who hid this memo
+  activityLog: MemoActivityEntry[];
+  hiddenBy?: string[];
   createdAt: string;
   updatedAt: string;
 }

@@ -31,6 +31,13 @@ const Memos = () => {
   const pinnedMemos = sentMemos.filter(m => m.pinned && !m.archived);
   const archivedMemos = sentMemos.filter(m => m.archived);
 
+  // Sort pinned memos first
+  const allNonArchived = sentMemos.filter(m => !m.archived).sort((a, b) => {
+    if (a.pinned && !b.pinned) return -1;
+    if (!a.pinned && b.pinned) return 1;
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+  });
+
   const MemoList = ({ items }: { items: typeof memos }) =>
     items.length === 0 ? (
       <p className="text-center text-muted-foreground py-8">No memos found</p>
@@ -70,7 +77,7 @@ const Memos = () => {
           </TabsList>
 
           <TabsContent value="all" className="mt-4">
-            <MemoList items={sentMemos.filter(m => !m.archived)} />
+            <MemoList items={allNonArchived} />
           </TabsContent>
           <TabsContent value="drafts" className="mt-4"><MemoList items={draftMemos} /></TabsContent>
           <TabsContent value="public" className="mt-4"><MemoList items={publicMemos} /></TabsContent>
