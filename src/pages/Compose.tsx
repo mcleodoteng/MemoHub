@@ -1,7 +1,6 @@
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import {
   Select,
@@ -10,19 +9,27 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { users, tags, currentUser } from "@/data/mock";
+import { users, tags, currentUser, getUserInitials, getUserById } from "@/data/mock";
+import { useMemos } from "@/context/MemoContext";
+import { RichTextEditor } from "@/components/editor/RichTextEditor";
+import { AttachmentUploader } from "@/components/attachment/AttachmentManager";
+import { MemoReferencePicker } from "@/components/memo/MemoReferencePicker";
+import { MemoVisibility, Attachment } from "@/types";
 import { useState } from "react";
-import { Globe, Lock, Shield, Paperclip, Send, X } from "lucide-react";
+import { Globe, Lock, Shield, Send, X, Link2, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 
 const Compose = () => {
   const navigate = useNavigate();
+  const { addMemo, getMemoById } = useMemos();
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
-  const [visibility, setVisibility] = useState<string>("public");
+  const [visibility, setVisibility] = useState<MemoVisibility>("public");
   const [selectedRecipients, setSelectedRecipients] = useState<string[]>([]);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [referencedMemoIds, setReferencedMemoIds] = useState<string[]>([]);
 
   const otherUsers = users.filter((u) => u.id !== currentUser.id);
 
@@ -39,16 +46,36 @@ const Compose = () => {
   };
 
   const handleSend = () => {
-    if (!title.trim() || !body.trim()) {
-      toast.error("Please fill in title and body");
+    if (!title.trim()) {
+      toast.error("Please add a title");
       return;
     }
+    if (!body.trim() && body !== '<p></p>') {
+      toast.error("Please add content");
+      return;
+    }
+
+    addMemo({
+      title,
+      body,
+      creatorId: currentUser.id,
+      visibility,
+      status: 'sent',
+      recipientIds: selectedRecipients,
+      tags: selectedTags,
+      attachments,
+      pinned: false,
+      archived: false,
+      referencedMemoIds,
+      groupId: undefined,
+    });
+
     toast.success("Memo sent successfully!");
     navigate("/memos");
   };
 
   const visIcons = { public: Globe, private: Lock, protected: Shield };
-  const VisIcon = visIcons[visibility as keyof typeof visIcons] || Globe;
+  const VisIcon = visIcons[visibility];
 
   return (
     <AppLayout title="Compose Memo">
@@ -68,7 +95,7 @@ const Compose = () => {
           {/* Visibility */}
           <div>
             <label className="text-sm font-medium mb-1.5 block">Visibility</label>
-            <Select value={visibility} onValueChange={setVisibility}>
+            <Select value={visibility} onValueChange={(v) => setVisibility(v as MemoVisibility)}>
               <SelectTrigger className="w-48">
                 <div className="flex items-center gap-2">
                   <VisIcon className="h-4 w-4" />
@@ -91,7 +118,14 @@ const Compose = () => {
 
           {/* Recipients */}
           <div>
-            <label className="text-sm font-medium mb-1.5 block">Recipients</label>
+            <label className="text-sm font-medium mb-1.5 block">
+              Recipients
+              {selectedRecipients.length > 0 && (
+                <span className="text-xs text-muted-foreground ml-2">
+                  ({selectedRecipients.length} selected)
+                </span>
+              )}
+            </label>
             <div className="flex flex-wrap gap-2">
               {otherUsers.map((user) => (
                 <Badge
@@ -126,24 +160,53 @@ const Compose = () => {
             </div>
           </div>
 
-          {/* Body */}
+          {/* Rich Text Content */}
           <div>
             <label className="text-sm font-medium mb-1.5 block">Content</label>
-            <Textarea
-              placeholder="Write your memo content..."
-              value={body}
-              onChange={(e) => setBody(e.target.value)}
-              rows={8}
-              className="resize-none"
+            <RichTextEditor
+              content={body}
+              onChange={setBody}
+              placeholder="Write your memo content... Use the toolbar for formatting."
+              minHeight="200px"
+            />
+          </div>
+
+          {/* References */}
+          <div>
+            <label className="text-sm font-medium mb-1.5 block">References</label>
+            <div className="flex items-center gap-2 flex-wrap">
+              <MemoReferencePicker
+                onSelect={(id) => setReferencedMemoIds(prev => [...prev, id])}
+                selectedIds={referencedMemoIds}
+              />
+              {referencedMemoIds.map(refId => {
+                const ref = getMemoById(refId);
+                return (
+                  <Badge key={refId} variant="outline" className="gap-1">
+                    <FileText className="h-3 w-3" />
+                    {ref?.title || refId}
+                    <X
+                      className="h-3 w-3 ml-1 cursor-pointer"
+                      onClick={() => setReferencedMemoIds(prev => prev.filter(id => id !== refId))}
+                    />
+                  </Badge>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Attachments */}
+          <div>
+            <label className="text-sm font-medium mb-1.5 block">Attachments</label>
+            <AttachmentUploader
+              attachments={attachments}
+              onAdd={(newAtts) => setAttachments(prev => [...prev, ...newAtts])}
+              onRemove={(id) => setAttachments(prev => prev.filter(a => a.id !== id))}
             />
           </div>
 
           {/* Actions */}
-          <div className="flex items-center gap-3 pt-2">
-            <Button variant="outline" className="gap-2">
-              <Paperclip className="h-4 w-4" />
-              Attach File
-            </Button>
+          <div className="flex items-center gap-3 pt-2 border-t">
             <div className="flex-1" />
             <Button variant="outline" onClick={() => navigate("/memos")}>
               Cancel

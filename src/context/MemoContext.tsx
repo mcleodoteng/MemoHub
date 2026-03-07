@@ -1,0 +1,157 @@
+import React, { createContext, useContext, useState, useCallback } from 'react';
+import { Memo, Comment, Attachment, MemoVisibility } from '@/types';
+import { memos as initialMemos, comments as initialComments, currentUser } from '@/data/mock';
+
+interface MemoContextType {
+  memos: Memo[];
+  comments: Comment[];
+  addMemo: (memo: Omit<Memo, 'id' | 'createdAt' | 'updatedAt' | 'recipientStatuses' | 'reactions'>) => Memo;
+  updateMemo: (id: string, updates: Partial<Memo>) => void;
+  deleteMemo: (id: string) => void;
+  togglePin: (id: string) => void;
+  toggleArchive: (id: string) => void;
+  acknowledgeMemo: (memoId: string, userId: string) => void;
+  approveMemo: (memoId: string, userId: string) => void;
+  addComment: (memoId: string, body: string, authorId: string) => void;
+  addReaction: (memoId: string, emoji: string, userId: string) => void;
+  getMemoById: (id: string) => Memo | undefined;
+  getCommentsByMemoId: (memoId: string) => Comment[];
+}
+
+const MemoContext = createContext<MemoContextType | undefined>(undefined);
+
+export function MemoProvider({ children }: { children: React.ReactNode }) {
+  const [memos, setMemos] = useState<Memo[]>(initialMemos);
+  const [comments, setComments] = useState<Comment[]>(initialComments);
+
+  const getMemoById = useCallback((id: string) => memos.find(m => m.id === id), [memos]);
+  const getCommentsByMemoId = useCallback((memoId: string) => comments.filter(c => c.memoId === memoId), [comments]);
+
+  const addMemo = useCallback((memoData: Omit<Memo, 'id' | 'createdAt' | 'updatedAt' | 'recipientStatuses' | 'reactions'>) => {
+    const now = new Date().toISOString();
+    const newMemo: Memo = {
+      ...memoData,
+      id: `m${Date.now()}`,
+      reactions: [],
+      recipientStatuses: memoData.recipientIds.map(userId => ({
+        userId,
+        opened: false,
+        acknowledged: false,
+        approved: false,
+        replied: false,
+      })),
+      createdAt: now,
+      updatedAt: now,
+    };
+    setMemos(prev => [newMemo, ...prev]);
+    return newMemo;
+  }, []);
+
+  const updateMemo = useCallback((id: string, updates: Partial<Memo>) => {
+    setMemos(prev => prev.map(m => m.id === id ? { ...m, ...updates, updatedAt: new Date().toISOString() } : m));
+  }, []);
+
+  const deleteMemo = useCallback((id: string) => {
+    setMemos(prev => prev.filter(m => m.id !== id));
+  }, []);
+
+  const togglePin = useCallback((id: string) => {
+    setMemos(prev => prev.map(m => m.id === id ? { ...m, pinned: !m.pinned } : m));
+  }, []);
+
+  const toggleArchive = useCallback((id: string) => {
+    setMemos(prev => prev.map(m => m.id === id ? { ...m, archived: !m.archived } : m));
+  }, []);
+
+  const acknowledgeMemo = useCallback((memoId: string, userId: string) => {
+    setMemos(prev => prev.map(m => {
+      if (m.id !== memoId) return m;
+      return {
+        ...m,
+        recipientStatuses: m.recipientStatuses.map(s =>
+          s.userId === userId ? { ...s, opened: true, openedAt: s.openedAt || new Date().toISOString(), acknowledged: true, acknowledgedAt: new Date().toISOString() } : s
+        ),
+      };
+    }));
+  }, []);
+
+  const approveMemo = useCallback((memoId: string, userId: string) => {
+    setMemos(prev => prev.map(m => {
+      if (m.id !== memoId) return m;
+      return {
+        ...m,
+        recipientStatuses: m.recipientStatuses.map(s =>
+          s.userId === userId ? {
+            ...s,
+            opened: true,
+            openedAt: s.openedAt || new Date().toISOString(),
+            acknowledged: true,
+            acknowledgedAt: s.acknowledgedAt || new Date().toISOString(),
+            approved: true,
+            approvedAt: new Date().toISOString(),
+          } : s
+        ),
+      };
+    }));
+  }, []);
+
+  const addComment = useCallback((memoId: string, body: string, authorId: string) => {
+    const now = new Date().toISOString();
+    const newComment: Comment = {
+      id: `c${Date.now()}`,
+      memoId,
+      authorId,
+      body,
+      attachments: [],
+      reactions: [],
+      referencedMemoIds: [],
+      createdAt: now,
+      updatedAt: now,
+    };
+    setComments(prev => [...prev, newComment]);
+
+    // Mark as replied
+    setMemos(prev => prev.map(m => {
+      if (m.id !== memoId) return m;
+      return {
+        ...m,
+        recipientStatuses: m.recipientStatuses.map(s =>
+          s.userId === authorId ? { ...s, replied: true, repliedAt: now, opened: true, openedAt: s.openedAt || now } : s
+        ),
+      };
+    }));
+  }, []);
+
+  const addReaction = useCallback((memoId: string, emoji: string, userId: string) => {
+    setMemos(prev => prev.map(m => {
+      if (m.id !== memoId) return m;
+      const existing = m.reactions.find(r => r.emoji === emoji);
+      if (existing) {
+        if (existing.users.includes(userId)) {
+          // Remove reaction
+          const updatedReactions = m.reactions.map(r =>
+            r.emoji === emoji ? { ...r, users: r.users.filter(u => u !== userId) } : r
+          ).filter(r => r.users.length > 0);
+          return { ...m, reactions: updatedReactions };
+        }
+        return { ...m, reactions: m.reactions.map(r => r.emoji === emoji ? { ...r, users: [...r.users, userId] } : r) };
+      }
+      return { ...m, reactions: [...m.reactions, { emoji, users: [userId] }] };
+    }));
+  }, []);
+
+  return (
+    <MemoContext.Provider value={{
+      memos, comments, addMemo, updateMemo, deleteMemo, togglePin, toggleArchive,
+      acknowledgeMemo, approveMemo, addComment, addReaction, getMemoById, getCommentsByMemoId,
+    }}>
+      {children}
+    </MemoContext.Provider>
+  );
+}
+
+export function useMemos() {
+  const context = useContext(MemoContext);
+  if (!context) throw new Error('useMemos must be used within MemoProvider');
+  return context;
+}
