@@ -101,6 +101,32 @@ const Groups = () => {
           </div>
         )}
 
+        {invitedGroups.length > 0 && (
+          <div>
+            <h3 className="font-display font-semibold text-sm mb-3 text-warning">Pending Invitations</h3>
+            <div className="grid md:grid-cols-2 gap-4">
+              {invitedGroups.map(group => (
+                <div key={group.id} className="widget-card cursor-pointer hover:shadow-md transition-shadow border-warning/30 border"
+                  onClick={() => handleGroupClick(group)}>
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-warning/10 shrink-0">
+                      <Users className="h-5 w-5 text-warning" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-display font-semibold">{group.name}</h3>
+                        <Badge variant="outline" className="text-[10px] text-warning border-warning/30">Invited</Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground mt-0.5">{group.description}</p>
+                      <p className="text-xs text-primary mt-2">Click to accept or decline</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )
+
         {otherGroups.length > 0 && (
           <div>
             <h3 className="font-display font-semibold text-sm mb-3 text-muted-foreground">Other Groups</h3>
