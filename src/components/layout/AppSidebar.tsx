@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, FileText, MessageSquare, Users,
-  Bell, PenSquare, ChevronDown, FileEdit,
+  Bell, PenSquare, ChevronDown, FileEdit, Tag, ChevronRight,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -11,10 +11,12 @@ import {
 } from "@/components/ui/sidebar";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { currentUser, getUserInitials } from "@/data/mock";
+import { Button } from "@/components/ui/button";
+import { currentUser, getUserInitials, tags as allTags } from "@/data/mock";
 import { useMemos } from "@/context/MemoContext";
 import { useMessages } from "@/context/MessageContext";
 import { useGroups } from "@/context/GroupContext";
+import { useState } from "react";
 
 export function AppSidebar() {
   const { state } = useSidebar();
@@ -24,6 +26,7 @@ export function AppSidebar() {
   const { memos } = useMemos();
   const { conversations } = useMessages();
   const { groups } = useGroups();
+  const [showAllTags, setShowAllTags] = useState(false);
 
   const pendingApprovals = memos.filter(m =>
     m.recipientStatuses.some(s => s.userId === currentUser.id && s.opened && !s.approved)
@@ -35,6 +38,10 @@ export function AppSidebar() {
   const unreadNotifications = pendingApprovals + unreadMessages;
 
   const myGroups = groups.filter(g => g.memberIds.includes(currentUser.id));
+
+  // Collect all used tags from memos
+  const usedTags = Array.from(new Set(memos.flatMap(m => m.tags)));
+  const displayTags = showAllTags ? usedTags : usedTags.slice(0, 5);
 
   const isActive = (path: string) =>
     path === "/" ? location.pathname === "/" : location.pathname.startsWith(path);
@@ -211,6 +218,48 @@ export function AppSidebar() {
             </CollapsibleContent>
           </Collapsible>
         </SidebarGroup>
+
+        {/* Tags */}
+        {!collapsed && usedTags.length > 0 && (
+          <SidebarGroup>
+            <Collapsible defaultOpen className="group/collapsible">
+              <SidebarGroupLabel asChild className="text-sidebar-muted text-xs uppercase tracking-wider">
+                <CollapsibleTrigger className="flex w-full items-center justify-between">
+                  Tags
+                  <ChevronDown className="h-3.5 w-3.5 transition-transform group-data-[state=closed]/collapsible:rotate-[-90deg]" />
+                </CollapsibleTrigger>
+              </SidebarGroupLabel>
+              <CollapsibleContent>
+                <SidebarGroupContent>
+                  <div className="flex flex-wrap gap-1.5 px-3 py-2">
+                    {displayTags.map(tag => {
+                      const tagData = allTags.find(t => t.name === tag);
+                      return (
+                        <button
+                          key={tag}
+                          className="inline-flex items-center gap-1 text-[11px] px-2 py-1 rounded-full bg-sidebar-accent text-sidebar-accent-foreground hover:bg-sidebar-primary/20 transition-colors"
+                          onClick={() => navigate(`/memos?tag=${encodeURIComponent(tag)}`)}
+                        >
+                          <Tag className="h-2.5 w-2.5" />
+                          {tag}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {usedTags.length > 5 && (
+                    <button
+                      className="flex items-center gap-1 text-[11px] text-sidebar-muted hover:text-sidebar-foreground px-3 py-1 transition-colors"
+                      onClick={() => setShowAllTags(!showAllTags)}
+                    >
+                      <ChevronRight className={`h-3 w-3 transition-transform ${showAllTags ? 'rotate-90' : ''}`} />
+                      {showAllTags ? 'Show less' : `View ${usedTags.length - 5} more`}
+                    </button>
+                  )}
+                </SidebarGroupContent>
+              </CollapsibleContent>
+            </Collapsible>
+          </SidebarGroup>
+        )}
       </SidebarContent>
 
       <SidebarFooter className="p-3">
