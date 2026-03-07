@@ -152,6 +152,7 @@ export const memos: Memo[] = [
         ],
       },
     ],
+    activityLog: [],
     createdAt: '2024-12-04T08:00:00Z',
     updatedAt: '2024-12-04T12:00:00Z',
   },
