@@ -175,6 +175,7 @@ export const memos: Memo[] = [
     archived: false,
     referencedMemoIds: ['m4'],
     editHistory: [],
+    activityLog: [],
     createdAt: '2024-12-05T08:00:00Z',
     updatedAt: '2024-12-05T08:00:00Z',
   },
