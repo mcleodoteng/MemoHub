@@ -1,13 +1,19 @@
 import { AppLayout } from "@/components/layout/AppLayout";
 import { useMessages } from "@/context/MessageContext";
 import { useMemos } from "@/context/MemoContext";
+import { useGroups } from "@/context/GroupContext";
 import { currentUser, getUserById, getUserInitials } from "@/data/mock";
 import { UserHoverCard } from "@/components/user/UserHoverCard";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Send, Users as UsersIcon, SmilePlus, FileText, Share2, Search, X } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import {
+  Send, Users as UsersIcon, SmilePlus, FileText, Share2, Search, X,
+  Star, StarOff, Hash, MessageCircle,
+} from "lucide-react";
 import { useState, useRef, useEffect, useMemo } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { useNavigate } from "react-router-dom";
@@ -18,9 +24,10 @@ const Messages = () => {
   const navigate = useNavigate();
   const {
     conversations, sendMessage, addReaction, markAsRead,
-    getConversationMessages, typingUsers,
+    getConversationMessages, typingUsers, starMessage, starredMessages, getUnreadCount,
   } = useMessages();
   const { memos } = useMemos();
+  const { groups } = useGroups();
 
   const [selectedConv, setSelectedConv] = useState(conversations[0]?.id || "");
   const [newMessage, setNewMessage] = useState("");
@@ -28,6 +35,7 @@ const Messages = () => {
   const [convSearch, setConvSearch] = useState("");
   const [msgSearch, setMsgSearch] = useState("");
   const [showMsgSearch, setShowMsgSearch] = useState(false);
+  const [tab, setTab] = useState<'direct' | 'channels' | 'starred'>('direct');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const activeConv = conversations.find(c => c.id === selectedConv);
@@ -44,6 +52,10 @@ const Messages = () => {
 
   const getConvName = (conv: typeof conversations[0]) => {
     if (conv.name) return conv.name;
+    if (conv.groupId) {
+      const grp = groups.find(g => g.id === conv.groupId);
+      if (grp) return grp.name;
+    }
     const other = conv.participantIds.find(id => id !== currentUser.id);
     return other ? getUserById(other)?.name || "Unknown" : "Unknown";
   };
@@ -55,18 +67,35 @@ const Messages = () => {
     return user ? getUserInitials(user.name) : "?";
   };
 
-  // Filter conversations
-  const filteredConversations = useMemo(() => {
-    if (!convSearch.trim()) return conversations;
-    const q = convSearch.toLowerCase();
-    return conversations.filter(conv => {
-      const name = getConvName(conv).toLowerCase();
-      const lastMsg = conv.lastMessage?.body.toLowerCase() || "";
-      return name.includes(q) || lastMsg.includes(q);
-    });
-  }, [conversations, convSearch]);
+  const getOtherUserStatus = (conv: typeof conversations[0]) => {
+    if (conv.type !== 'direct') return null;
+    const other = conv.participantIds.find(id => id !== currentUser.id);
+    return other ? getUserById(other)?.status : null;
+  };
 
-  // Filter messages in current conversation
+  // Split conversations
+  const directConvs = conversations.filter(c => c.type === 'direct');
+  const channelConvs = conversations.filter(c => c.type === 'group');
+
+  // Sort by latest, then filter
+  const sortedDirect = useMemo(() => {
+    let filtered = directConvs;
+    if (convSearch.trim()) {
+      const q = convSearch.toLowerCase();
+      filtered = filtered.filter(c => getConvName(c).toLowerCase().includes(q) || c.lastMessage?.body.toLowerCase().includes(q));
+    }
+    return filtered.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+  }, [directConvs, convSearch]);
+
+  const sortedChannels = useMemo(() => {
+    let filtered = channelConvs;
+    if (convSearch.trim()) {
+      const q = convSearch.toLowerCase();
+      filtered = filtered.filter(c => getConvName(c).toLowerCase().includes(q) || c.lastMessage?.body.toLowerCase().includes(q));
+    }
+    return filtered.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+  }, [channelConvs, convSearch]);
+
   const filteredMessages = useMemo(() => {
     if (!msgSearch.trim()) return convMessages;
     const q = msgSearch.toLowerCase();
@@ -84,69 +113,137 @@ const Messages = () => {
     setShareOpen(false);
   };
 
+  const renderConvItem = (conv: typeof conversations[0]) => {
+    const unread = getUnreadCount(conv.id, currentUser.id);
+    const typing = typingUsers[conv.id] || [];
+    const otherStatus = getOtherUserStatus(conv);
+
+    return (
+      <div
+        key={conv.id}
+        className={`flex items-center gap-3 p-3 cursor-pointer transition-colors ${
+          selectedConv === conv.id ? "bg-secondary" : "hover:bg-secondary/50"
+        }`}
+        onClick={() => { setSelectedConv(conv.id); }}
+      >
+        <div className="relative">
+          <Avatar className="h-9 w-9 shrink-0">
+            <AvatarFallback className={`text-xs font-semibold ${conv.type === 'group' ? 'bg-accent/10 text-accent' : 'bg-primary/10 text-primary'}`}>
+              {conv.type === "group" ? <Hash className="h-4 w-4" /> : getConvInitials(conv)}
+            </AvatarFallback>
+          </Avatar>
+          {otherStatus === 'online' && (
+            <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-success border-2 border-card" />
+          )}
+          {otherStatus === 'away' && (
+            <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-warning border-2 border-card" />
+          )}
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center justify-between">
+            <span className={`text-sm truncate ${unread > 0 ? "font-semibold" : "font-medium"}`}>
+              {getConvName(conv)}
+            </span>
+            <span className="text-[10px] text-muted-foreground shrink-0">
+              {conv.lastMessage && formatDistanceToNow(new Date(conv.updatedAt), { addSuffix: false })}
+            </span>
+          </div>
+          {typing.length > 0 ? (
+            <p className="text-xs text-primary italic flex items-center gap-1">
+              <span className="flex gap-0.5">
+                <span className="w-1 h-1 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                <span className="w-1 h-1 bg-primary rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                <span className="w-1 h-1 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+              </span>
+              typing...
+            </p>
+          ) : (
+            <p className={`text-xs truncate ${unread > 0 ? "text-foreground" : "text-muted-foreground"}`}>
+              {conv.lastMessage?.body}
+            </p>
+          )}
+        </div>
+        {unread > 0 && (
+          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground shrink-0">
+            {unread > 9 ? "9+" : unread}
+          </span>
+        )}
+      </div>
+    );
+  };
+
+  const activeList = tab === 'direct' ? sortedDirect : tab === 'channels' ? sortedChannels : [];
+
   return (
     <AppLayout title="Messages">
       <div className="max-w-5xl mx-auto">
         <div className="flex h-[calc(100vh-8rem)] rounded-xl border bg-card overflow-hidden">
           {/* Conversation List */}
-          <div className="w-72 border-r flex flex-col shrink-0">
-            <div className="p-3 border-b">
-              <div className="relative">
-                <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                <Input
-                  placeholder="Search conversations..."
-                  value={convSearch}
-                  onChange={e => setConvSearch(e.target.value)}
-                  className="h-8 text-sm bg-secondary border-none pl-8"
-                />
-                {convSearch && (
-                  <button className="absolute right-2 top-1/2 -translate-y-1/2" onClick={() => setConvSearch("")}>
-                    <X className="h-3.5 w-3.5 text-muted-foreground" />
-                  </button>
-                )}
-              </div>
+          <div className="w-80 border-r flex flex-col shrink-0">
+            <div className="p-3 border-b space-y-2">
+              <Tabs value={tab} onValueChange={(v) => setTab(v as any)} className="w-full">
+                <TabsList className="w-full h-8">
+                  <TabsTrigger value="direct" className="flex-1 text-xs gap-1">
+                    <MessageCircle className="h-3 w-3" /> Direct
+                    {directConvs.some(c => getUnreadCount(c.id, currentUser.id) > 0) && (
+                      <span className="h-1.5 w-1.5 rounded-full bg-destructive" />
+                    )}
+                  </TabsTrigger>
+                  <TabsTrigger value="channels" className="flex-1 text-xs gap-1">
+                    <Hash className="h-3 w-3" /> Channels
+                  </TabsTrigger>
+                  <TabsTrigger value="starred" className="flex-1 text-xs gap-1">
+                    <Star className="h-3 w-3" /> Starred
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
+              {tab !== 'starred' && (
+                <div className="relative">
+                  <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                  <Input
+                    placeholder={`Search ${tab === 'direct' ? 'messages' : 'channels'}...`}
+                    value={convSearch}
+                    onChange={e => setConvSearch(e.target.value)}
+                    className="h-8 text-sm bg-secondary border-none pl-8"
+                  />
+                  {convSearch && (
+                    <button className="absolute right-2 top-1/2 -translate-y-1/2" onClick={() => setConvSearch("")}>
+                      <X className="h-3.5 w-3.5 text-muted-foreground" />
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
+
             <div className="flex-1 overflow-auto scrollbar-thin">
-              {filteredConversations.length === 0 ? (
-                <p className="text-xs text-muted-foreground text-center py-8">No conversations found</p>
-              ) : (
-                filteredConversations.map(conv => {
-                  const isUnread = conv.lastMessage && !conv.lastMessage.readBy.includes(currentUser.id);
-                  const typing = typingUsers[conv.id] || [];
-                  return (
-                    <div
-                      key={conv.id}
-                      className={`flex items-center gap-3 p-3 cursor-pointer transition-colors ${
-                        selectedConv === conv.id ? "bg-secondary" : "hover:bg-secondary/50"
-                      }`}
-                      onClick={() => setSelectedConv(conv.id)}
-                    >
-                      <Avatar className="h-9 w-9 shrink-0">
-                        <AvatarFallback className={`text-xs font-semibold ${conv.type === 'group' ? 'bg-accent/10 text-accent' : 'bg-primary/10 text-primary'}`}>
-                          {conv.type === "group" ? <UsersIcon className="h-4 w-4" /> : getConvInitials(conv)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center justify-between">
-                          <span className={`text-sm truncate ${isUnread ? "font-semibold" : "font-medium"}`}>
-                            {getConvName(conv)}
-                          </span>
-                          <span className="text-[10px] text-muted-foreground shrink-0">
-                            {conv.lastMessage && formatDistanceToNow(new Date(conv.updatedAt), { addSuffix: false })}
-                          </span>
-                        </div>
-                        {typing.length > 0 ? (
-                          <p className="text-xs text-primary italic">typing...</p>
-                        ) : (
-                          <p className={`text-xs truncate ${isUnread ? "text-foreground" : "text-muted-foreground"}`}>
-                            {conv.lastMessage?.body}
+              {tab === 'starred' ? (
+                starredMessages.length === 0 ? (
+                  <p className="text-xs text-muted-foreground text-center py-8">No starred messages</p>
+                ) : (
+                  starredMessages.map(msg => {
+                    const sender = getUserById(msg.senderId);
+                    return (
+                      <div
+                        key={msg.id}
+                        className="flex items-start gap-2 p-3 cursor-pointer hover:bg-secondary/50 transition-colors border-b border-border/50"
+                        onClick={() => setSelectedConv(msg.conversationId)}
+                      >
+                        <Star className="h-3.5 w-3.5 text-warning shrink-0 mt-1" />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-medium">{sender?.name || 'Unknown'}</p>
+                          <p className="text-xs text-muted-foreground truncate">{msg.body}</p>
+                          <p className="text-[10px] text-muted-foreground mt-0.5">
+                            {formatDistanceToNow(new Date(msg.createdAt), { addSuffix: true })}
                           </p>
-                        )}
+                        </div>
                       </div>
-                      {isUnread && <span className="h-2 w-2 rounded-full bg-primary shrink-0" />}
-                    </div>
-                  );
-                })
+                    );
+                  })
+                )
+              ) : activeList.length === 0 ? (
+                <p className="text-xs text-muted-foreground text-center py-8">No {tab === 'direct' ? 'conversations' : 'channels'} found</p>
+              ) : (
+                activeList.map(renderConvItem)
               )}
             </div>
           </div>
@@ -158,14 +255,13 @@ const Messages = () => {
                 <div className="p-3 border-b flex items-center gap-3">
                   <Avatar className="h-8 w-8">
                     <AvatarFallback className="text-xs bg-primary/10 text-primary font-semibold">
-                      {getConvInitials(activeConv)}
+                      {activeConv.type === 'group' ? <Hash className="h-4 w-4" /> : getConvInitials(activeConv)}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1">
                     <p className="text-sm font-semibold">{getConvName(activeConv)}</p>
                     <p className="text-xs text-muted-foreground">{activeConv.participantIds.length} participants</p>
                   </div>
-                  {/* Message search toggle */}
                   <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setShowMsgSearch(!showMsgSearch)}>
                     <Search className="h-4 w-4" />
                   </Button>
@@ -194,8 +290,18 @@ const Messages = () => {
 
                 <div className="flex-1 overflow-auto p-4 space-y-3 scrollbar-thin">
                   {filteredMessages.map(msg => {
+                    if (msg.isSystem) {
+                      return (
+                        <div key={msg.id} className="flex justify-center">
+                          <span className="text-[11px] text-muted-foreground bg-secondary px-3 py-1 rounded-full">
+                            {msg.body}
+                          </span>
+                        </div>
+                      );
+                    }
                     const sender = getUserById(msg.senderId);
                     const isMe = msg.senderId === currentUser.id;
+                    const isStarred = msg.starredBy?.includes(currentUser.id);
                     return (
                       <div key={msg.id} className={`flex gap-2 ${isMe ? "flex-row-reverse" : ""} group`}>
                         {sender ? (
@@ -212,9 +318,10 @@ const Messages = () => {
                           </Avatar>
                         )}
                         <div className="max-w-[70%] space-y-1">
-                          <div className={`rounded-xl px-3 py-2 text-sm ${
+                          <div className={`rounded-xl px-3 py-2 text-sm relative ${
                             isMe ? "bg-primary text-primary-foreground" : "bg-secondary"
                           }`}>
+                            {isStarred && <Star className="absolute -top-1.5 -right-1.5 h-3.5 w-3.5 text-warning fill-warning" />}
                             {!isMe && sender && (
                               <p className="text-xs font-semibold mb-0.5 opacity-70 cursor-pointer hover:underline"
                                 onClick={() => navigate(`/profile/${sender.id}`)}>
@@ -255,6 +362,13 @@ const Messages = () => {
                           )}
 
                           <div className={`opacity-0 group-hover:opacity-100 transition-opacity flex gap-0.5 ${isMe ? 'justify-end' : ''}`}>
+                            <button
+                              className="text-xs p-0.5 rounded hover:bg-secondary transition-colors"
+                              onClick={() => starMessage(msg.id, currentUser.id)}
+                              title={isStarred ? "Unstar" : "Star"}
+                            >
+                              {isStarred ? <StarOff className="h-3.5 w-3.5 text-warning" /> : <Star className="h-3.5 w-3.5 text-muted-foreground" />}
+                            </button>
                             {QUICK_EMOJIS.slice(0, 4).map(emoji => (
                               <button
                                 key={emoji}

@@ -1,6 +1,7 @@
 import {
   LayoutDashboard, FileText, MessageSquare, Users,
   Bell, PenSquare, ChevronDown, FileEdit, Tag, ChevronRight,
+  Clock,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -49,6 +50,7 @@ export function AppSidebar() {
   const mainNav = [
     { title: "Dashboard", url: "/", icon: LayoutDashboard, badge: 0 },
     { title: "Messages", url: "/messages", icon: MessageSquare, badge: unreadMessages },
+    { title: "Reminders", url: "/reminders", icon: Clock, badge: 0 },
     { title: "Notifications", url: "/notifications", icon: Bell, badge: unreadNotifications },
   ];
 

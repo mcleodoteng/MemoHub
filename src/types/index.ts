@@ -96,6 +96,24 @@ export interface Comment {
 }
 
 // ===== GROUP =====
+export interface GroupInvite {
+  userId: string;
+  status: 'pending' | 'accepted' | 'declined';
+  invitedAt: string;
+  respondedAt?: string;
+}
+
+export interface GroupFile {
+  id: string;
+  name: string;
+  type: string;
+  size: number;
+  url: string;
+  uploadedBy: string;
+  uploadedAt: string;
+  source: 'memo' | 'chat' | 'upload';
+}
+
 export interface Group {
   id: string;
   name: string;
@@ -103,6 +121,8 @@ export interface Group {
   type: 'department' | 'project' | 'custom';
   memberIds: string[];
   adminIds: string[];
+  pendingInvites: GroupInvite[];
+  files: GroupFile[];
   avatar: string;
   createdAt: string;
 }
@@ -127,6 +147,9 @@ export interface Message {
   reactions: MessageReaction[];
   sharedMemo?: SharedMemo;
   readBy: string[];
+  isSystem?: boolean; // system notifications like "user joined"
+  starred?: boolean;
+  starredBy?: string[];
   createdAt: string;
 }
 
@@ -141,8 +164,20 @@ export interface Conversation {
   updatedAt: string;
 }
 
+// ===== REMINDER =====
+export interface Reminder {
+  id: string;
+  title: string;
+  description?: string;
+  userId: string;
+  groupId?: string; // if set, this is a group reminder
+  dueAt: string;
+  fired: boolean;
+  createdAt: string;
+}
+
 // ===== NOTIFICATION =====
-export type NotificationType = 'memo_received' | 'memo_approved' | 'comment_added' | 'reaction_added' | 'message_received' | 'mention' | 'group_invite';
+export type NotificationType = 'memo_received' | 'memo_approved' | 'comment_added' | 'reaction_added' | 'message_received' | 'mention' | 'group_invite' | 'reminder' | 'starred_activity';
 
 export interface Notification {
   id: string;
