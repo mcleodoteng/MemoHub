@@ -44,7 +44,7 @@ const Groups = () => {
   };
 
   const handleGroupClick = (group: Group) => {
-    if (group.memberIds.includes(currentUser.id)) {
+    if (group.memberIds.includes(currentUser.id) || group.pendingInvites.some(i => i.userId === currentUser.id && i.status === 'pending')) {
       navigate(`/groups/${group.id}`);
     } else {
       toast.error("You are not a member of this group");
