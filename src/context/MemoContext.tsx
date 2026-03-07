@@ -14,7 +14,10 @@ interface MemoContextType {
   toggleArchive: (id: string) => void;
   hideMemo: (memoId: string, userId: string) => void;
   acknowledgeMemo: (memoId: string, userId: string) => void;
+  unacknowledgeMemo: (memoId: string, userId: string) => void;
   approveMemo: (memoId: string, userId: string) => void;
+  unapproveMemo: (memoId: string, userId: string) => void;
+  markOpened: (memoId: string, userId: string) => void;
   addComment: (memoId: string, body: string, authorId: string) => void;
   addReaction: (memoId: string, emoji: string, userId: string) => void;
   getMemoById: (id: string) => Memo | undefined;
