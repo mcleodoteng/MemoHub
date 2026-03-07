@@ -1,6 +1,7 @@
 import {
   LayoutDashboard, FileText, MessageSquare, Users,
   Bell, PenSquare, ChevronDown, FileEdit, Tag, ChevronRight,
+  Clock,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
