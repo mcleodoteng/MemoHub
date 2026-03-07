@@ -31,7 +31,8 @@ const Groups = () => {
 
   const otherUsers = users.filter(u => u.id !== currentUser.id);
   const myGroups = groups.filter(g => g.memberIds.includes(currentUser.id));
-  const otherGroups = groups.filter(g => !g.memberIds.includes(currentUser.id));
+  const invitedGroups = groups.filter(g => !g.memberIds.includes(currentUser.id) && g.pendingInvites.some(i => i.userId === currentUser.id && i.status === 'pending'));
+  const otherGroups = groups.filter(g => !g.memberIds.includes(currentUser.id) && !g.pendingInvites.some(i => i.userId === currentUser.id && i.status === 'pending'));
 
   const handleCreateGroup = () => {
     if (!newName.trim()) { toast.error("Group name is required"); return; }
