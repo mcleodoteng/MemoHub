@@ -125,7 +125,7 @@ const Groups = () => {
               ))}
             </div>
           </div>
-        )
+        )}
 
         {otherGroups.length > 0 && (
           <div>
