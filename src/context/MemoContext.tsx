@@ -129,14 +129,49 @@ export function MemoProvider({ children }: { children: React.ReactNode }) {
     }));
   }, []);
 
-  const acknowledgeMemo = useCallback((memoId: string, userId: string) => {
+  const markOpened = useCallback((memoId: string, userId: string) => {
     setMemos(prev => prev.map(m => {
       if (m.id !== memoId) return m;
+      const status = m.recipientStatuses.find(s => s.userId === userId);
+      if (!status || status.opened) return m;
+      const now = new Date().toISOString();
+      const entry: import('@/types').MemoActivityEntry = { id: `al${Date.now()}`, userId, action: 'opened', timestamp: now };
       return {
         ...m,
         recipientStatuses: m.recipientStatuses.map(s =>
-          s.userId === userId ? { ...s, opened: true, openedAt: s.openedAt || new Date().toISOString(), acknowledged: true, acknowledgedAt: new Date().toISOString() } : s
+          s.userId === userId ? { ...s, opened: true, openedAt: now, acknowledged: true, acknowledgedAt: now } : s
         ),
+        activityLog: [...m.activityLog, entry, { id: `al${Date.now()}a`, userId, action: 'acknowledged' as const, timestamp: now, detail: 'Auto-acknowledged on open' }],
+      };
+    }));
+  }, []);
+
+  const acknowledgeMemo = useCallback((memoId: string, userId: string) => {
+    setMemos(prev => prev.map(m => {
+      if (m.id !== memoId) return m;
+      const now = new Date().toISOString();
+      const entry: import('@/types').MemoActivityEntry = { id: `al${Date.now()}`, userId, action: 'acknowledged', timestamp: now };
+      return {
+        ...m,
+        recipientStatuses: m.recipientStatuses.map(s =>
+          s.userId === userId ? { ...s, opened: true, openedAt: s.openedAt || now, acknowledged: true, acknowledgedAt: now } : s
+        ),
+        activityLog: [...m.activityLog, entry],
+      };
+    }));
+  }, []);
+
+  const unacknowledgeMemo = useCallback((memoId: string, userId: string) => {
+    setMemos(prev => prev.map(m => {
+      if (m.id !== memoId) return m;
+      const now = new Date().toISOString();
+      const entry: import('@/types').MemoActivityEntry = { id: `al${Date.now()}`, userId, action: 'unacknowledged', timestamp: now };
+      return {
+        ...m,
+        recipientStatuses: m.recipientStatuses.map(s =>
+          s.userId === userId ? { ...s, acknowledged: false, acknowledgedAt: undefined } : s
+        ),
+        activityLog: [...m.activityLog, entry],
       };
     }));
   }, []);
@@ -144,19 +179,37 @@ export function MemoProvider({ children }: { children: React.ReactNode }) {
   const approveMemo = useCallback((memoId: string, userId: string) => {
     setMemos(prev => prev.map(m => {
       if (m.id !== memoId) return m;
+      const now = new Date().toISOString();
+      const entry: import('@/types').MemoActivityEntry = { id: `al${Date.now()}`, userId, action: 'approved', timestamp: now };
       return {
         ...m,
         recipientStatuses: m.recipientStatuses.map(s =>
           s.userId === userId ? {
             ...s,
             opened: true,
-            openedAt: s.openedAt || new Date().toISOString(),
+            openedAt: s.openedAt || now,
             acknowledged: true,
-            acknowledgedAt: s.acknowledgedAt || new Date().toISOString(),
+            acknowledgedAt: s.acknowledgedAt || now,
             approved: true,
-            approvedAt: new Date().toISOString(),
+            approvedAt: now,
           } : s
         ),
+        activityLog: [...m.activityLog, entry],
+      };
+    }));
+  }, []);
+
+  const unapproveMemo = useCallback((memoId: string, userId: string) => {
+    setMemos(prev => prev.map(m => {
+      if (m.id !== memoId) return m;
+      const now = new Date().toISOString();
+      const entry: import('@/types').MemoActivityEntry = { id: `al${Date.now()}`, userId, action: 'unapproved', timestamp: now };
+      return {
+        ...m,
+        recipientStatuses: m.recipientStatuses.map(s =>
+          s.userId === userId ? { ...s, approved: false, approvedAt: undefined } : s
+        ),
+        activityLog: [...m.activityLog, entry],
       };
     }));
   }, []);
