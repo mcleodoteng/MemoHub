@@ -77,7 +77,7 @@ const Memos = () => {
           </TabsList>
 
           <TabsContent value="all" className="mt-4">
-            <MemoList items={sentMemos.filter(m => !m.archived)} />
+            <MemoList items={allNonArchived} />
           </TabsContent>
           <TabsContent value="drafts" className="mt-4"><MemoList items={draftMemos} /></TabsContent>
           <TabsContent value="public" className="mt-4"><MemoList items={publicMemos} /></TabsContent>
