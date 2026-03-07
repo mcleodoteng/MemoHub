@@ -27,7 +27,7 @@ interface MemoContextType {
 const MemoContext = createContext<MemoContextType | undefined>(undefined);
 
 export function MemoProvider({ children }: { children: React.ReactNode }) {
-  const [memos, setMemos] = useState<Memo[]>(initialMemos.map(m => ({ ...m, hiddenBy: m.hiddenBy || [] })));
+  const [memos, setMemos] = useState<Memo[]>(initialMemos.map(m => ({ ...m, hiddenBy: m.hiddenBy || [], activityLog: m.activityLog || [] })));
   const [comments, setComments] = useState<Comment[]>(initialComments);
 
   const getMemoById = useCallback((id: string) => memos.find(m => m.id === id), [memos]);
