@@ -40,6 +40,17 @@ export interface Reaction {
   users: string[]; // user IDs
 }
 
+export interface MemoEditEntry {
+  id: string;
+  editedAt: string;
+  editedBy: string;
+  changes: {
+    field: string;
+    oldValue: string;
+    newValue: string;
+  }[];
+}
+
 export interface Memo {
   id: string;
   title: string;
@@ -56,6 +67,7 @@ export interface Memo {
   pinned: boolean;
   archived: boolean;
   referencedMemoIds: string[];
+  editHistory: MemoEditEntry[];
   createdAt: string;
   updatedAt: string;
 }
@@ -86,12 +98,24 @@ export interface Group {
 }
 
 // ===== MESSAGING =====
+export interface MessageReaction {
+  emoji: string;
+  users: string[];
+}
+
+export interface SharedMemo {
+  memoId: string;
+  title: string;
+}
+
 export interface Message {
   id: string;
   conversationId: string;
   senderId: string;
   body: string;
   attachments: Attachment[];
+  reactions: MessageReaction[];
+  sharedMemo?: SharedMemo;
   readBy: string[];
   createdAt: string;
 }
@@ -102,6 +126,7 @@ export interface Conversation {
   participantIds: string[];
   name?: string;
   lastMessage?: Message;
+  typingUsers?: string[];
   updatedAt: string;
 }
 

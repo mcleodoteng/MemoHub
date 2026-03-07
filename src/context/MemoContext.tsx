@@ -1,12 +1,13 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
-import { Memo, Comment, Attachment, MemoVisibility } from '@/types';
+import { Memo, Comment, MemoVisibility, MemoEditEntry } from '@/types';
 import { memos as initialMemos, comments as initialComments, currentUser } from '@/data/mock';
 
 interface MemoContextType {
   memos: Memo[];
   comments: Comment[];
-  addMemo: (memo: Omit<Memo, 'id' | 'createdAt' | 'updatedAt' | 'recipientStatuses' | 'reactions'>) => Memo;
+  addMemo: (memo: Omit<Memo, 'id' | 'createdAt' | 'updatedAt' | 'recipientStatuses' | 'reactions' | 'editHistory'>) => Memo;
   updateMemo: (id: string, updates: Partial<Memo>) => void;
+  editMemo: (id: string, updates: { title?: string; body?: string; tags?: string[]; visibility?: MemoVisibility }, editorId: string) => void;
   deleteMemo: (id: string) => void;
   togglePin: (id: string) => void;
   toggleArchive: (id: string) => void;
@@ -27,12 +28,13 @@ export function MemoProvider({ children }: { children: React.ReactNode }) {
   const getMemoById = useCallback((id: string) => memos.find(m => m.id === id), [memos]);
   const getCommentsByMemoId = useCallback((memoId: string) => comments.filter(c => c.memoId === memoId), [comments]);
 
-  const addMemo = useCallback((memoData: Omit<Memo, 'id' | 'createdAt' | 'updatedAt' | 'recipientStatuses' | 'reactions'>) => {
+  const addMemo = useCallback((memoData: Omit<Memo, 'id' | 'createdAt' | 'updatedAt' | 'recipientStatuses' | 'reactions' | 'editHistory'>) => {
     const now = new Date().toISOString();
     const newMemo: Memo = {
       ...memoData,
       id: `m${Date.now()}`,
       reactions: [],
+      editHistory: [],
       recipientStatuses: memoData.recipientIds.map(userId => ({
         userId,
         opened: false,
@@ -49,6 +51,37 @@ export function MemoProvider({ children }: { children: React.ReactNode }) {
 
   const updateMemo = useCallback((id: string, updates: Partial<Memo>) => {
     setMemos(prev => prev.map(m => m.id === id ? { ...m, ...updates, updatedAt: new Date().toISOString() } : m));
+  }, []);
+
+  const editMemo = useCallback((id: string, updates: { title?: string; body?: string; tags?: string[]; visibility?: MemoVisibility }, editorId: string) => {
+    setMemos(prev => prev.map(m => {
+      if (m.id !== id || m.creatorId !== editorId) return m;
+      const now = new Date().toISOString();
+      const changes: MemoEditEntry['changes'] = [];
+      if (updates.title !== undefined && updates.title !== m.title) {
+        changes.push({ field: 'title', oldValue: m.title, newValue: updates.title });
+      }
+      if (updates.body !== undefined && updates.body !== m.body) {
+        changes.push({ field: 'body', oldValue: m.body, newValue: updates.body });
+      }
+      if (updates.tags !== undefined && JSON.stringify(updates.tags) !== JSON.stringify(m.tags)) {
+        changes.push({ field: 'tags', oldValue: m.tags.join(', '), newValue: updates.tags.join(', ') });
+      }
+      if (updates.visibility !== undefined && updates.visibility !== m.visibility) {
+        changes.push({ field: 'visibility', oldValue: m.visibility, newValue: updates.visibility });
+      }
+      if (changes.length === 0) return m;
+      const entry: MemoEditEntry = { id: `eh${Date.now()}`, editedAt: now, editedBy: editorId, changes };
+      return {
+        ...m,
+        ...(updates.title !== undefined && { title: updates.title }),
+        ...(updates.body !== undefined && { body: updates.body }),
+        ...(updates.tags !== undefined && { tags: updates.tags }),
+        ...(updates.visibility !== undefined && { visibility: updates.visibility }),
+        editHistory: [...m.editHistory, entry],
+        updatedAt: now,
+      };
+    }));
   }, []);
 
   const deleteMemo = useCallback((id: string) => {
@@ -109,8 +142,6 @@ export function MemoProvider({ children }: { children: React.ReactNode }) {
       updatedAt: now,
     };
     setComments(prev => [...prev, newComment]);
-
-    // Mark as replied
     setMemos(prev => prev.map(m => {
       if (m.id !== memoId) return m;
       return {
@@ -128,7 +159,6 @@ export function MemoProvider({ children }: { children: React.ReactNode }) {
       const existing = m.reactions.find(r => r.emoji === emoji);
       if (existing) {
         if (existing.users.includes(userId)) {
-          // Remove reaction
           const updatedReactions = m.reactions.map(r =>
             r.emoji === emoji ? { ...r, users: r.users.filter(u => u !== userId) } : r
           ).filter(r => r.users.length > 0);
@@ -142,7 +172,7 @@ export function MemoProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <MemoContext.Provider value={{
-      memos, comments, addMemo, updateMemo, deleteMemo, togglePin, toggleArchive,
+      memos, comments, addMemo, updateMemo, editMemo, deleteMemo, togglePin, toggleArchive,
       acknowledgeMemo, approveMemo, addComment, addReaction, getMemoById, getCommentsByMemoId,
     }}>
       {children}
