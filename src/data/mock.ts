@@ -193,10 +193,10 @@ export const comments: Comment[] = [
 
 // ===== GROUPS =====
 export const groups: Group[] = [
-  { id: 'g1', name: 'Engineering', description: 'All engineering team members', type: 'department', memberIds: ['u1', 'u3', 'u5'], adminIds: ['u1'], avatar: '', createdAt: '2024-01-01T00:00:00Z' },
-  { id: 'g2', name: 'Design', description: 'Design and UX team', type: 'department', memberIds: ['u2', 'u8'], adminIds: ['u2'], avatar: '', createdAt: '2024-01-01T00:00:00Z' },
-  { id: 'g3', name: 'Leadership', description: 'Company leadership team', type: 'custom', memberIds: ['u1', 'u2', 'u4', 'u6'], adminIds: ['u1'], avatar: '', createdAt: '2024-02-01T00:00:00Z' },
-  { id: 'g4', name: 'Project Alpha', description: 'Cross-functional project team', type: 'project', memberIds: ['u1', 'u2', 'u3', 'u4'], adminIds: ['u1', 'u2'], avatar: '', createdAt: '2024-06-01T00:00:00Z' },
+  { id: 'g1', name: 'Engineering', description: 'All engineering team members', type: 'department', memberIds: ['u1', 'u3', 'u5'], adminIds: ['u1'], pendingInvites: [], files: [], avatar: '', createdAt: '2024-01-01T00:00:00Z' },
+  { id: 'g2', name: 'Design', description: 'Design and UX team', type: 'department', memberIds: ['u2', 'u8'], adminIds: ['u2'], pendingInvites: [], files: [], avatar: '', createdAt: '2024-01-01T00:00:00Z' },
+  { id: 'g3', name: 'Leadership', description: 'Company leadership team', type: 'custom', memberIds: ['u1', 'u2', 'u4', 'u6'], adminIds: ['u1'], pendingInvites: [], files: [], avatar: '', createdAt: '2024-02-01T00:00:00Z' },
+  { id: 'g4', name: 'Project Alpha', description: 'Cross-functional project team', type: 'project', memberIds: ['u1', 'u2', 'u3', 'u4'], adminIds: ['u1', 'u2'], pendingInvites: [], files: [], avatar: '', createdAt: '2024-06-01T00:00:00Z' },
 ];
 
 // ===== CONVERSATIONS =====

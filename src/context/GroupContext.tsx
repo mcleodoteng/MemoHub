@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
-import { Group } from '@/types';
+import { Group, GroupInvite, GroupFile } from '@/types';
 import { groups as initialGroups, currentUser } from '@/data/mock';
 
 interface GroupContextType {
@@ -12,6 +12,11 @@ interface GroupContextType {
   addAdmin: (groupId: string, userId: string) => void;
   removeAdmin: (groupId: string, userId: string) => void;
   getGroupById: (id: string) => Group | undefined;
+  inviteUser: (groupId: string, userId: string) => void;
+  acceptInvite: (groupId: string, userId: string) => void;
+  declineInvite: (groupId: string, userId: string) => void;
+  getInviteStatus: (groupId: string, userId: string) => GroupInvite | undefined;
+  addFile: (groupId: string, file: Omit<GroupFile, 'id' | 'uploadedAt'>) => void;
 }
 
 const GroupContext = createContext<GroupContextType | undefined>(undefined);
@@ -27,8 +32,14 @@ export function GroupProvider({ children }: { children: React.ReactNode }) {
       name: data.name,
       description: data.description,
       type: data.type,
-      memberIds: [currentUser.id, ...data.memberIds],
+      memberIds: [currentUser.id],
       adminIds: [currentUser.id],
+      pendingInvites: data.memberIds.map(uid => ({
+        userId: uid,
+        status: 'pending' as const,
+        invitedAt: new Date().toISOString(),
+      })),
+      files: [],
       avatar: '',
       createdAt: new Date().toISOString(),
     };
@@ -72,8 +83,62 @@ export function GroupProvider({ children }: { children: React.ReactNode }) {
     }));
   }, []);
 
+  const inviteUser = useCallback((groupId: string, userId: string) => {
+    setGroups(prev => prev.map(g => {
+      if (g.id !== groupId) return g;
+      if (g.memberIds.includes(userId)) return g;
+      if (g.pendingInvites.some(i => i.userId === userId && i.status === 'pending')) return g;
+      const invite: GroupInvite = { userId, status: 'pending', invitedAt: new Date().toISOString() };
+      return { ...g, pendingInvites: [...g.pendingInvites, invite] };
+    }));
+  }, []);
+
+  const acceptInvite = useCallback((groupId: string, userId: string) => {
+    setGroups(prev => prev.map(g => {
+      if (g.id !== groupId) return g;
+      const now = new Date().toISOString();
+      return {
+        ...g,
+        memberIds: g.memberIds.includes(userId) ? g.memberIds : [...g.memberIds, userId],
+        pendingInvites: g.pendingInvites.map(i =>
+          i.userId === userId ? { ...i, status: 'accepted' as const, respondedAt: now } : i
+        ),
+      };
+    }));
+  }, []);
+
+  const declineInvite = useCallback((groupId: string, userId: string) => {
+    setGroups(prev => prev.map(g => {
+      if (g.id !== groupId) return g;
+      const now = new Date().toISOString();
+      return {
+        ...g,
+        pendingInvites: g.pendingInvites.map(i =>
+          i.userId === userId ? { ...i, status: 'declined' as const, respondedAt: now } : i
+        ),
+      };
+    }));
+  }, []);
+
+  const getInviteStatus = useCallback((groupId: string, userId: string) => {
+    const group = groups.find(g => g.id === groupId);
+    return group?.pendingInvites.find(i => i.userId === userId);
+  }, [groups]);
+
+  const addFile = useCallback((groupId: string, file: Omit<GroupFile, 'id' | 'uploadedAt'>) => {
+    setGroups(prev => prev.map(g => {
+      if (g.id !== groupId) return g;
+      const newFile: GroupFile = { ...file, id: `gf${Date.now()}`, uploadedAt: new Date().toISOString() };
+      return { ...g, files: [...g.files, newFile] };
+    }));
+  }, []);
+
   return (
-    <GroupContext.Provider value={{ groups, addGroup, updateGroup, deleteGroup, addMember, removeMember, addAdmin, removeAdmin, getGroupById }}>
+    <GroupContext.Provider value={{
+      groups, addGroup, updateGroup, deleteGroup, addMember, removeMember,
+      addAdmin, removeAdmin, getGroupById, inviteUser, acceptInvite, declineInvite,
+      getInviteStatus, addFile,
+    }}>
       {children}
     </GroupContext.Provider>
   );
