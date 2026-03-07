@@ -2,17 +2,20 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { useMessages } from "@/context/MessageContext";
 import { useMemos } from "@/context/MemoContext";
 import { currentUser, getUserById, getUserInitials } from "@/data/mock";
+import { UserHoverCard } from "@/components/user/UserHoverCard";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Send, Users as UsersIcon, SmilePlus, FileText, Share2 } from "lucide-react";
-import { useState, useRef, useEffect } from "react";
+import { Send, Users as UsersIcon, SmilePlus, FileText, Share2, Search, X } from "lucide-react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { formatDistanceToNow } from "date-fns";
+import { useNavigate } from "react-router-dom";
 
 const QUICK_EMOJIS = ['👍', '❤️', '😂', '🎉', '🚀', '👏', '🔥', '💡'];
 
 const Messages = () => {
+  const navigate = useNavigate();
   const {
     conversations, sendMessage, addReaction, markAsRead,
     getConversationMessages, typingUsers,
@@ -22,6 +25,9 @@ const Messages = () => {
   const [selectedConv, setSelectedConv] = useState(conversations[0]?.id || "");
   const [newMessage, setNewMessage] = useState("");
   const [shareOpen, setShareOpen] = useState(false);
+  const [convSearch, setConvSearch] = useState("");
+  const [msgSearch, setMsgSearch] = useState("");
+  const [showMsgSearch, setShowMsgSearch] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const activeConv = conversations.find(c => c.id === selectedConv);
@@ -49,6 +55,24 @@ const Messages = () => {
     return user ? getUserInitials(user.name) : "?";
   };
 
+  // Filter conversations
+  const filteredConversations = useMemo(() => {
+    if (!convSearch.trim()) return conversations;
+    const q = convSearch.toLowerCase();
+    return conversations.filter(conv => {
+      const name = getConvName(conv).toLowerCase();
+      const lastMsg = conv.lastMessage?.body.toLowerCase() || "";
+      return name.includes(q) || lastMsg.includes(q);
+    });
+  }, [conversations, convSearch]);
+
+  // Filter messages in current conversation
+  const filteredMessages = useMemo(() => {
+    if (!msgSearch.trim()) return convMessages;
+    const q = msgSearch.toLowerCase();
+    return convMessages.filter(msg => msg.body.toLowerCase().includes(q));
+  }, [convMessages, msgSearch]);
+
   const handleSend = () => {
     if (!newMessage.trim()) return;
     sendMessage(selectedConv, newMessage);
@@ -67,46 +91,63 @@ const Messages = () => {
           {/* Conversation List */}
           <div className="w-72 border-r flex flex-col shrink-0">
             <div className="p-3 border-b">
-              <Input placeholder="Search conversations..." className="h-8 text-sm bg-secondary border-none" />
+              <div className="relative">
+                <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                <Input
+                  placeholder="Search conversations..."
+                  value={convSearch}
+                  onChange={e => setConvSearch(e.target.value)}
+                  className="h-8 text-sm bg-secondary border-none pl-8"
+                />
+                {convSearch && (
+                  <button className="absolute right-2 top-1/2 -translate-y-1/2" onClick={() => setConvSearch("")}>
+                    <X className="h-3.5 w-3.5 text-muted-foreground" />
+                  </button>
+                )}
+              </div>
             </div>
             <div className="flex-1 overflow-auto scrollbar-thin">
-              {conversations.map(conv => {
-                const isUnread = conv.lastMessage && !conv.lastMessage.readBy.includes(currentUser.id);
-                const typing = typingUsers[conv.id] || [];
-                return (
-                  <div
-                    key={conv.id}
-                    className={`flex items-center gap-3 p-3 cursor-pointer transition-colors ${
-                      selectedConv === conv.id ? "bg-secondary" : "hover:bg-secondary/50"
-                    }`}
-                    onClick={() => setSelectedConv(conv.id)}
-                  >
-                    <Avatar className="h-9 w-9 shrink-0">
-                      <AvatarFallback className={`text-xs font-semibold ${conv.type === 'group' ? 'bg-accent/10 text-accent' : 'bg-primary/10 text-primary'}`}>
-                        {conv.type === "group" ? <UsersIcon className="h-4 w-4" /> : getConvInitials(conv)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center justify-between">
-                        <span className={`text-sm truncate ${isUnread ? "font-semibold" : "font-medium"}`}>
-                          {getConvName(conv)}
-                        </span>
-                        <span className="text-[10px] text-muted-foreground shrink-0">
-                          {conv.lastMessage && formatDistanceToNow(new Date(conv.updatedAt), { addSuffix: false })}
-                        </span>
+              {filteredConversations.length === 0 ? (
+                <p className="text-xs text-muted-foreground text-center py-8">No conversations found</p>
+              ) : (
+                filteredConversations.map(conv => {
+                  const isUnread = conv.lastMessage && !conv.lastMessage.readBy.includes(currentUser.id);
+                  const typing = typingUsers[conv.id] || [];
+                  return (
+                    <div
+                      key={conv.id}
+                      className={`flex items-center gap-3 p-3 cursor-pointer transition-colors ${
+                        selectedConv === conv.id ? "bg-secondary" : "hover:bg-secondary/50"
+                      }`}
+                      onClick={() => setSelectedConv(conv.id)}
+                    >
+                      <Avatar className="h-9 w-9 shrink-0">
+                        <AvatarFallback className={`text-xs font-semibold ${conv.type === 'group' ? 'bg-accent/10 text-accent' : 'bg-primary/10 text-primary'}`}>
+                          {conv.type === "group" ? <UsersIcon className="h-4 w-4" /> : getConvInitials(conv)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between">
+                          <span className={`text-sm truncate ${isUnread ? "font-semibold" : "font-medium"}`}>
+                            {getConvName(conv)}
+                          </span>
+                          <span className="text-[10px] text-muted-foreground shrink-0">
+                            {conv.lastMessage && formatDistanceToNow(new Date(conv.updatedAt), { addSuffix: false })}
+                          </span>
+                        </div>
+                        {typing.length > 0 ? (
+                          <p className="text-xs text-primary italic">typing...</p>
+                        ) : (
+                          <p className={`text-xs truncate ${isUnread ? "text-foreground" : "text-muted-foreground"}`}>
+                            {conv.lastMessage?.body}
+                          </p>
+                        )}
                       </div>
-                      {typing.length > 0 ? (
-                        <p className="text-xs text-primary italic">typing...</p>
-                      ) : (
-                        <p className={`text-xs truncate ${isUnread ? "text-foreground" : "text-muted-foreground"}`}>
-                          {conv.lastMessage?.body}
-                        </p>
-                      )}
+                      {isUnread && <span className="h-2 w-2 rounded-full bg-primary shrink-0" />}
                     </div>
-                    {isUnread && <span className="h-2 w-2 rounded-full bg-primary shrink-0" />}
-                  </div>
-                );
-              })}
+                  );
+                })
+              )}
             </div>
           </div>
 
@@ -120,32 +161,69 @@ const Messages = () => {
                       {getConvInitials(activeConv)}
                     </AvatarFallback>
                   </Avatar>
-                  <div>
+                  <div className="flex-1">
                     <p className="text-sm font-semibold">{getConvName(activeConv)}</p>
                     <p className="text-xs text-muted-foreground">{activeConv.participantIds.length} participants</p>
                   </div>
+                  {/* Message search toggle */}
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setShowMsgSearch(!showMsgSearch)}>
+                    <Search className="h-4 w-4" />
+                  </Button>
                 </div>
 
+                {showMsgSearch && (
+                  <div className="px-3 py-2 border-b">
+                    <div className="relative">
+                      <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                      <Input
+                        placeholder="Search messages..."
+                        value={msgSearch}
+                        onChange={e => setMsgSearch(e.target.value)}
+                        className="h-8 text-sm pl-8"
+                        autoFocus
+                      />
+                      {msgSearch && (
+                        <button className="absolute right-2 top-1/2 -translate-y-1/2" onClick={() => setMsgSearch("")}>
+                          <X className="h-3.5 w-3.5 text-muted-foreground" />
+                        </button>
+                      )}
+                    </div>
+                    {msgSearch && <p className="text-[10px] text-muted-foreground mt-1">{filteredMessages.length} result{filteredMessages.length !== 1 ? 's' : ''}</p>}
+                  </div>
+                )}
+
                 <div className="flex-1 overflow-auto p-4 space-y-3 scrollbar-thin">
-                  {convMessages.map(msg => {
+                  {filteredMessages.map(msg => {
                     const sender = getUserById(msg.senderId);
                     const isMe = msg.senderId === currentUser.id;
                     return (
                       <div key={msg.id} className={`flex gap-2 ${isMe ? "flex-row-reverse" : ""} group`}>
-                        <Avatar className="h-7 w-7 shrink-0">
-                          <AvatarFallback className="text-[10px] bg-primary/10 text-primary font-semibold">
-                            {sender ? getUserInitials(sender.name) : "?"}
-                          </AvatarFallback>
-                        </Avatar>
+                        {sender ? (
+                          <UserHoverCard user={sender}>
+                            <Avatar className="h-7 w-7 shrink-0 cursor-pointer" onClick={() => navigate(`/profile/${sender.id}`)}>
+                              <AvatarFallback className="text-[10px] bg-primary/10 text-primary font-semibold">
+                                {getUserInitials(sender.name)}
+                              </AvatarFallback>
+                            </Avatar>
+                          </UserHoverCard>
+                        ) : (
+                          <Avatar className="h-7 w-7 shrink-0">
+                            <AvatarFallback className="text-[10px] bg-primary/10 text-primary font-semibold">?</AvatarFallback>
+                          </Avatar>
+                        )}
                         <div className="max-w-[70%] space-y-1">
                           <div className={`rounded-xl px-3 py-2 text-sm ${
                             isMe ? "bg-primary text-primary-foreground" : "bg-secondary"
                           }`}>
-                            {!isMe && (
-                              <p className="text-xs font-semibold mb-0.5 opacity-70">{sender?.name}</p>
+                            {!isMe && sender && (
+                              <p className="text-xs font-semibold mb-0.5 opacity-70 cursor-pointer hover:underline"
+                                onClick={() => navigate(`/profile/${sender.id}`)}>
+                                {sender.name}
+                              </p>
                             )}
                             {msg.sharedMemo ? (
-                              <div className={`flex items-center gap-2 p-2 rounded-lg ${isMe ? 'bg-primary-foreground/10' : 'bg-background'}`}>
+                              <div className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer ${isMe ? 'bg-primary-foreground/10' : 'bg-background'}`}
+                                onClick={() => navigate(`/memos/${msg.sharedMemo!.memoId}`)}>
                                 <FileText className="h-4 w-4 shrink-0" />
                                 <span className="text-xs font-medium">{msg.sharedMemo.title}</span>
                               </div>
@@ -157,7 +235,6 @@ const Messages = () => {
                             </p>
                           </div>
 
-                          {/* Reactions */}
                           {msg.reactions.length > 0 && (
                             <div className="flex gap-1 flex-wrap">
                               {msg.reactions.map(r => {
@@ -177,7 +254,6 @@ const Messages = () => {
                             </div>
                           )}
 
-                          {/* Reaction picker (shows on hover) */}
                           <div className={`opacity-0 group-hover:opacity-100 transition-opacity flex gap-0.5 ${isMe ? 'justify-end' : ''}`}>
                             {QUICK_EMOJIS.slice(0, 4).map(emoji => (
                               <button
@@ -210,7 +286,6 @@ const Messages = () => {
                     );
                   })}
 
-                  {/* Typing indicator */}
                   {convTyping.length > 0 && (
                     <div className="flex gap-2 items-center">
                       <Avatar className="h-7 w-7 shrink-0">
@@ -230,7 +305,6 @@ const Messages = () => {
                   <div ref={messagesEndRef} />
                 </div>
 
-                {/* Message Input */}
                 <div className="p-3 border-t flex gap-2">
                   <Popover open={shareOpen} onOpenChange={setShareOpen}>
                     <PopoverTrigger asChild>

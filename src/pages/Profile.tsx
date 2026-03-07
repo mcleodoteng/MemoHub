@@ -4,12 +4,16 @@ import { getUserInitials } from "@/data/mock";
 import { useMemos } from "@/context/MemoContext";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { MemoCard } from "@/components/memo/MemoCard";
-import { FileText, Users, Mail, Building } from "lucide-react";
+import { FileText, Users, Mail, Building, FileEdit } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const Profile = () => {
+  const navigate = useNavigate();
   const { memos } = useMemos();
-  const myMemos = memos.filter(m => m.creatorId === currentUser.id);
+  const myMemos = memos.filter(m => m.creatorId === currentUser.id && m.status !== 'draft');
+  const myDrafts = memos.filter(m => m.creatorId === currentUser.id && m.status === 'draft');
   const myGroups = groups.filter(g => g.memberIds.includes(currentUser.id));
 
   return (
@@ -30,19 +34,26 @@ const Profile = () => {
             <div className="flex gap-2 mt-3 justify-center sm:justify-start">
               <Badge>{currentUser.role}</Badge>
               <Badge variant="outline" className="capitalize">
-                <span className={`h-1.5 w-1.5 rounded-full mr-1.5 ${currentUser.status === 'online' ? 'bg-success' : currentUser.status === 'away' ? 'bg-warning' : 'bg-muted-foreground'}`} />
+                <span className={`h-1.5 w-1.5 rounded-full mr-1.5 ${currentUser.status === 'online' ? 'bg-emerald-500' : currentUser.status === 'away' ? 'bg-amber-500' : 'bg-muted-foreground'}`} />
                 {currentUser.status}
               </Badge>
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-3 gap-4">
           <div className="widget-card flex items-center gap-3">
             <div className="p-2 rounded-lg bg-primary/10"><FileText className="h-5 w-5 text-primary" /></div>
             <div>
               <p className="text-xl font-display font-bold">{myMemos.length}</p>
               <p className="text-xs text-muted-foreground">Memos Created</p>
+            </div>
+          </div>
+          <div className="widget-card flex items-center gap-3 cursor-pointer" onClick={() => navigate("/drafts")}>
+            <div className="p-2 rounded-lg bg-warning/10"><FileEdit className="h-5 w-5 text-warning" /></div>
+            <div>
+              <p className="text-xl font-display font-bold">{myDrafts.length}</p>
+              <p className="text-xs text-muted-foreground">Drafts</p>
             </div>
           </div>
           <div className="widget-card flex items-center gap-3">
@@ -54,10 +65,26 @@ const Profile = () => {
           </div>
         </div>
 
+        {myDrafts.length > 0 && (
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-display font-semibold">My Drafts</h3>
+              <Button variant="ghost" size="sm" onClick={() => navigate("/drafts")}>View All</Button>
+            </div>
+            <div className="space-y-3">
+              {myDrafts.slice(0, 3).map(m => <MemoCard key={m.id} memo={m} />)}
+            </div>
+          </div>
+        )}
+
         <div>
           <h3 className="font-display font-semibold mb-3">My Memos</h3>
           <div className="space-y-3">
-            {myMemos.map(m => <MemoCard key={m.id} memo={m} />)}
+            {myMemos.length === 0 ? (
+              <p className="text-center text-muted-foreground py-8">No memos yet</p>
+            ) : (
+              myMemos.map(m => <MemoCard key={m.id} memo={m} />)
+            )}
           </div>
         </div>
       </div>

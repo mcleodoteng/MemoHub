@@ -14,7 +14,10 @@ const Memos = () => {
   const { memos } = useMemos();
   const [search, setSearch] = useState("");
 
-  const filtered = memos.filter(m =>
+  // Filter out memos hidden by current user
+  const visibleMemos = memos.filter(m => !(m.hiddenBy || []).includes(currentUser.id));
+
+  const filtered = visibleMemos.filter(m =>
     m.title.toLowerCase().includes(search.toLowerCase()) ||
     m.body.toLowerCase().includes(search.toLowerCase()) ||
     m.tags.some(t => t.toLowerCase().includes(search.toLowerCase()))
