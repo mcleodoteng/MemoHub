@@ -3,6 +3,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { useGroups } from "@/context/GroupContext";
 import { useMemos } from "@/context/MemoContext";
 import { useMessages } from "@/context/MessageContext";
+import { useReminders } from "@/context/ReminderContext";
 import { users, currentUser, getUserById, getUserInitials } from "@/data/mock";
 import { UserHoverCard } from "@/components/user/UserHoverCard";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -16,28 +17,43 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { RichTextEditor } from "@/components/editor/RichTextEditor";
 import {
   ArrowLeft, Users, Send, UserPlus, UserMinus, ShieldCheck,
-  FileText, MessageSquare, Settings, PenSquare,
+  FileText, MessageSquare, Settings, PenSquare, Lock, CheckCircle,
+  XCircle, FolderOpen, Download, Bell, Clock,
 } from "lucide-react";
 import { useState, useRef, useEffect, useMemo } from "react";
 import { toast } from "sonner";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, format } from "date-fns";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 const GroupDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { getGroupById, addMember, removeMember, addAdmin, removeAdmin, deleteGroup } = useGroups();
+  const {
+    getGroupById, addMember, removeMember, addAdmin, removeAdmin, deleteGroup,
+    inviteUser, acceptInvite, declineInvite, getInviteStatus, addFile,
+  } = useGroups();
   const { memos, addMemo } = useMemos();
-  const { conversations, sendMessage, getConversationMessages, createConversation, typingUsers, markAsRead, addReaction } = useMessages();
+  const {
+    conversations, sendMessage, getConversationMessages, createConversation,
+    typingUsers, markAsRead, addReaction, sendSystemMessage,
+  } = useMessages();
+  const { addReminder } = useReminders();
 
   const group = getGroupById(id || "");
   const [memoDialogOpen, setMemoDialogOpen] = useState(false);
   const [memoTitle, setMemoTitle] = useState("");
   const [memoBody, setMemoBody] = useState("");
   const [newMessage, setNewMessage] = useState("");
+  const [reminderDialogOpen, setReminderDialogOpen] = useState(false);
+  const [reminderTitle, setReminderTitle] = useState("");
+  const [reminderDue, setReminderDue] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  const isMember = group ? group.memberIds.includes(currentUser.id) : false;
   const isAdmin = group ? group.adminIds.includes(currentUser.id) : false;
+  const invite = group ? getInviteStatus(group.id, currentUser.id) : undefined;
+  const hasPendingInvite = invite?.status === 'pending';
+
   const otherUsers = users.filter(u => u.id !== currentUser.id);
   const groupMemos = group ? memos.filter(m => m.groupId === group.id && m.status !== 'draft') : [];
   const groupConv = group ? (
@@ -47,18 +63,72 @@ const GroupDetail = () => {
   const convMessages = groupConv ? getConversationMessages(groupConv.id) : [];
 
   useEffect(() => {
-    if (groupConv) {
+    if (groupConv && isMember) {
       markAsRead(groupConv.id, currentUser.id);
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [groupConv?.id, convMessages.length]);
+  }, [groupConv?.id, convMessages.length, isMember]);
 
-  // Check membership
-  if (!group || !group.memberIds.includes(currentUser.id)) {
+  // No group found
+  if (!group) {
+    return (
+      <AppLayout title="Not Found">
+        <div className="flex flex-col items-center justify-center py-20">
+          <Users className="h-12 w-12 text-muted-foreground/30 mb-3" />
+          <p className="text-muted-foreground">Group not found</p>
+          <Button variant="outline" className="mt-4" onClick={() => navigate("/groups")}>Back to Groups</Button>
+        </div>
+      </AppLayout>
+    );
+  }
+
+  // Has pending invite - locked view
+  if (hasPendingInvite && !isMember) {
+    return (
+      <AppLayout title="">
+        <div className="max-w-lg mx-auto mt-16">
+          <div className="rounded-2xl border bg-card p-8 text-center space-y-4">
+            <div className="mx-auto w-16 h-16 rounded-full bg-warning/10 flex items-center justify-center">
+              <Lock className="h-8 w-8 text-warning" />
+            </div>
+            <h2 className="font-display text-xl font-bold">{group.name}</h2>
+            <p className="text-sm text-muted-foreground">{group.description}</p>
+            <p className="text-sm">You have been invited to join this group.</p>
+            <div className="flex items-center justify-center gap-3">
+              <Button className="gap-2" onClick={() => {
+                acceptInvite(group.id, currentUser.id);
+                // Send system message
+                const conv = conversations.find(c => c.groupId === group.id);
+                if (conv) {
+                  sendSystemMessage(conv.id, `${currentUser.name} has joined the group`);
+                }
+                toast.success(`You joined ${group.name}!`);
+              }}>
+                <CheckCircle className="h-4 w-4" /> Accept Invitation
+              </Button>
+              <Button variant="outline" className="gap-2" onClick={() => {
+                declineInvite(group.id, currentUser.id);
+                toast.info("Invitation declined");
+                navigate("/groups");
+              }}>
+                <XCircle className="h-4 w-4" /> Decline
+              </Button>
+            </div>
+            <div className="pt-4 border-t">
+              <p className="text-xs text-muted-foreground">{group.memberIds.length} members · {group.type}</p>
+            </div>
+          </div>
+        </div>
+      </AppLayout>
+    );
+  }
+
+  // Not a member and no invite
+  if (!isMember) {
     return (
       <AppLayout title="Access Denied">
         <div className="flex flex-col items-center justify-center py-20">
-          <Users className="h-12 w-12 text-muted-foreground/30 mb-3" />
+          <Lock className="h-12 w-12 text-muted-foreground/30 mb-3" />
           <p className="text-muted-foreground">You are not a member of this group</p>
           <Button variant="outline" className="mt-4" onClick={() => navigate("/groups")}>Back to Groups</Button>
         </div>
@@ -85,12 +155,38 @@ const GroupDetail = () => {
     if (groupConv) {
       sendMessage(groupConv.id, newMessage);
     } else {
-      const conv = createConversation(group.memberIds, group.name);
-      // Attach groupId info (simplified - in real app would be on the conversation)
+      const conv = createConversation(group.memberIds, group.name, group.id);
       sendMessage(conv.id, newMessage);
     }
     setNewMessage("");
   };
+
+  const handleInviteUser = (uid: string) => {
+    inviteUser(group.id, uid);
+    toast.success("Invitation sent!");
+  };
+
+  const handleCreateReminder = () => {
+    if (!reminderTitle.trim() || !reminderDue) { toast.error("Title and date required"); return; }
+    addReminder({ title: reminderTitle, dueAt: new Date(reminderDue).toISOString(), groupId: group.id });
+    toast.success("Group reminder created!");
+    setReminderDialogOpen(false);
+    setReminderTitle(""); setReminderDue("");
+  };
+
+  // Collect all files from group memos and chat
+  const allGroupFiles = [
+    ...group.files,
+    ...groupMemos.flatMap(m => m.attachments.map(a => ({
+      id: a.id, name: a.name, type: a.type, size: a.size, url: a.url,
+      uploadedBy: m.creatorId, uploadedAt: m.createdAt, source: 'memo' as const,
+    }))),
+  ];
+
+  const nonMemberUsers = otherUsers.filter(u =>
+    !group.memberIds.includes(u.id) &&
+    !group.pendingInvites.some(i => i.userId === u.id && i.status === 'pending')
+  );
 
   return (
     <AppLayout title="">
@@ -107,6 +203,9 @@ const GroupDetail = () => {
             <Badge variant="secondary" className="text-[10px]">{group.type}</Badge>
             <span className="text-xs text-muted-foreground">{group.memberIds.length} members</span>
           </div>
+          <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setReminderDialogOpen(true)}>
+            <Bell className="h-3.5 w-3.5" /> Reminder
+          </Button>
           <Button size="sm" className="gap-1.5" onClick={() => setMemoDialogOpen(true)}>
             <PenSquare className="h-3.5 w-3.5" /> Send Memo
           </Button>
@@ -126,6 +225,9 @@ const GroupDetail = () => {
             </TabsTrigger>
             <TabsTrigger value="chat" className="gap-1.5">
               <MessageSquare className="h-3.5 w-3.5" /> Chat
+            </TabsTrigger>
+            <TabsTrigger value="files" className="gap-1.5">
+              <FolderOpen className="h-3.5 w-3.5" /> Files ({allGroupFiles.length})
             </TabsTrigger>
             <TabsTrigger value="members" className="gap-1.5">
               <Users className="h-3.5 w-3.5" /> Members ({group.memberIds.length})
@@ -159,6 +261,16 @@ const GroupDetail = () => {
                   </div>
                 ) : (
                   convMessages.map(msg => {
+                    // System messages
+                    if (msg.isSystem) {
+                      return (
+                        <div key={msg.id} className="flex justify-center">
+                          <span className="text-[11px] text-muted-foreground bg-secondary px-3 py-1 rounded-full">
+                            {msg.body}
+                          </span>
+                        </div>
+                      );
+                    }
                     const sender = getUserById(msg.senderId);
                     const isMe = msg.senderId === currentUser.id;
                     return (
@@ -206,24 +318,92 @@ const GroupDetail = () => {
             </div>
           </TabsContent>
 
+          {/* Files Tab */}
+          <TabsContent value="files" className="mt-4">
+            <div className="widget-card">
+              {allGroupFiles.length === 0 ? (
+                <div className="text-center py-12">
+                  <FolderOpen className="h-10 w-10 text-muted-foreground/30 mx-auto mb-2" />
+                  <p className="text-muted-foreground text-sm">No files shared yet</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {allGroupFiles.map(f => {
+                    const uploader = getUserById(f.uploadedBy);
+                    return (
+                      <div key={f.id} className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-secondary/50 transition-colors">
+                        <div className="p-2 rounded-lg bg-primary/10">
+                          <FileText className="h-4 w-4 text-primary" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{f.name}</p>
+                          <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                            <span>{uploader?.name || 'Unknown'}</span>
+                            <span>·</span>
+                            <span>{(f.size / 1024).toFixed(0)} KB</span>
+                            <span>·</span>
+                            <span>{f.source}</span>
+                          </div>
+                        </div>
+                        <Button variant="ghost" size="icon" className="h-7 w-7">
+                          <Download className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </TabsContent>
+
           {/* Members Tab */}
           <TabsContent value="members" className="mt-4">
             <div className="widget-card space-y-4">
               {isAdmin && (
-                <div className="flex items-center justify-between">
-                  <h3 className="font-display font-semibold text-sm">Manage Members</h3>
-                  <Select onValueChange={uid => { addMember(group.id, uid); toast.success("Member added"); }}>
-                    <SelectTrigger className="w-40 h-8 text-xs">
-                      <div className="flex items-center gap-1"><UserPlus className="h-3 w-3" /> Add Member</div>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {otherUsers.filter(u => !group.memberIds.includes(u.id)).map(u => (
-                        <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-display font-semibold text-sm">Manage Members</h3>
+                    {nonMemberUsers.length > 0 && (
+                      <Select onValueChange={uid => handleInviteUser(uid)}>
+                        <SelectTrigger className="w-44 h-8 text-xs">
+                          <div className="flex items-center gap-1"><UserPlus className="h-3 w-3" /> Invite Member</div>
+                        </SelectTrigger>
+                        <SelectContent>
+                          {nonMemberUsers.map(u => (
+                            <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </div>
+
+                  {/* Pending invites */}
+                  {group.pendingInvites.filter(i => i.status === 'pending').length > 0 && (
+                    <div className="space-y-1.5">
+                      <p className="text-xs font-medium text-muted-foreground">Pending Invitations</p>
+                      {group.pendingInvites.filter(i => i.status === 'pending').map(inv => {
+                        const user = getUserById(inv.userId);
+                        if (!user) return null;
+                        return (
+                          <div key={inv.userId} className="flex items-center gap-3 p-2 rounded-lg bg-warning/5 border border-warning/20">
+                            <Avatar className="h-7 w-7">
+                              <AvatarFallback className="text-[10px] bg-warning/10 text-warning font-semibold">
+                                {getUserInitials(user.name)}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1">
+                              <span className="text-sm font-medium">{user.name}</span>
+                              <p className="text-[11px] text-muted-foreground">Pending since {formatDistanceToNow(new Date(inv.invitedAt), { addSuffix: true })}</p>
+                            </div>
+                            <Badge variant="outline" className="text-[10px] text-warning border-warning/30">Pending</Badge>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               )}
+
               <div className="space-y-2">
                 {group.memberIds.map(uid => {
                   const user = getUserById(uid);
@@ -293,6 +473,29 @@ const GroupDetail = () => {
           <DialogFooter>
             <Button variant="outline" onClick={() => setMemoDialogOpen(false)}>Cancel</Button>
             <Button onClick={handleSendGroupMemo} className="gap-2"><Send className="h-4 w-4" /> Send</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Group Reminder Dialog */}
+      <Dialog open={reminderDialogOpen} onOpenChange={setReminderDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-display">Group Reminder for {group.name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <label className="text-sm font-medium mb-1 block">Title *</label>
+              <Input placeholder="Reminder title" value={reminderTitle} onChange={e => setReminderTitle(e.target.value)} />
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-1 block">Due Date & Time *</label>
+              <Input type="datetime-local" value={reminderDue} onChange={e => setReminderDue(e.target.value)} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setReminderDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleCreateReminder} className="gap-1.5"><Bell className="h-3.5 w-3.5" /> Create</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
