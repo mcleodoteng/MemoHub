@@ -1,6 +1,7 @@
 import { AppLayout } from "@/components/layout/AppLayout";
 import { MemoCard } from "@/components/memo/MemoCard";
 import { useMemos } from "@/context/MemoContext";
+import { currentUser } from "@/data/mock";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -19,12 +20,13 @@ const Memos = () => {
     m.tags.some(t => t.toLowerCase().includes(search.toLowerCase()))
   );
 
-  const activeMemos = filtered.filter(m => m.status !== 'deleted');
-  const publicMemos = activeMemos.filter(m => m.visibility === "public" && !m.archived);
-  const privateMemos = activeMemos.filter(m => m.visibility === "private" && !m.archived);
-  const protectedMemos = activeMemos.filter(m => m.visibility === "protected" && !m.archived);
-  const pinnedMemos = activeMemos.filter(m => m.pinned && !m.archived);
-  const archivedMemos = activeMemos.filter(m => m.archived);
+  const sentMemos = filtered.filter(m => m.status !== 'deleted' && m.status !== 'draft');
+  const draftMemos = filtered.filter(m => m.status === 'draft' && m.creatorId === currentUser.id);
+  const publicMemos = sentMemos.filter(m => m.visibility === "public" && !m.archived);
+  const privateMemos = sentMemos.filter(m => m.visibility === "private" && !m.archived);
+  const protectedMemos = sentMemos.filter(m => m.visibility === "protected" && !m.archived);
+  const pinnedMemos = sentMemos.filter(m => m.pinned && !m.archived);
+  const archivedMemos = sentMemos.filter(m => m.archived);
 
   const MemoList = ({ items }: { items: typeof memos }) =>
     items.length === 0 ? (
@@ -49,14 +51,14 @@ const Memos = () => {
             />
           </div>
           <Button onClick={() => navigate("/compose")} className="gap-2 shrink-0">
-            <PenSquare className="h-4 w-4" />
-            Compose
+            <PenSquare className="h-4 w-4" /> Compose
           </Button>
         </div>
 
         <Tabs defaultValue="all">
           <TabsList className="flex-wrap">
-            <TabsTrigger value="all">All ({activeMemos.filter(m => !m.archived).length})</TabsTrigger>
+            <TabsTrigger value="all">All ({sentMemos.filter(m => !m.archived).length})</TabsTrigger>
+            <TabsTrigger value="drafts">Drafts ({draftMemos.length})</TabsTrigger>
             <TabsTrigger value="public">Public ({publicMemos.length})</TabsTrigger>
             <TabsTrigger value="private">Private ({privateMemos.length})</TabsTrigger>
             <TabsTrigger value="protected">Protected ({protectedMemos.length})</TabsTrigger>
@@ -65,8 +67,9 @@ const Memos = () => {
           </TabsList>
 
           <TabsContent value="all" className="mt-4">
-            <MemoList items={activeMemos.filter(m => !m.archived)} />
+            <MemoList items={sentMemos.filter(m => !m.archived)} />
           </TabsContent>
+          <TabsContent value="drafts" className="mt-4"><MemoList items={draftMemos} /></TabsContent>
           <TabsContent value="public" className="mt-4"><MemoList items={publicMemos} /></TabsContent>
           <TabsContent value="private" className="mt-4"><MemoList items={privateMemos} /></TabsContent>
           <TabsContent value="protected" className="mt-4"><MemoList items={protectedMemos} /></TabsContent>
