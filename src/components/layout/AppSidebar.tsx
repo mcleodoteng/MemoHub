@@ -50,6 +50,7 @@ export function AppSidebar() {
   const mainNav = [
     { title: "Dashboard", url: "/", icon: LayoutDashboard, badge: 0 },
     { title: "Messages", url: "/messages", icon: MessageSquare, badge: unreadMessages },
+    { title: "Reminders", url: "/reminders", icon: Clock, badge: 0 },
     { title: "Notifications", url: "/notifications", icon: Bell, badge: unreadNotifications },
   ];
 
