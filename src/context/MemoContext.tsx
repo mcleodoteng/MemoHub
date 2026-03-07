@@ -33,13 +33,14 @@ export function MemoProvider({ children }: { children: React.ReactNode }) {
   const getMemoById = useCallback((id: string) => memos.find(m => m.id === id), [memos]);
   const getCommentsByMemoId = useCallback((memoId: string) => comments.filter(c => c.memoId === memoId), [comments]);
 
-  const addMemo = useCallback((memoData: Omit<Memo, 'id' | 'createdAt' | 'updatedAt' | 'recipientStatuses' | 'reactions' | 'editHistory' | 'hiddenBy'>) => {
+  const addMemo = useCallback((memoData: Omit<Memo, 'id' | 'createdAt' | 'updatedAt' | 'recipientStatuses' | 'reactions' | 'editHistory' | 'hiddenBy' | 'activityLog'>) => {
     const now = new Date().toISOString();
     const newMemo: Memo = {
       ...memoData,
       id: `m${Date.now()}`,
       reactions: [],
       editHistory: [],
+      activityLog: [],
       hiddenBy: [],
       recipientStatuses: memoData.recipientIds.map(userId => ({
         userId,
