@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import { MemoProvider } from "@/context/MemoContext";
 import { GroupProvider } from "@/context/GroupContext";
 import { MessageProvider } from "@/context/MessageContext";
@@ -24,6 +24,23 @@ import { ReminderAlerts } from "@/components/reminder/ReminderAlerts";
 
 const queryClient = new QueryClient();
 
+const router = createBrowserRouter([
+  { path: "/", element: <Index /> },
+  { path: "/memos", element: <Memos /> },
+  { path: "/memos/:id", element: <MemoDetail /> },
+  { path: "/compose", element: <Compose /> },
+  { path: "/compose/:draftId", element: <Compose /> },
+  { path: "/drafts", element: <Drafts /> },
+  { path: "/messages", element: <Messages /> },
+  { path: "/groups", element: <Groups /> },
+  { path: "/groups/:id", element: <GroupDetail /> },
+  { path: "/notifications", element: <Notifications /> },
+  { path: "/profile", element: <Profile /> },
+  { path: "/profile/:userId", element: <UserProfile /> },
+  { path: "/reminders", element: <Reminders /> },
+  { path: "*", element: <NotFound /> },
+]);
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -34,24 +51,7 @@ const App = () => (
               <Toaster />
               <Sonner />
               <ReminderAlerts />
-              <BrowserRouter>
-                <Routes>
-                  <Route path="/" element={<Index />} />
-                  <Route path="/memos" element={<Memos />} />
-                  <Route path="/memos/:id" element={<MemoDetail />} />
-                  <Route path="/compose" element={<Compose />} />
-                  <Route path="/compose/:draftId" element={<Compose />} />
-                  <Route path="/drafts" element={<Drafts />} />
-                  <Route path="/messages" element={<Messages />} />
-                  <Route path="/groups" element={<Groups />} />
-                  <Route path="/groups/:id" element={<GroupDetail />} />
-                  <Route path="/notifications" element={<Notifications />} />
-                  <Route path="/profile" element={<Profile />} />
-                  <Route path="/profile/:userId" element={<UserProfile />} />
-                  <Route path="/reminders" element={<Reminders />} />
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </BrowserRouter>
+              <RouterProvider router={router} />
             </ReminderProvider>
           </MessageProvider>
         </GroupProvider>
