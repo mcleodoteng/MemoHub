@@ -11,6 +11,7 @@ import { MemoEditDialog } from "@/components/memo/MemoEditDialog";
 import { MemoEditHistory } from "@/components/memo/MemoEditHistory";
 import { MemoActivityLog } from "@/components/memo/MemoActivityLog";
 import { MentionInput } from "@/components/editor/MentionInput";
+import { MentionText, processMentionsInHtml } from "@/components/shared/MentionText";
 import { AttachmentViewer } from "@/components/attachment/AttachmentManager";
 import {
   Globe, Lock, Shield, Pin, Archive, Trash2, EyeOff,
