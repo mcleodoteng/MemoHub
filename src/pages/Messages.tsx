@@ -42,6 +42,8 @@ const Messages = () => {
   const [showMsgSearch, setShowMsgSearch] = useState(false);
   const [tab, setTab] = useState<'direct' | 'channels' | 'starred'>('direct');
   const [mobileShowChat, setMobileShowChat] = useState(false);
+  const [pendingAttachments, setPendingAttachments] = useState<Attachment[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const activeConv = conversations.find(c => c.id === selectedConv);
