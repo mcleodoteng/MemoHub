@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useNavigate } from "react-router-dom";
+import { MentionText } from "@/components/shared/MentionText";
 import { toast } from "sonner";
 
 const visibilityConfig = {
