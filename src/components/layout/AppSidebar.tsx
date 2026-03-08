@@ -20,7 +20,7 @@ import { useGroups } from "@/context/GroupContext";
 import { useState } from "react";
 
 export function AppSidebar() {
-  const { state } = useSidebar();
+  const { state, toggleSidebar } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
   const navigate = useNavigate();
