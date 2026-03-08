@@ -242,9 +242,24 @@ const MemoDetail = () => {
           <div>
             <h2 className="font-display text-xl font-bold">{memo.title}</h2>
             {memo.body.startsWith('<') ? (
-              <div className="text-sm text-muted-foreground mt-2 leading-relaxed prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: memo.body }} />
+              <div
+                className="text-sm text-muted-foreground mt-2 leading-relaxed prose prose-sm max-w-none [&_a]:text-primary [&_a]:underline [&_a]:cursor-pointer"
+                dangerouslySetInnerHTML={{ __html: processMentionsInHtml(memo.body) }}
+                onClick={(e) => {
+                  const target = e.target as HTMLElement;
+                  if (target.tagName === 'A') {
+                    const href = target.getAttribute('href');
+                    if (href && href.startsWith('/profile/')) {
+                      e.preventDefault();
+                      navigate(href);
+                    }
+                  }
+                }}
+              />
             ) : (
-              <p className="text-sm text-muted-foreground mt-2 leading-relaxed">{memo.body}</p>
+              <p className="text-sm text-muted-foreground mt-2 leading-relaxed">
+                <MentionText text={memo.body} />
+              </p>
             )}
           </div>
 
