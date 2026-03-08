@@ -290,6 +290,13 @@ export function MemoProvider({ children }: { children: React.ReactNode }) {
     setComments(prev => prev.filter(c => !(c.id === commentId && c.authorId === userId)));
   }, []);
 
+  const toggleCommentPin = useCallback((commentId: string, userId: string) => {
+    setComments(prev => prev.map(c => {
+      if (c.id !== commentId) return c;
+      return { ...c, pinned: !c.pinned, pinnedBy: c.pinned ? undefined : userId };
+    }));
+  }, []);
+
   const addCommentReaction = useCallback((commentId: string, emoji: string, userId: string) => {
     setComments(prev => prev.map(c => {
       if (c.id !== commentId) return c;
