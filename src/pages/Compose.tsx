@@ -21,6 +21,7 @@ import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { Globe, Lock, Shield, Send, X, FileText, Save } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate, useParams, useBlocker } from "react-router-dom";
+import { useNotifications } from "@/context/NotificationContext";
 
 const Compose = () => {
   const navigate = useNavigate();
