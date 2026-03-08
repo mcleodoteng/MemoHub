@@ -7,6 +7,7 @@ import { MemoProvider } from "@/context/MemoContext";
 import { GroupProvider } from "@/context/GroupContext";
 import { MessageProvider } from "@/context/MessageContext";
 import { ReminderProvider } from "@/context/ReminderContext";
+import { NotificationProvider } from "@/context/NotificationContext";
 import Index from "./pages/Index";
 import Memos from "./pages/Memos";
 import MemoDetail from "./pages/MemoDetail";
