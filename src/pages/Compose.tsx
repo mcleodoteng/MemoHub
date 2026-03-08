@@ -135,24 +135,30 @@ const Compose = () => {
     if (!title.trim()) { toast.error("Please add a title"); return; }
     if (!body.trim() && body !== '<p></p>') { toast.error("Please add content"); return; }
 
+    // If scheduled, save as draft with scheduled send time
+    const isScheduled = workflow.enabled && workflow.scheduledSendAt;
+    const status = isScheduled ? 'draft' : 'sent';
+
     setIsSaved(true);
     if (isEditingDraft && draft) {
       updateMemo(draft.id, {
-        title, body, visibility, status: 'sent',
+        title, body, visibility, status: status as any,
         recipientIds: selectedRecipients, tags: selectedTags,
         attachments, referencedMemoIds,
+        workflow: workflow.enabled ? workflow : undefined,
         recipientStatuses: selectedRecipients.map(uid => ({
           userId: uid, opened: false, acknowledged: false, approved: false, replied: false,
         })),
       });
-      toast.success("Memo sent!");
+      toast.success(isScheduled ? `Memo scheduled for ${new Date(workflow.scheduledSendAt!).toLocaleString()}` : "Memo sent!");
     } else {
       addMemo({
-        title, body, creatorId: currentUser.id, visibility, status: 'sent',
+        title, body, creatorId: currentUser.id, visibility, status: status as any,
         recipientIds: selectedRecipients, tags: selectedTags, attachments,
         pinned: false, archived: false, referencedMemoIds, groupId: undefined,
+        workflow: workflow.enabled ? workflow : undefined,
       });
-      toast.success("Memo sent successfully!");
+      toast.success(isScheduled ? `Memo scheduled for ${new Date(workflow.scheduledSendAt!).toLocaleString()}` : "Memo sent successfully!");
     }
     notifyMentions(body, title, "/memos", currentUser.id);
     navigate("/memos");
@@ -167,6 +173,7 @@ const Compose = () => {
         title, body, visibility,
         recipientIds: selectedRecipients, tags: selectedTags,
         attachments, referencedMemoIds,
+        workflow: workflow.enabled ? workflow : undefined,
       });
       toast.success("Draft updated!");
     } else {
@@ -174,6 +181,7 @@ const Compose = () => {
         title, body, creatorId: currentUser.id, visibility, status: 'draft',
         recipientIds: selectedRecipients, tags: selectedTags, attachments,
         pinned: false, archived: false, referencedMemoIds, groupId: undefined,
+        workflow: workflow.enabled ? workflow : undefined,
       });
       toast.success("Draft saved!");
     }
