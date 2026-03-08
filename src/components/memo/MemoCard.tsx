@@ -270,20 +270,22 @@ export function MemoCard({ memo }: MemoCardProps) {
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button variant="ghost" size="icon" className={`h-7 w-7 ${memo.pinned ? 'text-warning' : 'text-muted-foreground'}`}
-                      onClick={stopProp(() => { togglePin(memo.id); toast.success(memo.pinned ? 'Unpinned' : 'Pinned!'); })}>
+                      onClick={stopProp(() => { togglePin(memo.id); toast.success(memo.pinned ? 'Unpinned' : 'Pinned!'); })}
+                      disabled={!showPinArchive}>
                       <Pin className="h-3.5 w-3.5" />
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent>{memo.pinned ? "Unpin memo" : "Pin memo to top"}</TooltipContent>
+                  <TooltipContent>{showPinArchive ? (memo.pinned ? "Unpin memo" : "Pin memo to top") : "Insufficient permissions"}</TooltipContent>
                 </Tooltip>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button variant="ghost" size="icon" className={`h-7 w-7 ${memo.archived ? 'text-primary' : 'text-muted-foreground'}`}
-                      onClick={stopProp(() => { toggleArchive(memo.id); toast.success(memo.archived ? 'Unarchived' : 'Archived!'); })}>
+                      onClick={stopProp(() => { toggleArchive(memo.id); toast.success(memo.archived ? 'Unarchived' : 'Archived!'); })}
+                      disabled={!showPinArchive}>
                       <Archive className="h-3.5 w-3.5" />
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent>{memo.archived ? "Unarchive memo" : "Archive memo"}</TooltipContent>
+                  <TooltipContent>{showPinArchive ? (memo.archived ? "Unarchive memo" : "Archive memo") : "Insufficient permissions"}</TooltipContent>
                 </Tooltip>
                 {!isCreator && (
                   <Tooltip>
