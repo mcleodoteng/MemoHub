@@ -13,7 +13,7 @@ import {
   Eye, CheckCircle2, ThumbsUp,
   Archive, EyeOff, Smile, Trash2, Play, Image as ImageIcon,
 } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, format } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { MentionText } from "@/components/shared/MentionText";
 import { toast } from "sonner";
