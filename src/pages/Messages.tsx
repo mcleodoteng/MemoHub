@@ -111,9 +111,29 @@ const Messages = () => {
   }, [convMessages, msgSearch]);
 
   const handleSend = () => {
-    if (!newMessage.trim()) return;
-    sendMessage(selectedConv, newMessage);
+    if (!newMessage.trim() && pendingAttachments.length === 0) return;
+    sendMessage(selectedConv, newMessage, undefined, pendingAttachments.length > 0 ? pendingAttachments : undefined);
     setNewMessage("");
+    setPendingAttachments([]);
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+    const newAtts: Attachment[] = Array.from(files).map(file => ({
+      id: `att-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      name: file.name,
+      type: file.type,
+      size: file.size,
+      url: URL.createObjectURL(file),
+      thumbnailUrl: file.type.startsWith('image/') ? URL.createObjectURL(file) : undefined,
+    }));
+    setPendingAttachments(prev => [...prev, ...newAtts]);
+    e.target.value = '';
+  };
+
+  const removePendingAttachment = (id: string) => {
+    setPendingAttachments(prev => prev.filter(a => a.id !== id));
   };
 
   const handleShareMemo = (memoId: string, memoTitle: string) => {
