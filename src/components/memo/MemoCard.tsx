@@ -40,7 +40,7 @@ export function MemoCard({ memo }: MemoCardProps) {
   const vis = visibilityConfig[memo.visibility];
   const VisIcon = vis.icon;
   const navigate = useNavigate();
-  const { togglePin, toggleArchive, hideMemo, addReaction, deleteMemo } = useMemos();
+  const { togglePin, toggleArchive, hideMemo, addReaction, deleteMemo, toggleStar } = useMemos();
 
   const isCreator = memo.creatorId === currentUser.id;
   const isAdmin = currentUser.role === 'admin';
