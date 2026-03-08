@@ -35,14 +35,14 @@ export function MessageProvider({ children }: { children: React.ReactNode }) {
 
   const starredMessages = messages.filter(m => m.starredBy?.includes(currentUser.id));
 
-  const sendMessage = useCallback((conversationId: string, body: string, sharedMemo?: SharedMemo) => {
+  const sendMessage = useCallback((conversationId: string, body: string, sharedMemo?: SharedMemo, attachments?: Attachment[]) => {
     const now = new Date().toISOString();
     const newMsg: Message = {
       id: `msg${Date.now()}`,
       conversationId,
       senderId: currentUser.id,
       body,
-      attachments: [],
+      attachments: attachments || [],
       reactions: [],
       sharedMemo,
       readBy: [currentUser.id],
