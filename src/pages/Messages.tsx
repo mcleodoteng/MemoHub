@@ -129,7 +129,7 @@ const Messages = () => {
         className={`flex items-center gap-3 p-3 cursor-pointer transition-colors ${
           selectedConv === conv.id ? "bg-secondary" : "hover:bg-secondary/50"
         }`}
-        onClick={() => { setSelectedConv(conv.id); }}
+        onClick={() => { setSelectedConv(conv.id); if (isMobile) setMobileShowChat(true); }}
       >
         <div className="relative">
           <Avatar className="h-9 w-9 shrink-0">
