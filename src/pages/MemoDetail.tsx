@@ -527,10 +527,23 @@ const MemoDetail = () => {
                   editComment={editComment}
                   deleteComment={deleteComment}
                   addCommentReaction={addCommentReaction}
+                  toggleCommentPin={toggleCommentPin}
+                  isMemoCreator={isCreator}
                   quickEmojis={quickEmojis}
                   processMentionsInHtml={processMentionsInHtml}
                 />
               ))}
+              {/* Typing indicator */}
+              {typingUsers.length > 0 && (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground animate-pulse">
+                  <div className="flex gap-0.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: '0ms' }} />
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: '150ms' }} />
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: '300ms' }} />
+                  </div>
+                  {typingUsers.map(uid => getUserById(uid)?.name || 'Someone').join(', ')} {typingUsers.length === 1 ? 'is' : 'are'} typing...
+                </div>
+              )}
               <div className="space-y-2 pt-2 border-t">
                 <MentionInput value={replyText} onChange={setReplyText} placeholder="Write a comment... (type @ to mention)" rows={2} />
                 <AttachmentUploader
