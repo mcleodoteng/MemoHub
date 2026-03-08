@@ -196,6 +196,37 @@ const Compose = () => {
       </AlertDialog>
 
       <div className="max-w-3xl mx-auto space-y-6">
+        {/* Template Picker */}
+        {!isEditingDraft && (
+          <div className="widget-card">
+            <div className="flex items-center gap-2 mb-3">
+              <LayoutTemplate className="h-4 w-4 text-primary" />
+              <span className="text-sm font-semibold">Start from a template</span>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+              {templates.map(tpl => (
+                <button
+                  key={tpl.id}
+                  className="text-left p-3 rounded-lg border border-border hover:border-primary/50 hover:bg-primary/5 transition-all group"
+                  onClick={() => {
+                    setTitle(tpl.title);
+                    setBody(tpl.body);
+                    setSelectedTags(tpl.tags);
+                    setVisibility(tpl.visibility);
+                    toast.success(`Template "${tpl.name}" applied`);
+                  }}
+                >
+                  <p className="text-xs font-semibold group-hover:text-primary transition-colors truncate">{tpl.name}</p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5 line-clamp-2">{tpl.description}</p>
+                  {!tpl.isBuiltIn && (
+                    <Badge variant="outline" className="mt-1.5 text-[9px] h-4">Custom</Badge>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="widget-card space-y-5">
           {/* Title */}
           <div>
