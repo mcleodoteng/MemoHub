@@ -1,19 +1,24 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { getUserById, getUserInitials, currentUser, groups } from "@/data/mock";
 import { useMemos } from "@/context/MemoContext";
+import { useMessages } from "@/context/MessageContext";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { MemoCard } from "@/components/memo/MemoCard";
-import { FileText, Users, Mail, Building, ArrowLeft, Clock } from "lucide-react";
+import { FileText, Users, Mail, Building, ArrowLeft, Clock, Star, MessageCircle } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { toast } from "sonner";
 
 const UserProfile = () => {
   const { userId } = useParams<{ userId: string }>();
   const navigate = useNavigate();
   const { memos } = useMemos();
+  const { conversations, sendMessage, createConversation } = useMessages();
+  const [starredUsers, setStarredUsers] = useState<string[]>([]);
 
   const user = getUserById(userId || "");
   const isOwnProfile = user?.id === currentUser.id;
@@ -40,13 +45,38 @@ const UserProfile = () => {
 
   const userMemos = memos.filter(m => m.creatorId === user.id && m.status !== 'draft' && m.visibility === 'public');
   const userGroups = groups.filter(g => g.memberIds.includes(user.id));
+  const isStarred = starredUsers.includes(user.id);
+
+  const toggleStarUser = () => {
+    setStarredUsers(prev =>
+      prev.includes(user.id) ? prev.filter(id => id !== user.id) : [...prev, user.id]
+    );
+    toast.success(isStarred ? `Unstarred ${user.name}` : `Starred ${user.name}`);
+  };
+
+  const handleMessage = () => {
+    const existing = conversations.find(c =>
+      c.type === 'direct' && c.participantIds.includes(user.id) && c.participantIds.includes(currentUser.id)
+    );
+    if (existing) {
+      navigate('/messages');
+    } else {
+      createConversation([currentUser.id, user.id]);
+      navigate('/messages');
+    }
+  };
 
   return (
     <AppLayout title={user.name}>
       <div className="max-w-4xl mx-auto space-y-6">
-        <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="gap-2">
-          <ArrowLeft className="h-4 w-4" /> Back
-        </Button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="gap-2">
+              <ArrowLeft className="h-4 w-4" /> Back
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Go back to previous page</TooltipContent>
+        </Tooltip>
 
         <div className="widget-card flex flex-col sm:flex-row items-center sm:items-start gap-5">
           <Avatar className="h-20 w-20 avatar-ring">
@@ -68,6 +98,25 @@ const UserProfile = () => {
                 {user.status}
               </Badge>
             </div>
+          </div>
+          <div className="flex gap-2">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant={isStarred ? "default" : "outline"} size="sm" className="gap-1.5" onClick={toggleStarUser}>
+                  <Star className={`h-4 w-4 ${isStarred ? "fill-current" : ""}`} />
+                  {isStarred ? "Starred" : "Star"}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{isStarred ? "Unstar this user to stop priority notifications" : "Star this user for priority notifications"}</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-1.5" onClick={handleMessage}>
+                  <MessageCircle className="h-4 w-4" /> Message
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Send a direct message to {user.name.split(' ')[0]}</TooltipContent>
+            </Tooltip>
           </div>
         </div>
 

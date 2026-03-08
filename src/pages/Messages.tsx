@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   Send, Users as UsersIcon, SmilePlus, FileText, Share2, Search, X,
   Star, StarOff, Hash, MessageCircle,
@@ -262,9 +263,14 @@ const Messages = () => {
                     <p className="text-sm font-semibold">{getConvName(activeConv)}</p>
                     <p className="text-xs text-muted-foreground">{activeConv.participantIds.length} participants</p>
                   </div>
-                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setShowMsgSearch(!showMsgSearch)}>
-                    <Search className="h-4 w-4" />
-                  </Button>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setShowMsgSearch(!showMsgSearch)}>
+                        <Search className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Search messages in this conversation</TooltipContent>
+                  </Tooltip>
                 </div>
 
                 {showMsgSearch && (
@@ -362,13 +368,17 @@ const Messages = () => {
                           )}
 
                           <div className={`opacity-0 group-hover:opacity-100 transition-opacity flex gap-0.5 ${isMe ? 'justify-end' : ''}`}>
-                            <button
-                              className="text-xs p-0.5 rounded hover:bg-secondary transition-colors"
-                              onClick={() => starMessage(msg.id, currentUser.id)}
-                              title={isStarred ? "Unstar" : "Star"}
-                            >
-                              {isStarred ? <StarOff className="h-3.5 w-3.5 text-warning" /> : <Star className="h-3.5 w-3.5 text-muted-foreground" />}
-                            </button>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button
+                                  className="text-xs p-0.5 rounded hover:bg-secondary transition-colors"
+                                  onClick={() => starMessage(msg.id, currentUser.id)}
+                                >
+                                  {isStarred ? <StarOff className="h-3.5 w-3.5 text-warning" /> : <Star className="h-3.5 w-3.5 text-muted-foreground" />}
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent>{isStarred ? "Unstar this message" : "Star this message for quick access"}</TooltipContent>
+                            </Tooltip>
                             {QUICK_EMOJIS.slice(0, 4).map(emoji => (
                               <button
                                 key={emoji}
@@ -421,11 +431,16 @@ const Messages = () => {
 
                 <div className="p-3 border-t flex gap-2">
                   <Popover open={shareOpen} onOpenChange={setShareOpen}>
-                    <PopoverTrigger asChild>
-                      <Button variant="ghost" size="icon" className="shrink-0">
-                        <Share2 className="h-4 w-4" />
-                      </Button>
-                    </PopoverTrigger>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <PopoverTrigger asChild>
+                          <Button variant="ghost" size="icon" className="shrink-0">
+                            <Share2 className="h-4 w-4" />
+                          </Button>
+                        </PopoverTrigger>
+                      </TooltipTrigger>
+                      <TooltipContent>Share a memo in this conversation</TooltipContent>
+                    </Tooltip>
                     <PopoverContent className="w-72 p-2" align="start">
                       <p className="text-xs font-medium text-muted-foreground mb-2 px-1">Share a memo</p>
                       <div className="space-y-1 max-h-48 overflow-auto scrollbar-thin">
@@ -449,9 +464,14 @@ const Messages = () => {
                     className="flex-1"
                     onKeyDown={e => e.key === "Enter" && handleSend()}
                   />
-                  <Button size="icon" onClick={handleSend} disabled={!newMessage.trim()}>
-                    <Send className="h-4 w-4" />
-                  </Button>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button size="icon" onClick={handleSend} disabled={!newMessage.trim()}>
+                        <Send className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Send message</TooltipContent>
+                  </Tooltip>
                 </div>
               </>
             ) : (

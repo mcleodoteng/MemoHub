@@ -5,11 +5,12 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useMemos } from "@/context/MemoContext";
 import {
   Globe, Lock, Shield, Pin, Paperclip, MessageCircle,
   Eye, CheckCircle2, ThumbsUp,
-  Archive, EyeOff, Smile, Trash2, Play,
+  Archive, EyeOff, Smile, Trash2, Play, Image as ImageIcon,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useNavigate } from "react-router-dom";
@@ -68,36 +69,6 @@ export function MemoCard({ memo }: MemoCardProps) {
       className="group/card bg-card rounded-xl border shadow-sm transition-all duration-200 hover:shadow-md hover:border-primary/20 cursor-pointer overflow-hidden"
       onClick={() => navigate(`/memos/${memo.id}`)}
     >
-      {/* Image/video preview strip */}
-      {(imageAttachments.length > 0 || videoAttachments.length > 0) && (
-        <div className="flex gap-0.5 h-32 overflow-hidden bg-secondary/50">
-          {imageAttachments.slice(0, 3).map((att) => (
-            <div key={att.id} className="flex-1 min-w-0 relative">
-              <img
-                src={att.url !== '#' ? att.url : `https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=400&h=200&fit=crop`}
-                alt={att.name}
-                className="w-full h-full object-cover"
-              />
-            </div>
-          ))}
-          {videoAttachments.slice(0, imageAttachments.length > 0 ? 1 : 3).map((att) => (
-            <div key={att.id} className="flex-1 min-w-0 relative bg-foreground/5 flex items-center justify-center">
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="h-10 w-10 rounded-full bg-background/80 backdrop-blur flex items-center justify-center">
-                  <Play className="h-5 w-5 text-foreground ml-0.5" />
-                </div>
-              </div>
-              <span className="absolute bottom-1 left-2 text-[10px] text-background bg-foreground/60 px-1.5 py-0.5 rounded">{att.name}</span>
-            </div>
-          ))}
-          {imageAttachments.length + videoAttachments.length > 3 && (
-            <div className="flex-1 min-w-0 bg-secondary flex items-center justify-center">
-              <span className="text-sm font-medium text-muted-foreground">+{imageAttachments.length + videoAttachments.length - 3}</span>
-            </div>
-          )}
-        </div>
-      )}
-
       <div className="p-4">
         <div className="flex items-start gap-3">
           {creator ? (
@@ -177,6 +148,34 @@ export function MemoCard({ memo }: MemoCardProps) {
               </div>
             )}
 
+            {/* Small image/video thumbnails inline */}
+            {(imageAttachments.length > 0 || videoAttachments.length > 0) && (
+              <div className="flex gap-1.5 mt-2.5 flex-wrap">
+                {imageAttachments.slice(0, 4).map((att) => (
+                  <div key={att.id} className="relative h-14 w-14 rounded-lg overflow-hidden border bg-secondary/50 shrink-0">
+                    <img
+                      src={att.url !== '#' ? att.url : `https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=100&h=100&fit=crop`}
+                      alt={att.name}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                ))}
+                {videoAttachments.slice(0, 2).map((att) => (
+                  <div key={att.id} className="relative h-14 w-14 rounded-lg overflow-hidden border bg-secondary/50 shrink-0 flex items-center justify-center">
+                    <div className="h-6 w-6 rounded-full bg-background/80 backdrop-blur flex items-center justify-center">
+                      <Play className="h-3 w-3 text-foreground ml-0.5" />
+                    </div>
+                    <span className="absolute bottom-0.5 left-0.5 right-0.5 text-[7px] text-muted-foreground truncate text-center">{att.name}</span>
+                  </div>
+                ))}
+                {imageAttachments.length + videoAttachments.length > 4 && (
+                  <div className="h-14 w-14 rounded-lg border bg-secondary flex items-center justify-center shrink-0">
+                    <span className="text-[10px] font-medium text-muted-foreground">+{imageAttachments.length + videoAttachments.length - 4}</span>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Non-media attachments */}
             {otherAttachments.length > 0 && (
               <div className="flex items-center gap-1.5 mt-2 flex-wrap">
@@ -195,15 +194,19 @@ export function MemoCard({ memo }: MemoCardProps) {
                 {memo.reactions.map((r) => {
                   const isActive = r.users.includes(currentUser.id);
                   return (
-                    <button
-                      key={r.emoji}
-                      className={`text-xs px-2 py-0.5 rounded-full border transition-all ${
-                        isActive ? 'bg-primary/10 border-primary/30 shadow-sm' : 'bg-secondary/60 border-transparent hover:border-border'
-                      }`}
-                      onClick={stopProp(() => addReaction(memo.id, r.emoji, currentUser.id))}
-                    >
-                      {r.emoji} {r.users.length}
-                    </button>
+                    <Tooltip key={r.emoji}>
+                      <TooltipTrigger asChild>
+                        <button
+                          className={`text-xs px-2 py-0.5 rounded-full border transition-all ${
+                            isActive ? 'bg-primary/10 border-primary/30 shadow-sm' : 'bg-secondary/60 border-transparent hover:border-border'
+                          }`}
+                          onClick={stopProp(() => addReaction(memo.id, r.emoji, currentUser.id))}
+                        >
+                          {r.emoji} {r.users.length}
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent>{isActive ? "Remove reaction" : "Add reaction"}</TooltipContent>
+                    </Tooltip>
                   );
                 })}
               </div>
@@ -213,48 +216,93 @@ export function MemoCard({ memo }: MemoCardProps) {
             <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border/50">
               {memo.status !== 'draft' && totalRecipients > 0 && (
                 <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                  <span className="inline-flex items-center gap-0.5 bg-info/10 text-info px-1.5 py-0.5 rounded-md">
-                    <Eye className="h-3 w-3" />{openedCount}/{totalRecipients}
-                  </span>
-                  <span className="inline-flex items-center gap-0.5 bg-warning/10 text-warning px-1.5 py-0.5 rounded-md">
-                    <CheckCircle2 className="h-3 w-3" />{acknowledgedCount}/{totalRecipients}
-                  </span>
-                  <span className="inline-flex items-center gap-0.5 bg-success/10 text-success px-1.5 py-0.5 rounded-md">
-                    <ThumbsUp className="h-3 w-3" />{approvedCount}/{totalRecipients}
-                  </span>
-                  <span className="inline-flex items-center gap-0.5 bg-primary/10 text-primary px-1.5 py-0.5 rounded-md">
-                    <MessageCircle className="h-3 w-3" />{repliedCount}/{totalRecipients}
-                  </span>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="inline-flex items-center gap-0.5 bg-info/10 text-info px-1.5 py-0.5 rounded-md">
+                        <Eye className="h-3 w-3" />{openedCount}/{totalRecipients}
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>Opened by {openedCount} of {totalRecipients} recipients</TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="inline-flex items-center gap-0.5 bg-warning/10 text-warning px-1.5 py-0.5 rounded-md">
+                        <CheckCircle2 className="h-3 w-3" />{acknowledgedCount}/{totalRecipients}
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>Acknowledged by {acknowledgedCount} of {totalRecipients}</TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="inline-flex items-center gap-0.5 bg-success/10 text-success px-1.5 py-0.5 rounded-md">
+                        <ThumbsUp className="h-3 w-3" />{approvedCount}/{totalRecipients}
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>Approved by {approvedCount} of {totalRecipients}</TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="inline-flex items-center gap-0.5 bg-primary/10 text-primary px-1.5 py-0.5 rounded-md">
+                        <MessageCircle className="h-3 w-3" />{repliedCount}/{totalRecipients}
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>Replied by {repliedCount} of {totalRecipients}</TooltipContent>
+                  </Tooltip>
                 </div>
               )}
 
               <div className="flex items-center gap-0.5 ml-auto opacity-0 group-hover/card:opacity-100 transition-opacity">
-                <Button variant="ghost" size="icon" className={`h-7 w-7 ${memo.pinned ? 'text-warning' : 'text-muted-foreground'}`}
-                  onClick={stopProp(() => { togglePin(memo.id); toast.success(memo.pinned ? 'Unpinned' : 'Pinned!'); })}>
-                  <Pin className="h-3.5 w-3.5" />
-                </Button>
-                <Button variant="ghost" size="icon" className={`h-7 w-7 ${memo.archived ? 'text-primary' : 'text-muted-foreground'}`}
-                  onClick={stopProp(() => { toggleArchive(memo.id); toast.success(memo.archived ? 'Unarchived' : 'Archived!'); })}>
-                  <Archive className="h-3.5 w-3.5" />
-                </Button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="icon" className={`h-7 w-7 ${memo.pinned ? 'text-warning' : 'text-muted-foreground'}`}
+                      onClick={stopProp(() => { togglePin(memo.id); toast.success(memo.pinned ? 'Unpinned' : 'Pinned!'); })}>
+                      <Pin className="h-3.5 w-3.5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>{memo.pinned ? "Unpin memo" : "Pin memo to top"}</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="icon" className={`h-7 w-7 ${memo.archived ? 'text-primary' : 'text-muted-foreground'}`}
+                      onClick={stopProp(() => { toggleArchive(memo.id); toast.success(memo.archived ? 'Unarchived' : 'Archived!'); })}>
+                      <Archive className="h-3.5 w-3.5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>{memo.archived ? "Unarchive memo" : "Archive memo"}</TooltipContent>
+                </Tooltip>
                 {!isCreator && (
-                  <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground"
-                    onClick={stopProp(() => { hideMemo(memo.id, currentUser.id); toast.success('Memo hidden from feed'); })}>
-                    <EyeOff className="h-3.5 w-3.5" />
-                  </Button>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground"
+                        onClick={stopProp(() => { hideMemo(memo.id, currentUser.id); toast.success('Memo hidden from feed'); })}>
+                        <EyeOff className="h-3.5 w-3.5" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Hide memo from your feed</TooltipContent>
+                  </Tooltip>
                 )}
                 {(isCreator || isAdmin) && (
-                  <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                    onClick={stopProp(() => { deleteMemo(memo.id); toast.success('Memo deleted'); })}>
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                        onClick={stopProp(() => { deleteMemo(memo.id); toast.success('Memo deleted'); })}>
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Delete memo permanently</TooltipContent>
+                  </Tooltip>
                 )}
                 <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground" onClick={e => e.stopPropagation()}>
-                      <Smile className="h-3.5 w-3.5" />
-                    </Button>
-                  </PopoverTrigger>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <PopoverTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground" onClick={e => e.stopPropagation()}>
+                          <Smile className="h-3.5 w-3.5" />
+                        </Button>
+                      </PopoverTrigger>
+                    </TooltipTrigger>
+                    <TooltipContent>Add reaction</TooltipContent>
+                  </Tooltip>
                   <PopoverContent className="w-auto p-2" align="end" onClick={e => e.stopPropagation()}>
                     <div className="flex gap-1">
                       {QUICK_EMOJIS.map(emoji => (
