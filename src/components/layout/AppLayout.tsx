@@ -3,6 +3,7 @@ import { AppSidebar } from "./AppSidebar";
 import { Bell, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { notifications, getUserById } from "@/data/mock";
 import { useNavigate } from "react-router-dom";
 import { useState, useMemo } from "react";
@@ -53,7 +54,12 @@ export function AppLayout({ children, title }: AppLayoutProps) {
         <AppSidebar />
         <div className="flex-1 flex flex-col min-w-0">
           <header className="h-14 flex items-center gap-3 border-b bg-card px-4 shrink-0">
-            <SidebarTrigger className="shrink-0" />
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <SidebarTrigger className="shrink-0" />
+              </TooltipTrigger>
+              <TooltipContent>Toggle sidebar navigation</TooltipContent>
+            </Tooltip>
             {title && (
               <h1 className="font-display text-lg font-semibold truncate">
                 {title}
@@ -70,9 +76,14 @@ export function AppLayout({ children, title }: AppLayoutProps) {
                 className="pl-9 h-9 bg-secondary border-none text-sm pr-8"
               />
               {search && (
-                <button className="absolute right-2 top-1/2 -translate-y-1/2" onClick={() => { setSearch(""); setSearchOpen(false); }}>
-                  <X className="h-3.5 w-3.5 text-muted-foreground" />
-                </button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button className="absolute right-2 top-1/2 -translate-y-1/2" onClick={() => { setSearch(""); setSearchOpen(false); }}>
+                      <X className="h-3.5 w-3.5 text-muted-foreground" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent>Clear search</TooltipContent>
+                </Tooltip>
               )}
               {searchOpen && search.trim() && (
                 <div className="absolute top-full mt-1 left-0 right-0 bg-popover border rounded-lg shadow-lg z-50 max-h-80 overflow-auto">
@@ -112,19 +123,24 @@ export function AppLayout({ children, title }: AppLayoutProps) {
                 </div>
               )}
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="relative shrink-0"
-              onClick={() => navigate("/notifications")}
-            >
-              <Bell className="h-5 w-5" />
-              {unreadCount > 0 && (
-                <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground">
-                  {unreadCount}
-                </span>
-              )}
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="relative shrink-0"
+                  onClick={() => navigate("/notifications")}
+                >
+                  <Bell className="h-5 w-5" />
+                  {unreadCount > 0 && (
+                    <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground">
+                      {unreadCount}
+                    </span>
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>View notifications ({unreadCount} unread)</TooltipContent>
+            </Tooltip>
           </header>
           <main className="flex-1 overflow-auto p-4 md:p-6" onClick={() => setSearchOpen(false)}>{children}</main>
         </div>

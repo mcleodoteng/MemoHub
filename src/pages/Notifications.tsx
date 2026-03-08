@@ -1,19 +1,20 @@
+import { useState, useMemo } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { notifications } from "@/data/mock";
+import { notifications as initialNotifications } from "@/data/mock";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
-  FileText,
-  MessageCircle,
-  Heart,
-  Mail,
-  AtSign,
-  Users,
-  CheckCircle2,
-  CheckCheck,
+  FileText, MessageCircle, Heart, Mail, AtSign, Users,
+  CheckCircle2, CheckCheck, Bell, Clock, Star, Filter, X,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useNavigate } from "react-router-dom";
+import { useReminders } from "@/context/ReminderContext";
+import { useGroups } from "@/context/GroupContext";
+import { currentUser } from "@/data/mock";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 const typeIcons: Record<string, typeof FileText> = {
   memo_received: Mail,
@@ -23,6 +24,20 @@ const typeIcons: Record<string, typeof FileText> = {
   message_received: MessageCircle,
   mention: AtSign,
   group_invite: Users,
+  reminder: Clock,
+  starred_activity: Star,
+};
+
+const typeLabels: Record<string, string> = {
+  memo_received: "Memos",
+  memo_approved: "Approvals",
+  comment_added: "Comments",
+  reaction_added: "Reactions",
+  message_received: "Messages",
+  mention: "Mentions",
+  group_invite: "Groups",
+  reminder: "Reminders",
+  starred_activity: "Starred",
 };
 
 const typeColors: Record<string, string> = {
@@ -33,67 +48,200 @@ const typeColors: Record<string, string> = {
   message_received: "bg-accent/10 text-accent",
   mention: "bg-warning/10 text-warning",
   group_invite: "bg-primary/10 text-primary",
+  reminder: "bg-warning/10 text-warning",
+  starred_activity: "bg-warning/10 text-warning",
 };
+
+type NotifItem = typeof initialNotifications[0];
 
 const Notifications = () => {
   const navigate = useNavigate();
-  const unread = notifications.filter((n) => !n.read);
-  const read = notifications.filter((n) => n.read);
-
-  const NotifItem = ({ notif }: { notif: typeof notifications[0] }) => {
-    const Icon = typeIcons[notif.type] || FileText;
-    return (
-      <div
-        className={`flex items-start gap-3 p-3 rounded-lg cursor-pointer transition-colors ${
-          notif.read ? "opacity-70 hover:bg-secondary/50" : "bg-secondary/30 hover:bg-secondary/60"
-        }`}
-        onClick={() => notif.actionUrl && navigate(notif.actionUrl)}
-      >
-        <div className={`p-2 rounded-lg shrink-0 ${typeColors[notif.type] || "bg-muted"}`}>
-          <Icon className="h-4 w-4" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className={`text-sm ${notif.read ? "" : "font-semibold"}`}>{notif.title}</p>
-          <p className="text-xs text-muted-foreground mt-0.5">{notif.body}</p>
-          <p className="text-[10px] text-muted-foreground mt-1">
-            {formatDistanceToNow(new Date(notif.createdAt), { addSuffix: true })}
-          </p>
-        </div>
-        {!notif.read && <span className="h-2 w-2 rounded-full bg-primary mt-2 shrink-0" />}
-      </div>
+  const { reminders } = useReminders();
+  const { groups } = useGroups();
+  const [allNotifs, setAllNotifs] = useState<NotifItem[]>(() => {
+    const extras: NotifItem[] = [];
+    // Add pending group invites as notifications
+    groups.forEach(g => {
+      g.pendingInvites
+        .filter(i => i.userId === currentUser.id && i.status === 'pending')
+        .forEach(i => {
+          extras.push({
+            id: `ginv-${g.id}-${i.userId}`,
+            userId: currentUser.id,
+            type: 'group_invite' as any,
+            title: 'Group Invitation',
+            body: `You've been invited to join "${g.name}"`,
+            read: false,
+            actionUrl: `/groups/${g.id}`,
+            createdAt: i.invitedAt,
+          });
+        });
+    });
+    // Add fired reminders
+    reminders.filter(r => r.fired).forEach(r => {
+      extras.push({
+        id: `rem-${r.id}`,
+        userId: currentUser.id,
+        type: 'reminder' as any,
+        title: 'Reminder Due',
+        body: r.title + (r.description ? `: ${r.description}` : ''),
+        read: false,
+        actionUrl: '/reminders',
+        createdAt: r.dueAt,
+      });
+    });
+    return [...initialNotifications, ...extras].sort((a, b) =>
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
+  });
+
+  const [activeFilter, setActiveFilter] = useState<string | null>(null);
+  const [tab, setTab] = useState<'all' | 'unread'>('all');
+
+  const filtered = useMemo(() => {
+    let items = allNotifs;
+    if (tab === 'unread') items = items.filter(n => !n.read);
+    if (activeFilter) items = items.filter(n => n.type === activeFilter);
+    return items;
+  }, [allNotifs, tab, activeFilter]);
+
+  const unreadCount = allNotifs.filter(n => !n.read).length;
+
+  const markAllRead = () => {
+    setAllNotifs(prev => prev.map(n => ({ ...n, read: true })));
   };
+
+  const markRead = (id: string) => {
+    setAllNotifs(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+  };
+
+  const filterTypes = [...new Set(allNotifs.map(n => n.type))];
 
   return (
     <AppLayout title="Notifications">
-      <div className="max-w-3xl mx-auto space-y-6">
+      <div className="max-w-3xl mx-auto space-y-4">
+        {/* Header */}
         <div className="flex items-center justify-between">
-          <p className="text-muted-foreground text-sm">
-            {unread.length} unread notifications
-          </p>
-          <Button variant="outline" size="sm" className="gap-2">
-            <CheckCheck className="h-4 w-4" />
-            Mark all read
-          </Button>
+          <div className="flex items-center gap-3">
+            <Bell className="h-5 w-5 text-primary" />
+            <div>
+              <h2 className="font-display font-bold text-lg">Notification Center</h2>
+              <p className="text-xs text-muted-foreground">{unreadCount} unread</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Popover>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" size="sm" className="gap-1.5">
+                      <Filter className="h-3.5 w-3.5" />
+                      {activeFilter ? typeLabels[activeFilter] || activeFilter : "Filter"}
+                    </Button>
+                  </PopoverTrigger>
+                </TooltipTrigger>
+                <TooltipContent>Filter notifications by type</TooltipContent>
+              </Tooltip>
+              <PopoverContent className="w-48 p-2" align="end">
+                <button
+                  className={`w-full text-left text-sm px-2 py-1.5 rounded hover:bg-secondary transition-colors ${!activeFilter ? 'bg-secondary font-medium' : ''}`}
+                  onClick={() => setActiveFilter(null)}
+                >
+                  All types
+                </button>
+                {filterTypes.map(type => {
+                  const Icon = typeIcons[type] || FileText;
+                  return (
+                    <button
+                      key={type}
+                      className={`w-full text-left text-sm px-2 py-1.5 rounded hover:bg-secondary transition-colors flex items-center gap-2 ${activeFilter === type ? 'bg-secondary font-medium' : ''}`}
+                      onClick={() => setActiveFilter(type)}
+                    >
+                      <Icon className="h-3.5 w-3.5" />
+                      {typeLabels[type] || type}
+                    </button>
+                  );
+                })}
+              </PopoverContent>
+            </Popover>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-1.5" onClick={markAllRead} disabled={unreadCount === 0}>
+                  <CheckCheck className="h-3.5 w-3.5" />
+                  Mark all read
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Mark all notifications as read</TooltipContent>
+            </Tooltip>
+          </div>
         </div>
 
-        {unread.length > 0 && (
-          <div>
-            <h3 className="font-display font-semibold text-sm mb-2">New</h3>
-            <div className="space-y-1">
-              {unread.map((n) => <NotifItem key={n.id} notif={n} />)}
-            </div>
+        {activeFilter && (
+          <div className="flex items-center gap-2">
+            <Badge variant="secondary" className="gap-1 text-xs">
+              Filtered: {typeLabels[activeFilter]}
+              <button onClick={() => setActiveFilter(null)}><X className="h-3 w-3" /></button>
+            </Badge>
           </div>
         )}
 
-        {read.length > 0 && (
-          <div>
-            <h3 className="font-display font-semibold text-sm mb-2 text-muted-foreground">Earlier</h3>
-            <div className="space-y-1">
-              {read.map((n) => <NotifItem key={n.id} notif={n} />)}
-            </div>
-          </div>
-        )}
+        {/* Tabs */}
+        <Tabs value={tab} onValueChange={v => setTab(v as any)}>
+          <TabsList className="h-9">
+            <TabsTrigger value="all" className="text-xs gap-1">
+              All <Badge variant="secondary" className="text-[10px] px-1.5 py-0 ml-1">{allNotifs.length}</Badge>
+            </TabsTrigger>
+            <TabsTrigger value="unread" className="text-xs gap-1">
+              Unread {unreadCount > 0 && <Badge className="text-[10px] px-1.5 py-0 ml-1">{unreadCount}</Badge>}
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value={tab} className="mt-3">
+            {filtered.length === 0 ? (
+              <div className="text-center py-12">
+                <Bell className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
+                <p className="text-sm text-muted-foreground">No notifications</p>
+              </div>
+            ) : (
+              <div className="space-y-1">
+                {filtered.map(notif => {
+                  const Icon = typeIcons[notif.type] || FileText;
+                  return (
+                    <div
+                      key={notif.id}
+                      className={`flex items-start gap-3 p-3 rounded-lg cursor-pointer transition-all ${
+                        notif.read
+                          ? "opacity-60 hover:bg-secondary/50 hover:opacity-80"
+                          : "bg-secondary/30 hover:bg-secondary/60"
+                      }`}
+                      onClick={() => {
+                        markRead(notif.id);
+                        if (notif.actionUrl) navigate(notif.actionUrl);
+                      }}
+                    >
+                      <div className={`p-2 rounded-lg shrink-0 ${typeColors[notif.type] || "bg-muted"}`}>
+                        <Icon className="h-4 w-4" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className={`text-sm ${notif.read ? "" : "font-semibold"}`}>{notif.title}</p>
+                          <Badge variant="outline" className="text-[9px] px-1 py-0 border-transparent">
+                            {typeLabels[notif.type] || notif.type}
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-0.5">{notif.body}</p>
+                        <p className="text-[10px] text-muted-foreground mt-1">
+                          {formatDistanceToNow(new Date(notif.createdAt), { addSuffix: true })}
+                        </p>
+                      </div>
+                      {!notif.read && <span className="h-2 w-2 rounded-full bg-primary mt-2 shrink-0 animate-pulse" />}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
       </div>
     </AppLayout>
   );

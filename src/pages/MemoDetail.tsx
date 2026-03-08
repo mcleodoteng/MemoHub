@@ -6,6 +6,7 @@ import { UserHoverCard } from "@/components/user/UserHoverCard";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { MemoEditDialog } from "@/components/memo/MemoEditDialog";
 import { MemoEditHistory } from "@/components/memo/MemoEditHistory";
 import { MemoActivityLog } from "@/components/memo/MemoActivityLog";
@@ -42,7 +43,6 @@ const MemoDetail = () => {
 
   const memo = getMemoById(id || "");
 
-  // Auto-acknowledge on open
   useEffect(() => {
     if (memo && memo.status !== 'draft') {
       const isRecipient = memo.recipientIds.includes(currentUser.id);
@@ -91,20 +91,35 @@ const MemoDetail = () => {
   return (
     <AppLayout title="">
       <div className="max-w-3xl mx-auto space-y-6">
-        <Button variant="ghost" size="sm" onClick={() => navigate("/memos")} className="gap-2">
-          <ArrowLeft className="h-4 w-4" /> Back to Memos
-        </Button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="sm" onClick={() => navigate("/memos")} className="gap-2">
+              <ArrowLeft className="h-4 w-4" /> Back to Memos
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Return to memos list</TooltipContent>
+        </Tooltip>
 
         {isDraft && isCreator && (
           <div className="flex items-center gap-3 p-3 rounded-lg bg-warning/10 border border-warning/20">
             <Badge variant="outline" className="text-warning border-warning/30">Draft</Badge>
             <span className="text-sm text-muted-foreground flex-1">This memo hasn't been sent yet.</span>
-            <Button size="sm" variant="outline" onClick={() => navigate(`/compose/${memo.id}`)} className="gap-1.5">
-              <Edit3 className="h-3.5 w-3.5" /> Edit Draft
-            </Button>
-            <Button size="sm" onClick={handleSendDraft} className="gap-1.5">
-              <Send className="h-3.5 w-3.5" /> Send Now
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button size="sm" variant="outline" onClick={() => navigate(`/compose/${memo.id}`)} className="gap-1.5">
+                  <Edit3 className="h-3.5 w-3.5" /> Edit Draft
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Open draft in compose editor</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button size="sm" onClick={handleSendDraft} className="gap-1.5">
+                  <Send className="h-3.5 w-3.5" /> Send Now
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Send this memo to all recipients</TooltipContent>
+            </Tooltip>
           </div>
         )}
 
@@ -150,29 +165,54 @@ const MemoDetail = () => {
             </div>
             <div className="flex gap-1">
               {isCreator && !isDraft && (
-                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditOpen(true)}>
-                  <Edit3 className="h-4 w-4" />
-                </Button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditOpen(true)}>
+                      <Edit3 className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Edit this memo</TooltipContent>
+                </Tooltip>
               )}
-              <Button variant="ghost" size="icon" className={`h-8 w-8 ${memo.pinned ? 'text-warning' : ''}`}
-                onClick={() => { togglePin(memo.id); toast.success(memo.pinned ? 'Unpinned' : 'Pinned!'); }}>
-                <Pin className="h-4 w-4" />
-              </Button>
-              <Button variant="ghost" size="icon" className="h-8 w-8"
-                onClick={() => { toggleArchive(memo.id); toast.success(memo.archived ? 'Unarchived' : 'Archived!'); }}>
-                <Archive className="h-4 w-4" />
-              </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="icon" className={`h-8 w-8 ${memo.pinned ? 'text-warning' : ''}`}
+                    onClick={() => { togglePin(memo.id); toast.success(memo.pinned ? 'Unpinned' : 'Pinned!'); }}>
+                    <Pin className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>{memo.pinned ? "Unpin memo" : "Pin memo to top"}</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-8 w-8"
+                    onClick={() => { toggleArchive(memo.id); toast.success(memo.archived ? 'Unarchived' : 'Archived!'); }}>
+                    <Archive className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>{memo.archived ? "Unarchive memo" : "Archive memo"}</TooltipContent>
+              </Tooltip>
               {!isCreator && (
-                <Button variant="ghost" size="icon" className="h-8 w-8"
-                  onClick={() => { hideMemo(memo.id, currentUser.id); toast.success('Hidden from feed'); navigate('/memos'); }}>
-                  <EyeOff className="h-4 w-4" />
-                </Button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-8 w-8"
+                      onClick={() => { hideMemo(memo.id, currentUser.id); toast.success('Hidden from feed'); navigate('/memos'); }}>
+                      <EyeOff className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Hide memo from your feed</TooltipContent>
+                </Tooltip>
               )}
               {(isCreator || isAdmin) && (
-                <Button variant="ghost" size="icon" className="h-8 w-8"
-                  onClick={() => { deleteMemo(memo.id); toast.success('Memo deleted!'); navigate('/memos'); }}>
-                  <Trash2 className="h-4 w-4 text-destructive" />
-                </Button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-8 w-8"
+                      onClick={() => { deleteMemo(memo.id); toast.success('Memo deleted!'); navigate('/memos'); }}>
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Delete memo permanently</TooltipContent>
+                </Tooltip>
               )}
             </div>
           </div>
@@ -220,18 +260,28 @@ const MemoDetail = () => {
             {memo.reactions.map(r => {
               const isActive = r.users.includes(currentUser.id);
               return (
-                <Button key={r.emoji} variant={isActive ? "secondary" : "outline"} size="sm" className="gap-1 h-7 text-xs"
-                  onClick={() => addReaction(memo.id, r.emoji, currentUser.id)}>
-                  {r.emoji} {r.users.length}
-                </Button>
+                <Tooltip key={r.emoji}>
+                  <TooltipTrigger asChild>
+                    <Button variant={isActive ? "secondary" : "outline"} size="sm" className="gap-1 h-7 text-xs"
+                      onClick={() => addReaction(memo.id, r.emoji, currentUser.id)}>
+                      {r.emoji} {r.users.length}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>{isActive ? "Remove reaction" : "Add reaction"}</TooltipContent>
+                </Tooltip>
               );
             })}
             <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
-                  <Smile className="h-4 w-4" />
-                </Button>
-              </PopoverTrigger>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <PopoverTrigger asChild>
+                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
+                      <Smile className="h-4 w-4" />
+                    </Button>
+                  </PopoverTrigger>
+                </TooltipTrigger>
+                <TooltipContent>Add reaction</TooltipContent>
+              </Tooltip>
               <PopoverContent className="w-auto p-2" align="start">
                 <div className="flex gap-1">
                   {quickEmojis.map(emoji => (
@@ -263,26 +313,46 @@ const MemoDetail = () => {
           {!isDraft && isRecipient && !isCreator && myStatus && (
             <div className="flex items-center gap-2 pt-3 border-t">
               {myStatus.acknowledged ? (
-                <Button variant="secondary" size="sm" className="gap-1.5 h-8 text-xs"
-                  onClick={() => { unacknowledgeMemo(memo.id, currentUser.id); toast.success('Unacknowledged'); }}>
-                  <XCircle className="h-3.5 w-3.5" /> Unacknowledge
-                </Button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="secondary" size="sm" className="gap-1.5 h-8 text-xs"
+                      onClick={() => { unacknowledgeMemo(memo.id, currentUser.id); toast.success('Unacknowledged'); }}>
+                      <XCircle className="h-3.5 w-3.5" /> Unacknowledge
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Remove your acknowledgment from this memo</TooltipContent>
+                </Tooltip>
               ) : (
-                <Button variant="outline" size="sm" className="gap-1.5 h-8 text-xs"
-                  onClick={() => { acknowledgeMemo(memo.id, currentUser.id); toast.success('Acknowledged!'); }}>
-                  <CheckCircle2 className="h-3.5 w-3.5" /> Acknowledge
-                </Button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="outline" size="sm" className="gap-1.5 h-8 text-xs"
+                      onClick={() => { acknowledgeMemo(memo.id, currentUser.id); toast.success('Acknowledged!'); }}>
+                      <CheckCircle2 className="h-3.5 w-3.5" /> Acknowledge
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Acknowledge that you've read this memo</TooltipContent>
+                </Tooltip>
               )}
               {myStatus.approved ? (
-                <Button variant="secondary" size="sm" className="gap-1.5 h-8 text-xs"
-                  onClick={() => { unapproveMemo(memo.id, currentUser.id); toast.success('Unapproved'); }}>
-                  <XCircle className="h-3.5 w-3.5" /> Unapprove
-                </Button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="secondary" size="sm" className="gap-1.5 h-8 text-xs"
+                      onClick={() => { unapproveMemo(memo.id, currentUser.id); toast.success('Unapproved'); }}>
+                      <XCircle className="h-3.5 w-3.5" /> Unapprove
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Remove your approval from this memo</TooltipContent>
+                </Tooltip>
               ) : (
-                <Button variant="outline" size="sm" className="gap-1.5 h-8 text-xs"
-                  onClick={() => { approveMemo(memo.id, currentUser.id); toast.success('Approved!'); }}>
-                  <ThumbsUp className="h-3.5 w-3.5" /> Approve
-                </Button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="outline" size="sm" className="gap-1.5 h-8 text-xs"
+                      onClick={() => { approveMemo(memo.id, currentUser.id); toast.success('Approved!'); }}>
+                      <ThumbsUp className="h-3.5 w-3.5" /> Approve
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Approve this memo's content or request</TooltipContent>
+                </Tooltip>
               )}
             </div>
           )}
@@ -304,18 +374,30 @@ const MemoDetail = () => {
                     </Avatar>
                     <span className="text-sm font-medium min-w-[110px]">{user?.name}</span>
                     <div className="flex gap-1.5 flex-wrap">
-                      <span className={status.opened ? 'status-badge-opened' : 'status-badge opacity-30'}>
-                        Opened
-                      </span>
-                      <span className={status.acknowledged ? 'status-badge-acknowledged' : 'status-badge opacity-30'}>
-                        Acknowledged
-                      </span>
-                      <span className={status.approved ? 'status-badge-approved' : 'status-badge opacity-30'}>
-                        Approved
-                      </span>
-                      <span className={status.replied ? 'status-badge-replied' : 'status-badge opacity-30'}>
-                        Replied
-                      </span>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className={status.opened ? 'status-badge-opened' : 'status-badge opacity-30'}>Opened</span>
+                        </TooltipTrigger>
+                        <TooltipContent>{status.opened ? `Opened ${status.openedAt ? formatDistanceToNow(new Date(status.openedAt), { addSuffix: true }) : ''}` : 'Not yet opened'}</TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className={status.acknowledged ? 'status-badge-acknowledged' : 'status-badge opacity-30'}>Acknowledged</span>
+                        </TooltipTrigger>
+                        <TooltipContent>{status.acknowledged ? 'Acknowledged' : 'Not yet acknowledged'}</TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className={status.approved ? 'status-badge-approved' : 'status-badge opacity-30'}>Approved</span>
+                        </TooltipTrigger>
+                        <TooltipContent>{status.approved ? 'Approved' : 'Not yet approved'}</TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className={status.replied ? 'status-badge-replied' : 'status-badge opacity-30'}>Replied</span>
+                        </TooltipTrigger>
+                        <TooltipContent>{status.replied ? 'Replied' : 'Not yet replied'}</TooltipContent>
+                      </Tooltip>
                     </div>
                   </div>
                 );
@@ -325,8 +407,6 @@ const MemoDetail = () => {
         )}
 
         <MemoEditHistory history={memo.editHistory} />
-
-        {/* Activity History */}
         <MemoActivityLog activityLog={memo.activityLog || []} />
 
         {!isDraft && (
@@ -373,7 +453,12 @@ const MemoDetail = () => {
               <div className="space-y-2 pt-2 border-t">
                 <MentionInput value={replyText} onChange={setReplyText} placeholder="Write a comment... (type @ to mention)" rows={2} />
                 <div className="flex justify-end">
-                  <Button size="sm" onClick={handleReply} disabled={!replyText.trim()}>Reply</Button>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button size="sm" onClick={handleReply} disabled={!replyText.trim()}>Reply</Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Post your comment</TooltipContent>
+                  </Tooltip>
                 </div>
               </div>
             </div>
