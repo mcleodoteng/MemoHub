@@ -51,7 +51,7 @@ const MemoDetail = () => {
     getMemoById, getCommentsByMemoId, togglePin, toggleArchive, deleteMemo,
     hideMemo, addComment, addReaction, updateMemo, markOpened,
     acknowledgeMemo, unacknowledgeMemo, approveMemo, unapproveMemo, toggleStar,
-    editComment, deleteComment, addCommentReaction,
+    editComment, deleteComment, addCommentReaction, toggleCommentPin,
   } = useMemos();
 
   const memo = getMemoById(id || "");
