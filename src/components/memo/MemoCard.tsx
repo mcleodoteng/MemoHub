@@ -42,10 +42,12 @@ export function MemoCard({ memo }: MemoCardProps) {
   const VisIcon = vis.icon;
   const navigate = useNavigate();
   const { togglePin, toggleArchive, hideMemo, addReaction, deleteMemo, toggleStar } = useMemos();
+  const { hasPermission, canDeleteMemo } = useRoles();
 
   const isCreator = memo.creatorId === currentUser.id;
-  const isAdmin = currentUser.role === 'admin';
   const isStarred = (memo.starredBy || []).includes(currentUser.id);
+  const showPinArchive = isCreator || hasPermission('canPinMemos');
+  const showDelete = canDeleteMemo(memo.creatorId);
 
   const openedCount = memo.recipientStatuses.filter((s) => s.opened).length;
   const acknowledgedCount = memo.recipientStatuses.filter((s) => s.acknowledged).length;
