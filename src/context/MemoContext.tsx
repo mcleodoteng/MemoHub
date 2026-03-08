@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
-import { Memo, Comment, MemoVisibility, MemoEditEntry, Attachment } from '@/types';
+import { Memo, Comment, MemoVisibility, MemoEditEntry, Attachment, ApprovalStep, WorkflowConfig } from '@/types';
 import { memos as initialMemos, comments as initialComments, currentUser } from '@/data/mock';
 
 interface MemoContextType {
@@ -26,6 +26,9 @@ interface MemoContextType {
   toggleCommentPin: (commentId: string, userId: string) => void;
   addCommentReaction: (commentId: string, emoji: string, userId: string) => void;
   addReaction: (memoId: string, emoji: string, userId: string) => void;
+  approveWorkflowStep: (memoId: string, stepId: string, userId: string, approved: boolean, comment?: string) => void;
+  checkEscalations: () => void;
+  checkScheduledMemos: () => void;
   getMemoById: (id: string) => Memo | undefined;
   getCommentsByMemoId: (memoId: string) => Comment[];
 }
@@ -331,11 +334,127 @@ export function MemoProvider({ children }: { children: React.ReactNode }) {
     }));
   }, []);
 
+  // ===== WORKFLOW AUTOMATION =====
+
+  const approveWorkflowStep = useCallback((memoId: string, stepId: string, userId: string, approved: boolean, comment?: string) => {
+    setMemos(prev => prev.map(m => {
+      if (m.id !== memoId || !m.workflow?.enabled) return m;
+      const step = m.workflow.approvalChain.find(s => s.id === stepId);
+      if (!step || step.approverId !== userId || step.status !== 'pending') return m;
+
+      // Check that all prior steps are approved
+      const priorSteps = m.workflow.approvalChain.filter(s => s.order < step.order);
+      if (priorSteps.some(s => s.status !== 'approved')) return m;
+
+      const now = new Date().toISOString();
+      const updatedChain = m.workflow.approvalChain.map(s =>
+        s.id === stepId ? { ...s, status: approved ? 'approved' as const : 'rejected' as const, decidedAt: now, comment } : s
+      );
+
+      const activityEntry = {
+        id: `al${Date.now()}`,
+        userId,
+        action: approved ? 'approved' as const : 'unapproved' as const,
+        timestamp: now,
+        detail: `Workflow step ${step.order}: ${approved ? 'Approved' : 'Rejected'}${comment ? ` — "${comment}"` : ''}`,
+      };
+
+      return {
+        ...m,
+        workflow: { ...m.workflow, approvalChain: updatedChain },
+        activityLog: [...m.activityLog, activityEntry],
+        updatedAt: now,
+      };
+    }));
+  }, []);
+
+  const checkEscalations = useCallback(() => {
+    const now = new Date();
+    setMemos(prev => prev.map(m => {
+      if (!m.workflow?.enabled || !m.workflow.escalation?.enabled) return m;
+      if (m.workflow.escalation.escalatedAt) return m; // already escalated
+
+      const currentStep = m.workflow.approvalChain.find(s => s.status === 'pending');
+      if (!currentStep) return m;
+
+      // Check if the memo was sent long enough ago
+      const sentAt = new Date(m.createdAt);
+      const hoursSinceSent = (now.getTime() - sentAt.getTime()) / (1000 * 60 * 60);
+
+      if (hoursSinceSent >= m.workflow.escalation.hoursUntilEscalation) {
+        const escalationTime = now.toISOString();
+        return {
+          ...m,
+          workflow: {
+            ...m.workflow,
+            escalation: {
+              ...m.workflow.escalation,
+              escalatedAt: escalationTime,
+              escalatedStepId: currentStep.id,
+            },
+          },
+          activityLog: [...m.activityLog, {
+            id: `al${Date.now()}`,
+            userId: 'system',
+            action: 'opened' as const,
+            timestamp: escalationTime,
+            detail: `Auto-escalation triggered: Step ${currentStep.order} pending for ${m.workflow.escalation.hoursUntilEscalation}h`,
+          }],
+          updatedAt: escalationTime,
+        };
+      }
+      return m;
+    }));
+  }, []);
+
+  const checkScheduledMemos = useCallback(() => {
+    const now = new Date();
+    setMemos(prev => prev.map(m => {
+      if (m.status !== 'draft' || !m.workflow?.scheduledSendAt) return m;
+      if (m.workflow.sentBySchedule) return m;
+      const scheduleTime = new Date(m.workflow.scheduledSendAt);
+      if (now >= scheduleTime) {
+        const sendTime = now.toISOString();
+        return {
+          ...m,
+          status: 'sent' as const,
+          workflow: { ...m.workflow, sentBySchedule: true },
+          recipientStatuses: m.recipientIds.map(uid => ({
+            userId: uid, opened: false, acknowledged: false, approved: false, replied: false,
+          })),
+          activityLog: [...m.activityLog, {
+            id: `al${Date.now()}`,
+            userId: 'system',
+            action: 'opened' as const,
+            timestamp: sendTime,
+            detail: 'Scheduled delivery — memo sent automatically',
+          }],
+          updatedAt: sendTime,
+        };
+      }
+      return m;
+    }));
+  }, []);
+
+  // Run escalation and scheduling checks periodically
+  React.useEffect(() => {
+    const interval = setInterval(() => {
+      checkEscalations();
+      checkScheduledMemos();
+    }, 30000); // every 30 seconds
+    // Run once immediately
+    checkEscalations();
+    checkScheduledMemos();
+    return () => clearInterval(interval);
+  }, [checkEscalations, checkScheduledMemos]);
+
   return (
     <MemoContext.Provider value={{
       memos, comments, addMemo, updateMemo, editMemo, deleteMemo, permanentlyDeleteMemo, restoreMemo, togglePin, toggleArchive, toggleStar,
       hideMemo, acknowledgeMemo, unacknowledgeMemo, approveMemo, unapproveMemo, markOpened,
-      addComment, editComment, deleteComment, toggleCommentPin, addCommentReaction, addReaction, getMemoById, getCommentsByMemoId,
+      addComment, editComment, deleteComment, toggleCommentPin, addCommentReaction, addReaction,
+      approveWorkflowStep, checkEscalations, checkScheduledMemos,
+      getMemoById, getCommentsByMemoId,
     }}>
       {children}
     </MemoContext.Provider>

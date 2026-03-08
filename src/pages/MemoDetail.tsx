@@ -13,6 +13,7 @@ import { MemoActivityLog } from "@/components/memo/MemoActivityLog";
 import { MentionInput } from "@/components/editor/MentionInput";
 import { MentionText, processMentionsInHtml } from "@/components/shared/MentionText";
 import { AttachmentViewer, AttachmentUploader } from '@/components/attachment/AttachmentManager';
+import { WorkflowStatus } from '@/components/memo/WorkflowStatus';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import {
   Globe, Lock, Shield, Pin, Archive, Trash2, EyeOff,
@@ -56,6 +57,7 @@ const MemoDetail = () => {
     hideMemo, addComment, addReaction, updateMemo, markOpened,
     acknowledgeMemo, unacknowledgeMemo, approveMemo, unapproveMemo, toggleStar,
     editComment, deleteComment, addCommentReaction, toggleCommentPin,
+    approveWorkflowStep,
   } = useMemos();
   const { notifyMentions } = useNotifications();
 
@@ -370,6 +372,15 @@ const MemoDetail = () => {
           )}
 
           <AttachmentViewer attachments={memo.attachments} />
+
+          {/* Workflow Status */}
+          {memo.workflow?.enabled && (
+            <WorkflowStatus
+              memo={memo}
+              currentUserId={currentUser.id}
+              onApprove={(stepId, approved, comment) => approveWorkflowStep(memo.id, stepId, currentUser.id, approved, comment)}
+            />
+          )}
 
           {/* Reactions */}
           <div className="flex items-center gap-2 flex-wrap">

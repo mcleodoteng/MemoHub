@@ -17,9 +17,10 @@ import { RichTextEditor } from "@/components/editor/RichTextEditor";
 import { AttachmentUploader } from "@/components/attachment/AttachmentManager";
 import { MemoReferencePicker } from "@/components/memo/MemoReferencePicker";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { MemoVisibility, Attachment } from "@/types";
+import { MemoVisibility, Attachment, WorkflowConfig } from "@/types";
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { Globe, Lock, Shield, Send, X, FileText, Save, LayoutTemplate, Plus } from "lucide-react";
+import { WorkflowConfigPanel } from "@/components/memo/WorkflowConfig";
 import { toast } from "sonner";
 import { useNavigate, useParams, useBlocker } from "react-router-dom";
 import { useNotifications } from "@/context/NotificationContext";
@@ -44,6 +45,10 @@ const Compose = () => {
   const [recipientSearch, setRecipientSearch] = useState("");
   const [customTagInput, setCustomTagInput] = useState("");
   const [isSaved, setIsSaved] = useState(false);
+  const [workflow, setWorkflow] = useState<WorkflowConfig>({
+    enabled: false,
+    approvalChain: [],
+  });
 
   // Load draft data
   useEffect(() => {
@@ -55,6 +60,7 @@ const Compose = () => {
       setSelectedTags(draft.tags);
       setAttachments(draft.attachments);
       setReferencedMemoIds(draft.referencedMemoIds);
+      if (draft.workflow) setWorkflow(draft.workflow);
     }
   }, [draftId]);
 
@@ -129,24 +135,30 @@ const Compose = () => {
     if (!title.trim()) { toast.error("Please add a title"); return; }
     if (!body.trim() && body !== '<p></p>') { toast.error("Please add content"); return; }
 
+    // If scheduled, save as draft with scheduled send time
+    const isScheduled = workflow.enabled && workflow.scheduledSendAt;
+    const status = isScheduled ? 'draft' : 'sent';
+
     setIsSaved(true);
     if (isEditingDraft && draft) {
       updateMemo(draft.id, {
-        title, body, visibility, status: 'sent',
+        title, body, visibility, status: status as any,
         recipientIds: selectedRecipients, tags: selectedTags,
         attachments, referencedMemoIds,
+        workflow: workflow.enabled ? workflow : undefined,
         recipientStatuses: selectedRecipients.map(uid => ({
           userId: uid, opened: false, acknowledged: false, approved: false, replied: false,
         })),
       });
-      toast.success("Memo sent!");
+      toast.success(isScheduled ? `Memo scheduled for ${new Date(workflow.scheduledSendAt!).toLocaleString()}` : "Memo sent!");
     } else {
       addMemo({
-        title, body, creatorId: currentUser.id, visibility, status: 'sent',
+        title, body, creatorId: currentUser.id, visibility, status: status as any,
         recipientIds: selectedRecipients, tags: selectedTags, attachments,
         pinned: false, archived: false, referencedMemoIds, groupId: undefined,
+        workflow: workflow.enabled ? workflow : undefined,
       });
-      toast.success("Memo sent successfully!");
+      toast.success(isScheduled ? `Memo scheduled for ${new Date(workflow.scheduledSendAt!).toLocaleString()}` : "Memo sent successfully!");
     }
     notifyMentions(body, title, "/memos", currentUser.id);
     navigate("/memos");
@@ -161,6 +173,7 @@ const Compose = () => {
         title, body, visibility,
         recipientIds: selectedRecipients, tags: selectedTags,
         attachments, referencedMemoIds,
+        workflow: workflow.enabled ? workflow : undefined,
       });
       toast.success("Draft updated!");
     } else {
@@ -168,6 +181,7 @@ const Compose = () => {
         title, body, creatorId: currentUser.id, visibility, status: 'draft',
         recipientIds: selectedRecipients, tags: selectedTags, attachments,
         pinned: false, archived: false, referencedMemoIds, groupId: undefined,
+        workflow: workflow.enabled ? workflow : undefined,
       });
       toast.success("Draft saved!");
     }
@@ -383,6 +397,9 @@ const Compose = () => {
               onRemove={(id) => setAttachments(prev => prev.filter(a => a.id !== id))}
             />
           </div>
+
+          {/* Workflow Automation */}
+          <WorkflowConfigPanel workflow={workflow} onChange={setWorkflow} />
 
           {/* Actions */}
           <div className="flex items-center gap-2 md:gap-3 pt-2 border-t flex-wrap">

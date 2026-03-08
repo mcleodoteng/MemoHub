@@ -59,6 +59,30 @@ export interface MemoActivityEntry {
   detail?: string;
 }
 
+// ===== WORKFLOW / APPROVAL CHAIN =====
+export interface ApprovalStep {
+  id: string;
+  approverId: string;
+  order: number; // 1-based step order
+  status: 'pending' | 'approved' | 'rejected';
+  decidedAt?: string;
+  comment?: string;
+}
+
+export interface WorkflowConfig {
+  enabled: boolean;
+  approvalChain: ApprovalStep[];
+  escalation?: {
+    enabled: boolean;
+    hoursUntilEscalation: number; // hours before auto-escalation
+    escalateToUserId?: string; // who to notify on escalation
+    escalatedAt?: string;
+    escalatedStepId?: string;
+  };
+  scheduledSendAt?: string; // ISO string for delayed delivery
+  sentBySchedule?: boolean; // true if auto-sent by scheduler
+}
+
 export interface Memo {
   id: string;
   title: string;
@@ -79,6 +103,7 @@ export interface Memo {
   activityLog: MemoActivityEntry[];
   hiddenBy?: string[];
   starredBy?: string[];
+  workflow?: WorkflowConfig;
   createdAt: string;
   updatedAt: string;
 }
