@@ -8,6 +8,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useMemos } from "@/context/MemoContext";
+import { useRoles } from "@/context/RoleContext";
 import {
   Globe, Lock, Shield, Pin, Paperclip, MessageCircle,
   Eye, CheckCircle2, ThumbsUp,
