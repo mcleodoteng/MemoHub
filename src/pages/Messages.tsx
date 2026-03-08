@@ -456,24 +456,22 @@ const Messages = () => {
                                 <>
                                   {msg.body && <p>{msg.body}</p>}
                                   {msg.attachments.length > 0 && (
-                                    <div className="mt-1.5 space-y-1">
-                                      {msg.attachments.filter(a => a.type.startsWith('image/')).length > 0 && (
-                                        <div className="flex gap-1 flex-wrap">
-                                          {msg.attachments.filter(a => a.type.startsWith('image/')).map(att => (
-                                            <img key={att.id} src={att.url} alt={att.name}
-                                              className="max-w-[200px] max-h-[150px] rounded-lg object-cover cursor-pointer"
-                                              onClick={e => { e.stopPropagation(); window.open(att.url, '_blank'); }}
-                                            />
-                                          ))}
-                                        </div>
-                                      )}
+                                    <div className="mt-2 space-y-1.5">
+                                      {msg.attachments.filter(a => a.type.startsWith('image/')).map(att => (
+                                        <img key={att.id} src={att.url} alt={att.name}
+                                          className="max-w-[220px] max-h-[180px] rounded-lg object-cover cursor-pointer hover:opacity-90 transition-opacity border border-border/20"
+                                          onClick={e => { e.stopPropagation(); window.open(att.url, '_blank'); }}
+                                        />
+                                      ))}
                                       {msg.attachments.filter(a => !a.type.startsWith('image/')).map(att => (
                                         <div key={att.id}
-                                          className={`flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs cursor-pointer ${isMe ? 'bg-primary-foreground/10' : 'bg-background'}`}
+                                          className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs cursor-pointer hover:opacity-80 transition-opacity ${isMe ? 'bg-primary-foreground/15' : 'bg-background border border-border/50'}`}
                                           onClick={e => { e.stopPropagation(); window.open(att.url, '_blank'); }}>
-                                          <Paperclip className="h-3 w-3 shrink-0" />
-                                          <span className="truncate">{att.name}</span>
-                                          <span className="text-[10px] opacity-60 shrink-0">{(att.size / 1024).toFixed(0)}KB</span>
+                                          <FileText className="h-4 w-4 shrink-0" />
+                                          <div className="min-w-0 flex-1">
+                                            <p className="truncate font-medium">{att.name}</p>
+                                            <p className="opacity-60">{att.size < 1024 * 1024 ? `${(att.size / 1024).toFixed(0)} KB` : `${(att.size / (1024 * 1024)).toFixed(1)} MB`}</p>
+                                          </div>
                                         </div>
                                       ))}
                                     </div>
