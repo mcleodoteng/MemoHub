@@ -19,6 +19,7 @@ import {
   ArrowLeft, FileText, Edit3, Send,
   CheckCircle2, ThumbsUp, XCircle, Smile, Star,
   MoreHorizontal, Pencil, X, Check, Reply, Paperclip,
+  ArrowUpDown, Clock, ArrowUp, ArrowDown, Heart,
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -48,6 +49,7 @@ const MemoDetail = () => {
   const [commentAttachments, setCommentAttachments] = useState<Attachment[]>([]);
   const [threadAttachments, setThreadAttachments] = useState<Attachment[]>([]);
   const [typingUsers, setTypingUsers] = useState<string[]>([]);
+  const [commentSort, setCommentSort] = useState<'newest' | 'oldest' | 'reactions'>('oldest');
   const {
     getMemoById, getCommentsByMemoId, togglePin, toggleArchive, deleteMemo,
     hideMemo, addComment, addReaction, updateMemo, markOpened,
@@ -102,7 +104,16 @@ const MemoDetail = () => {
   const memoComments = getCommentsByMemoId(memo.id);
   const pinnedComments = memoComments.filter(c => c.pinned && !c.parentId);
   const unpinnedTopLevel = memoComments.filter(c => !c.pinned && !c.parentId);
-  const topLevelComments = [...pinnedComments, ...unpinnedTopLevel];
+  const sortedUnpinned = [...unpinnedTopLevel].sort((a, b) => {
+    if (commentSort === 'newest') return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    if (commentSort === 'reactions') {
+      const aCount = a.reactions.reduce((sum, r) => sum + r.users.length, 0);
+      const bCount = b.reactions.reduce((sum, r) => sum + r.users.length, 0);
+      return bCount - aCount;
+    }
+    return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+  });
+  const topLevelComments = [...pinnedComments, ...sortedUnpinned];
   const getReplies = (commentId: string) => memoComments.filter(c => c.parentId === commentId);
   const isCreator = memo.creatorId === currentUser.id;
   const isAdmin = currentUser.role === 'admin';
@@ -504,7 +515,30 @@ const MemoDetail = () => {
 
         {!isDraft && (
           <div className="widget-card">
-            <h3 className="font-display font-semibold mb-3">Comments ({memoComments.length})</h3>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-display font-semibold">Comments ({memoComments.length})</h3>
+              {memoComments.length > 1 && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm" className="h-7 text-xs gap-1.5">
+                      <ArrowUpDown className="h-3 w-3" />
+                      {commentSort === 'newest' ? 'Newest' : commentSort === 'reactions' ? 'Most reactions' : 'Oldest'}
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => setCommentSort('oldest')}>
+                      <ArrowUp className="h-3.5 w-3.5 mr-2" /> Oldest first
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setCommentSort('newest')}>
+                      <ArrowDown className="h-3.5 w-3.5 mr-2" /> Newest first
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setCommentSort('reactions')}>
+                      <Heart className="h-3.5 w-3.5 mr-2" /> Most reactions
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+            </div>
             <div className="space-y-4">
               {topLevelComments.map(comment => (
                 <CommentThread
