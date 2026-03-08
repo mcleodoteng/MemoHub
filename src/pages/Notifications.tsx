@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { notifications as initialNotifications } from "@/data/mock";
+import { useNotifications } from "@/context/NotificationContext";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -52,15 +52,15 @@ const typeColors: Record<string, string> = {
   starred_activity: "bg-warning/10 text-warning",
 };
 
-type NotifItem = typeof initialNotifications[0];
-
 const Notifications = () => {
   const navigate = useNavigate();
   const { reminders } = useReminders();
   const { groups } = useGroups();
-  const [allNotifs, setAllNotifs] = useState<NotifItem[]>(() => {
-    const extras: NotifItem[] = [];
-    // Add pending group invites as notifications
+  const { notifications: contextNotifs, markRead, markAllRead, unreadCount } = useNotifications();
+
+  // Merge in dynamic notifications from groups/reminders
+  const allNotifs = useMemo(() => {
+    const extras: typeof contextNotifs = [];
     groups.forEach(g => {
       g.pendingInvites
         .filter(i => i.userId === currentUser.id && i.status === 'pending')
@@ -77,7 +77,6 @@ const Notifications = () => {
           });
         });
     });
-    // Add fired reminders
     reminders.filter(r => r.fired).forEach(r => {
       extras.push({
         id: `rem-${r.id}`,
@@ -90,10 +89,10 @@ const Notifications = () => {
         createdAt: r.dueAt,
       });
     });
-    return [...initialNotifications, ...extras].sort((a, b) =>
+    return [...contextNotifs, ...extras].sort((a, b) =>
       new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
-  });
+  }, [contextNotifs, groups, reminders]);
 
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const [tab, setTab] = useState<'all' | 'unread'>('all');
@@ -105,28 +104,18 @@ const Notifications = () => {
     return items;
   }, [allNotifs, tab, activeFilter]);
 
-  const unreadCount = allNotifs.filter(n => !n.read).length;
-
-  const markAllRead = () => {
-    setAllNotifs(prev => prev.map(n => ({ ...n, read: true })));
-  };
-
-  const markRead = (id: string) => {
-    setAllNotifs(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
-  };
-
+  const totalUnread = allNotifs.filter(n => !n.read).length;
   const filterTypes = [...new Set(allNotifs.map(n => n.type))];
 
   return (
     <AppLayout title="Notifications">
       <div className="max-w-3xl mx-auto space-y-4">
-        {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Bell className="h-5 w-5 text-primary" />
             <div>
               <h2 className="font-display font-bold text-lg">Notification Center</h2>
-              <p className="text-xs text-muted-foreground">{unreadCount} unread</p>
+              <p className="text-xs text-muted-foreground">{totalUnread} unread</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -166,7 +155,7 @@ const Notifications = () => {
             </Popover>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-1.5" onClick={markAllRead} disabled={unreadCount === 0}>
+                <Button variant="outline" size="sm" className="gap-1.5" onClick={markAllRead} disabled={totalUnread === 0}>
                   <CheckCheck className="h-3.5 w-3.5" />
                   Mark all read
                 </Button>
@@ -185,14 +174,13 @@ const Notifications = () => {
           </div>
         )}
 
-        {/* Tabs */}
         <Tabs value={tab} onValueChange={v => setTab(v as any)}>
           <TabsList className="h-9">
             <TabsTrigger value="all" className="text-xs gap-1">
               All <Badge variant="secondary" className="text-[10px] px-1.5 py-0 ml-1">{allNotifs.length}</Badge>
             </TabsTrigger>
             <TabsTrigger value="unread" className="text-xs gap-1">
-              Unread {unreadCount > 0 && <Badge className="text-[10px] px-1.5 py-0 ml-1">{unreadCount}</Badge>}
+              Unread {totalUnread > 0 && <Badge className="text-[10px] px-1.5 py-0 ml-1">{totalUnread}</Badge>}
             </TabsTrigger>
           </TabsList>
 
