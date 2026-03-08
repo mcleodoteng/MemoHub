@@ -372,6 +372,15 @@ const MemoDetail = () => {
 
           <AttachmentViewer attachments={memo.attachments} />
 
+          {/* Workflow Status */}
+          {memo.workflow?.enabled && (
+            <WorkflowStatus
+              memo={memo}
+              currentUserId={currentUser.id}
+              onApprove={(stepId, approved, comment) => approveWorkflowStep(memo.id, stepId, currentUser.id, approved, comment)}
+            />
+          )}
+
           {/* Reactions */}
           <div className="flex items-center gap-2 flex-wrap">
             {memo.reactions.map(r => {
