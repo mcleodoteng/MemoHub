@@ -36,7 +36,7 @@ export function RichTextEditor({
         heading: { levels: [2, 3] },
       }),
       Link.configure({
-        openOnClick: true,
+        openOnClick: false,
         autolink: true,
         linkOnPaste: true,
         HTMLAttributes: {
@@ -65,6 +65,16 @@ export function RichTextEditor({
         ),
         style: `min-height: ${minHeight}`,
       },
+      handleClick: (view, pos, event) => {
+        const target = event.target as HTMLElement;
+        const link = target.closest('a');
+        if (link && link.href) {
+          event.preventDefault();
+          window.open(link.href, '_blank', 'noopener,noreferrer');
+          return true;
+        }
+        return false;
+      },
     },
   });
 
@@ -73,7 +83,15 @@ export function RichTextEditor({
   const handleSetLink = () => {
     if (linkUrl) {
       const url = linkUrl.startsWith('http') ? linkUrl : `https://${linkUrl}`;
-      editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
+      // Only set link on the selected text range, don't extend
+      const { from, to } = editor.state.selection;
+      if (from === to) {
+        // No selection - insert the URL as linked text
+        editor.chain().focus().insertContent(`<a href="${url}">${url}</a>`).run();
+      } else {
+        // Apply link to selected text only
+        editor.chain().focus().setLink({ href: url }).run();
+      }
     }
     setLinkUrl('');
     setLinkOpen(false);
