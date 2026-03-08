@@ -5,13 +5,15 @@ import { currentUser } from "@/data/mock";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { PenSquare, Search } from "lucide-react";
+import { PenSquare, Search, RotateCcw } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { toast } from "sonner";
 
 const Memos = () => {
   const navigate = useNavigate();
-  const { memos } = useMemos();
+  const { memos, restoreMemo } = useMemos();
   const [search, setSearch] = useState("");
 
   // Filter out memos hidden by current user
@@ -30,6 +32,7 @@ const Memos = () => {
   const protectedMemos = sentMemos.filter(m => m.visibility === "protected" && !m.archived);
   const pinnedMemos = sentMemos.filter(m => m.pinned && !m.archived);
   const archivedMemos = sentMemos.filter(m => m.archived);
+  const deletedMemos = filtered.filter(m => m.status === 'deleted' && (m as any).deletedBy === currentUser.id);
 
   // Sort pinned memos first
   const allNonArchived = sentMemos.filter(m => !m.archived).sort((a, b) => {
@@ -74,6 +77,7 @@ const Memos = () => {
             <TabsTrigger value="protected">Protected ({protectedMemos.length})</TabsTrigger>
             <TabsTrigger value="pinned">Pinned ({pinnedMemos.length})</TabsTrigger>
             <TabsTrigger value="archived">Archived ({archivedMemos.length})</TabsTrigger>
+            <TabsTrigger value="deleted">Deleted ({deletedMemos.length})</TabsTrigger>
           </TabsList>
 
           <TabsContent value="all" className="mt-4">
@@ -85,6 +89,30 @@ const Memos = () => {
           <TabsContent value="protected" className="mt-4"><MemoList items={protectedMemos} /></TabsContent>
           <TabsContent value="pinned" className="mt-4"><MemoList items={pinnedMemos} /></TabsContent>
           <TabsContent value="archived" className="mt-4"><MemoList items={archivedMemos} /></TabsContent>
+          <TabsContent value="deleted" className="mt-4">
+            {deletedMemos.length === 0 ? (
+              <p className="text-center text-muted-foreground py-8">No deleted memos</p>
+            ) : (
+              <div className="space-y-3">
+                {deletedMemos.map(m => (
+                  <div key={m.id} className="flex items-center gap-3 bg-card rounded-xl border p-4 opacity-70">
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-semibold text-sm line-clamp-1">{m.title}</h4>
+                      <p className="text-xs text-muted-foreground mt-0.5">Deleted {(m as any).deletedAt ? new Date((m as any).deletedAt).toLocaleDateString() : ''}</p>
+                    </div>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button variant="outline" size="sm" className="gap-1.5 shrink-0" onClick={() => { restoreMemo(m.id); toast.success('Memo restored!'); }}>
+                          <RotateCcw className="h-3.5 w-3.5" /> Restore
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Restore this memo back to your feed</TooltipContent>
+                    </Tooltip>
+                  </div>
+                ))}
+              </div>
+            )}
+          </TabsContent>
         </Tabs>
       </div>
     </AppLayout>

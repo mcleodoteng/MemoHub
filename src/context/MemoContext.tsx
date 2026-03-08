@@ -9,6 +9,7 @@ interface MemoContextType {
   updateMemo: (id: string, updates: Partial<Memo>) => void;
   editMemo: (id: string, updates: { title?: string; body?: string; tags?: string[]; visibility?: MemoVisibility; attachments?: Attachment[]; recipientIds?: string[]; referencedMemoIds?: string[] }, editorId: string) => void;
   deleteMemo: (id: string) => void;
+  restoreMemo: (id: string) => void;
   togglePin: (id: string) => void;
   toggleArchive: (id: string) => void;
   hideMemo: (memoId: string, userId: string) => void;
@@ -106,7 +107,22 @@ export function MemoProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const deleteMemo = useCallback((id: string) => {
-    setMemos(prev => prev.filter(m => m.id !== id));
+    setMemos(prev => prev.map(m => {
+      if (m.id !== id) return m;
+      // Only creator can delete
+      if (m.creatorId !== currentUser.id && currentUser.role !== 'admin') return m;
+      return { ...m, status: 'deleted' as const, deletedBy: currentUser.id, deletedAt: new Date().toISOString() };
+    }));
+  }, []);
+
+  const restoreMemo = useCallback((id: string) => {
+    setMemos(prev => prev.map(m => {
+      if (m.id !== id) return m;
+      // Only the person who deleted can restore
+      if ((m as any).deletedBy !== currentUser.id) return m;
+      const { deletedBy, deletedAt, ...rest } = m as any;
+      return { ...rest, status: 'sent' as const };
+    }));
   }, []);
 
   const togglePin = useCallback((id: string) => {
@@ -257,7 +273,7 @@ export function MemoProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <MemoContext.Provider value={{
-      memos, comments, addMemo, updateMemo, editMemo, deleteMemo, togglePin, toggleArchive,
+      memos, comments, addMemo, updateMemo, editMemo, deleteMemo, restoreMemo, togglePin, toggleArchive,
       hideMemo, acknowledgeMemo, unacknowledgeMemo, approveMemo, unapproveMemo, markOpened,
       addComment, addReaction, getMemoById, getCommentsByMemoId,
     }}>

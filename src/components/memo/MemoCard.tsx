@@ -1,5 +1,5 @@
 import { Memo } from "@/types";
-import { getUserById, getUserInitials, currentUser } from "@/data/mock";
+import { getUserById, getUserInitials, currentUser, users } from "@/data/mock";
 import { UserHoverCard } from "@/components/user/UserHoverCard";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useNavigate } from "react-router-dom";
+import { MentionText } from "@/components/shared/MentionText";
 import { toast } from "sonner";
 
 const visibilityConfig = {
@@ -115,7 +116,7 @@ export function MemoCard({ memo }: MemoCardProps) {
             </div>
 
             <h3 className="font-display font-bold mt-1.5 text-[15px] leading-snug line-clamp-1">{memo.title}</h3>
-            <p className="text-sm text-muted-foreground mt-1 line-clamp-2 leading-relaxed">{previewText}</p>
+            <p className="text-sm text-muted-foreground mt-1 line-clamp-2 leading-relaxed"><MentionText text={previewText} /></p>
 
             {memo.tags.length > 0 && (
               <div className="flex gap-1.5 mt-2.5 flex-wrap">
@@ -281,7 +282,7 @@ export function MemoCard({ memo }: MemoCardProps) {
                     <TooltipContent>Hide memo from your feed</TooltipContent>
                   </Tooltip>
                 )}
-                {(isCreator || isAdmin) && (
+                {isCreator && (
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive"
@@ -289,7 +290,7 @@ export function MemoCard({ memo }: MemoCardProps) {
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     </TooltipTrigger>
-                    <TooltipContent>Delete memo permanently</TooltipContent>
+                    <TooltipContent>Delete memo</TooltipContent>
                   </Tooltip>
                 )}
                 <Popover>

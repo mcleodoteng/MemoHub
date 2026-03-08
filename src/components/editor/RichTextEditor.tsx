@@ -36,8 +36,14 @@ export function RichTextEditor({
         heading: { levels: [2, 3] },
       }),
       Link.configure({
-        openOnClick: false,
-        HTMLAttributes: { class: 'text-primary underline cursor-pointer' },
+        openOnClick: true,
+        autolink: true,
+        linkOnPaste: true,
+        HTMLAttributes: {
+          class: 'text-primary underline cursor-pointer',
+          target: '_blank',
+          rel: 'noopener noreferrer',
+        },
       }),
       Placeholder.configure({ placeholder }),
     ],

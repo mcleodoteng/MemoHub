@@ -1,4 +1,4 @@
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { useMemos } from "@/context/MemoContext";
 import { getUserById, getUserInitials, currentUser } from "@/data/mock";
@@ -11,6 +11,7 @@ import { MemoEditDialog } from "@/components/memo/MemoEditDialog";
 import { MemoEditHistory } from "@/components/memo/MemoEditHistory";
 import { MemoActivityLog } from "@/components/memo/MemoActivityLog";
 import { MentionInput } from "@/components/editor/MentionInput";
+import { MentionText, processMentionsInHtml } from "@/components/shared/MentionText";
 import { AttachmentViewer } from "@/components/attachment/AttachmentManager";
 import {
   Globe, Lock, Shield, Pin, Archive, Trash2, EyeOff,
@@ -203,7 +204,7 @@ const MemoDetail = () => {
                   <TooltipContent>Hide memo from your feed</TooltipContent>
                 </Tooltip>
               )}
-              {(isCreator || isAdmin) && (
+              {isCreator && (
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button variant="ghost" size="icon" className="h-8 w-8"
@@ -211,7 +212,7 @@ const MemoDetail = () => {
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent>Delete memo permanently</TooltipContent>
+                  <TooltipContent>Delete memo</TooltipContent>
                 </Tooltip>
               )}
             </div>
@@ -241,9 +242,24 @@ const MemoDetail = () => {
           <div>
             <h2 className="font-display text-xl font-bold">{memo.title}</h2>
             {memo.body.startsWith('<') ? (
-              <div className="text-sm text-muted-foreground mt-2 leading-relaxed prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: memo.body }} />
+              <div
+                className="text-sm text-muted-foreground mt-2 leading-relaxed prose prose-sm max-w-none [&_a]:text-primary [&_a]:underline [&_a]:cursor-pointer"
+                dangerouslySetInnerHTML={{ __html: processMentionsInHtml(memo.body) }}
+                onClick={(e) => {
+                  const target = e.target as HTMLElement;
+                  if (target.tagName === 'A') {
+                    const href = target.getAttribute('href');
+                    if (href && href.startsWith('/profile/')) {
+                      e.preventDefault();
+                      navigate(href);
+                    }
+                  }
+                }}
+              />
             ) : (
-              <p className="text-sm text-muted-foreground mt-2 leading-relaxed">{memo.body}</p>
+              <p className="text-sm text-muted-foreground mt-2 leading-relaxed">
+                <MentionText text={memo.body} />
+              </p>
             )}
           </div>
 
@@ -445,7 +461,7 @@ const MemoDetail = () => {
                           {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true })}
                         </span>
                       </div>
-                      <p className="text-sm mt-0.5">{comment.body}</p>
+                      <p className="text-sm mt-0.5"><MentionText text={comment.body} /></p>
                     </div>
                   </div>
                 );
