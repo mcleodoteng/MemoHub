@@ -320,7 +320,22 @@ const Messages = () => {
           </div>
 
           {/* Chat Area */}
-          <div className={`flex-1 flex flex-col ${isMobile && !mobileShowChat ? 'hidden' : ''}`}>
+          <div
+            className={`flex-1 flex flex-col ${isMobile && !mobileShowChat ? 'hidden' : ''} relative`}
+            onDragEnter={handleDragEnter}
+            onDragLeave={handleDragLeave}
+            onDragOver={handleDragOver}
+            onDrop={handleDrop}
+          >
+            {/* Drag overlay */}
+            {isDragging && (
+              <div className="absolute inset-0 z-50 bg-primary/5 border-2 border-dashed border-primary rounded-xl flex items-center justify-center backdrop-blur-sm">
+                <div className="text-center space-y-2">
+                  <Paperclip className="h-8 w-8 text-primary mx-auto" />
+                  <p className="text-sm font-medium text-primary">Drop files here to attach</p>
+                </div>
+              </div>
+            )}
             {activeConv ? (
               <>
                 <div className="p-3 border-b flex items-center gap-3">
