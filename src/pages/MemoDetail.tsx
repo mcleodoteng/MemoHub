@@ -43,6 +43,10 @@ const MemoDetail = () => {
   const [editOpen, setEditOpen] = useState(false);
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [editingCommentBody, setEditingCommentBody] = useState("");
+  const [replyingToCommentId, setReplyingToCommentId] = useState<string | null>(null);
+  const [threadReplyText, setThreadReplyText] = useState("");
+  const [commentAttachments, setCommentAttachments] = useState<Attachment[]>([]);
+  const [threadAttachments, setThreadAttachments] = useState<Attachment[]>([]);
   const {
     getMemoById, getCommentsByMemoId, togglePin, toggleArchive, deleteMemo,
     hideMemo, addComment, addReaction, updateMemo, markOpened,
@@ -79,6 +83,8 @@ const MemoDetail = () => {
   const vis = visConfig[memo.visibility];
   const VisIcon = vis.icon;
   const memoComments = getCommentsByMemoId(memo.id);
+  const topLevelComments = memoComments.filter(c => !c.parentId);
+  const getReplies = (commentId: string) => memoComments.filter(c => c.parentId === commentId);
   const isCreator = memo.creatorId === currentUser.id;
   const isAdmin = currentUser.role === 'admin';
   const isDraft = memo.status === 'draft';
@@ -88,11 +94,22 @@ const MemoDetail = () => {
   const { notifyMentions } = useNotifications();
 
   const handleReply = () => {
-    if (!replyText.trim()) return;
-    addComment(memo.id, replyText, currentUser.id);
+    if (!replyText.trim() && commentAttachments.length === 0) return;
+    addComment(memo.id, replyText, currentUser.id, commentAttachments);
     notifyMentions(replyText, memo.title, `/memos/${memo.id}`, currentUser.id);
     setReplyText("");
+    setCommentAttachments([]);
     toast.success("Comment added!");
+  };
+
+  const handleThreadReply = (parentId: string) => {
+    if (!threadReplyText.trim() && threadAttachments.length === 0) return;
+    addComment(memo.id, threadReplyText, currentUser.id, threadAttachments, parentId);
+    notifyMentions(threadReplyText, memo.title, `/memos/${memo.id}`, currentUser.id);
+    setThreadReplyText("");
+    setThreadAttachments([]);
+    setReplyingToCommentId(null);
+    toast.success("Reply added!");
   };
 
   const handleSendDraft = () => {
