@@ -223,20 +223,22 @@ const GroupDetail = () => {
         <p className="text-sm text-muted-foreground">{group.description}</p>
 
         <Tabs defaultValue="feed" className="w-full">
-          <TabsList>
-            <TabsTrigger value="feed" className="gap-1.5">
-              <FileText className="h-3.5 w-3.5" /> Feed ({groupMemos.length})
-            </TabsTrigger>
-            <TabsTrigger value="chat" className="gap-1.5">
-              <MessageSquare className="h-3.5 w-3.5" /> Chat
-            </TabsTrigger>
-            <TabsTrigger value="files" className="gap-1.5">
-              <FolderOpen className="h-3.5 w-3.5" /> Files ({allGroupFiles.length})
-            </TabsTrigger>
-            <TabsTrigger value="members" className="gap-1.5">
-              <Users className="h-3.5 w-3.5" /> Members ({group.memberIds.length})
-            </TabsTrigger>
-          </TabsList>
+          <div className="overflow-x-auto -mx-3 px-3 md:mx-0 md:px-0">
+            <TabsList className="inline-flex w-auto min-w-max">
+              <TabsTrigger value="feed" className="gap-1.5">
+                <FileText className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Feed</span> ({groupMemos.length})
+              </TabsTrigger>
+              <TabsTrigger value="chat" className="gap-1.5">
+                <MessageSquare className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Chat</span>
+              </TabsTrigger>
+              <TabsTrigger value="files" className="gap-1.5">
+                <FolderOpen className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Files</span> ({allGroupFiles.length})
+              </TabsTrigger>
+              <TabsTrigger value="members" className="gap-1.5">
+                <Users className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Members</span> ({group.memberIds.length})
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           {/* Feed Tab */}
           <TabsContent value="feed" className="mt-4">

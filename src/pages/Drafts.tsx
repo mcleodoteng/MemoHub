@@ -27,21 +27,23 @@ const Drafts = () => {
         ) : (
           <div className="space-y-3">
             {drafts.map(draft => (
-              <div key={draft.id} className="widget-card flex items-start gap-4">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className="font-display font-semibold text-sm">{draft.title || "Untitled Draft"}</h3>
-                    <Badge variant="outline" className="text-[10px] text-warning border-warning/30">Draft</Badge>
-                    {draft.attachments.length > 0 && (
-                      <Badge variant="secondary" className="text-[10px]">{draft.attachments.length} attachment{draft.attachments.length > 1 ? 's' : ''}</Badge>
-                    )}
+              <div key={draft.id} className="widget-card space-y-2">
+                <div className="flex items-start gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="font-display font-semibold text-sm">{draft.title || "Untitled Draft"}</h3>
+                      <Badge variant="outline" className="text-[10px] text-warning border-warning/30">Draft</Badge>
+                      {draft.attachments.length > 0 && (
+                        <Badge variant="secondary" className="text-[10px]">{draft.attachments.length} attachment{draft.attachments.length > 1 ? 's' : ''}</Badge>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Last edited {formatDistanceToNow(new Date(draft.updatedAt), { addSuffix: true })}
+                      {draft.recipientIds.length > 0 && ` · ${draft.recipientIds.length} recipient${draft.recipientIds.length > 1 ? 's' : ''}`}
+                    </p>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Last edited {formatDistanceToNow(new Date(draft.updatedAt), { addSuffix: true })}
-                    {draft.recipientIds.length > 0 && ` · ${draft.recipientIds.length} recipient${draft.recipientIds.length > 1 ? 's' : ''}`}
-                  </p>
                 </div>
-                <div className="flex gap-1.5 shrink-0">
+                <div className="flex gap-1.5 flex-wrap">
                   <Button variant="outline" size="sm" className="gap-1.5 h-8 text-xs"
                     onClick={() => navigate(`/compose/${draft.id}`)}>
                     <Edit3 className="h-3.5 w-3.5" /> Edit
