@@ -83,13 +83,32 @@ const MemoDetail = () => {
   const vis = visConfig[memo.visibility];
   const VisIcon = vis.icon;
   const memoComments = getCommentsByMemoId(memo.id);
-  const topLevelComments = memoComments.filter(c => !c.parentId);
+  const pinnedComments = memoComments.filter(c => c.pinned && !c.parentId);
+  const unpinnedTopLevel = memoComments.filter(c => !c.pinned && !c.parentId);
+  const topLevelComments = [...pinnedComments, ...unpinnedTopLevel];
   const getReplies = (commentId: string) => memoComments.filter(c => c.parentId === commentId);
   const isCreator = memo.creatorId === currentUser.id;
   const isAdmin = currentUser.role === 'admin';
   const isDraft = memo.status === 'draft';
   const myStatus = memo.recipientStatuses.find(s => s.userId === currentUser.id);
   const isRecipient = memo.recipientIds.includes(currentUser.id);
+
+  // Simulated typing indicator — randomly shows other users typing
+  const [typingUsers, setTypingUsers] = useState<string[]>([]);
+  useEffect(() => {
+    if (isDraft) return;
+    const otherUsers = memo.recipientIds.filter(uid => uid !== currentUser.id);
+    if (otherUsers.length === 0) return;
+    const interval = setInterval(() => {
+      const shouldType = Math.random() < 0.3;
+      if (shouldType) {
+        const randomUser = otherUsers[Math.floor(Math.random() * otherUsers.length)];
+        setTypingUsers([randomUser]);
+        setTimeout(() => setTypingUsers([]), 2000 + Math.random() * 2000);
+      }
+    }, 5000 + Math.random() * 5000);
+    return () => clearInterval(interval);
+  }, [memo.id, isDraft]);
 
   const { notifyMentions } = useNotifications();
 
