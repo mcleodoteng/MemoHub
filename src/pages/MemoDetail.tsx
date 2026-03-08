@@ -23,9 +23,10 @@ import {
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { formatDistanceToNow, format } from "date-fns";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { useNotifications } from "@/context/NotificationContext";
+import { Attachment } from "@/types";
 
 const visConfig = {
   public: { icon: Globe, label: "Public", className: "visibility-public" },
