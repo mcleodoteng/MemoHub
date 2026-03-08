@@ -24,7 +24,7 @@ function formatMemoDate(dateStr: string) {
 const Memos = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { memos, restoreMemo, permanentlyDeleteMemo, toggleStar } = useMemos();
+  const { memos, restoreMemo, permanentlyDeleteMemo, toggleStar, approveWorkflowStep } = useMemos();
   const [search, setSearch] = useState("");
 
   const activeTab = searchParams.get("tab") || "all";
