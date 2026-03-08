@@ -204,7 +204,7 @@ const MemoDetail = () => {
                   <TooltipContent>Hide memo from your feed</TooltipContent>
                 </Tooltip>
               )}
-              {(isCreator || isAdmin) && (
+              {isCreator && (
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button variant="ghost" size="icon" className="h-8 w-8"
@@ -212,7 +212,7 @@ const MemoDetail = () => {
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent>Delete memo permanently</TooltipContent>
+                  <TooltipContent>Delete memo</TooltipContent>
                 </Tooltip>
               )}
             </div>

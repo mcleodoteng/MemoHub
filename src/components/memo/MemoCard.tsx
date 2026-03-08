@@ -282,7 +282,7 @@ export function MemoCard({ memo }: MemoCardProps) {
                     <TooltipContent>Hide memo from your feed</TooltipContent>
                   </Tooltip>
                 )}
-                {(isCreator || isAdmin) && (
+                {isCreator && (
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive"
@@ -290,7 +290,7 @@ export function MemoCard({ memo }: MemoCardProps) {
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     </TooltipTrigger>
-                    <TooltipContent>Delete memo permanently</TooltipContent>
+                    <TooltipContent>Delete memo</TooltipContent>
                   </Tooltip>
                 )}
                 <Popover>
