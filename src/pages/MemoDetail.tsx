@@ -591,66 +591,21 @@ interface CommentThreadProps {
   editComment: (commentId: string, body: string, userId: string) => void;
   deleteComment: (commentId: string, userId: string) => void;
   addCommentReaction: (commentId: string, emoji: string, userId: string) => void;
+  toggleCommentPin: (commentId: string, userId: string) => void;
+  isMemoCreator: boolean;
   quickEmojis: string[];
   processMentionsInHtml: (html: string) => string;
 }
 
-function CommentThread({
-  comment, replies, navigate, currentUser,
-  editingCommentId, editingCommentBody, setEditingCommentId, setEditingCommentBody,
-  replyingToCommentId, setReplyingToCommentId, threadReplyText, setThreadReplyText,
-  threadAttachments, setThreadAttachments, handleThreadReply,
-  editComment, deleteComment, addCommentReaction, quickEmojis, processMentionsInHtml,
-}: CommentThreadProps) {
+function CommentThread(props: CommentThreadProps) {
+  const { comment, replies, ...rest } = props;
   return (
     <div className="space-y-2">
-      <SingleComment
-        comment={comment}
-        navigate={navigate}
-        currentUser={currentUser}
-        editingCommentId={editingCommentId}
-        editingCommentBody={editingCommentBody}
-        setEditingCommentId={setEditingCommentId}
-        setEditingCommentBody={setEditingCommentBody}
-        replyingToCommentId={replyingToCommentId}
-        setReplyingToCommentId={setReplyingToCommentId}
-        threadReplyText={threadReplyText}
-        setThreadReplyText={setThreadReplyText}
-        threadAttachments={threadAttachments}
-        setThreadAttachments={setThreadAttachments}
-        handleThreadReply={handleThreadReply}
-        editComment={editComment}
-        deleteComment={deleteComment}
-        addCommentReaction={addCommentReaction}
-        quickEmojis={quickEmojis}
-        processMentionsInHtml={processMentionsInHtml}
-      />
+      <SingleComment comment={comment} {...rest} />
       {replies.length > 0 && (
         <div className="ml-8 pl-3 border-l-2 border-border space-y-2">
           {replies.map(reply => (
-            <SingleComment
-              key={reply.id}
-              comment={reply}
-              navigate={navigate}
-              currentUser={currentUser}
-              editingCommentId={editingCommentId}
-              editingCommentBody={editingCommentBody}
-              setEditingCommentId={setEditingCommentId}
-              setEditingCommentBody={setEditingCommentBody}
-              replyingToCommentId={replyingToCommentId}
-              setReplyingToCommentId={setReplyingToCommentId}
-              threadReplyText={threadReplyText}
-              setThreadReplyText={setThreadReplyText}
-              threadAttachments={threadAttachments}
-              setThreadAttachments={setThreadAttachments}
-              handleThreadReply={handleThreadReply}
-              editComment={editComment}
-              deleteComment={deleteComment}
-              addCommentReaction={addCommentReaction}
-              quickEmojis={quickEmojis}
-              processMentionsInHtml={processMentionsInHtml}
-              isReply
-            />
+            <SingleComment key={reply.id} comment={reply} {...rest} isReply />
           ))}
         </div>
       )}
@@ -668,17 +623,18 @@ function SingleComment({
   editingCommentId, editingCommentBody, setEditingCommentId, setEditingCommentBody,
   replyingToCommentId, setReplyingToCommentId, threadReplyText, setThreadReplyText,
   threadAttachments, setThreadAttachments, handleThreadReply,
-  editComment, deleteComment, addCommentReaction, quickEmojis, processMentionsInHtml,
-  isReply,
+  editComment, deleteComment, addCommentReaction, toggleCommentPin, isMemoCreator,
+  quickEmojis, processMentionsInHtml, isReply,
 }: SingleCommentProps) {
   const author = getUserById(comment.authorId);
   const isCommentAuthor = comment.authorId === currentUser.id;
   const isEditing = editingCommentId === comment.id;
   const isReplying = replyingToCommentId === comment.id;
   const wasEdited = comment.createdAt !== comment.updatedAt;
+  const canPin = isMemoCreator || isCommentAuthor;
 
   return (
-    <div className="flex gap-3 animate-slide-in group">
+    <div className={`flex gap-3 animate-slide-in group ${comment.pinned ? 'bg-primary/5 rounded-lg p-2 -m-2' : ''}`}>
       {author ? (
         <UserHoverCard user={author}>
           <Avatar className={`${isReply ? 'h-6 w-6' : 'h-7 w-7'} shrink-0 cursor-pointer`} onClick={() => navigate(`/profile/${author.id}`)}>
@@ -694,6 +650,14 @@ function SingleComment({
       )}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
+          {comment.pinned && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Pin className="h-3 w-3 text-primary shrink-0" />
+              </TooltipTrigger>
+              <TooltipContent>Pinned comment</TooltipContent>
+            </Tooltip>
+          )}
           {author ? (
             <UserHoverCard user={author}>
               <span className="text-sm font-medium cursor-pointer hover:underline" onClick={() => navigate(`/profile/${author.id}`)}>
@@ -739,7 +703,7 @@ function SingleComment({
                 </div>
               </PopoverContent>
             </Popover>
-            {isCommentAuthor && (
+            {(isCommentAuthor || canPin) && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="icon" className="h-6 w-6">
@@ -747,12 +711,21 @@ function SingleComment({
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => { setEditingCommentId(comment.id); setEditingCommentBody(comment.body); }}>
-                    <Pencil className="h-3.5 w-3.5 mr-2" /> Edit
-                  </DropdownMenuItem>
-                  <DropdownMenuItem className="text-destructive" onClick={() => { deleteComment(comment.id, currentUser.id); toast.success('Comment deleted'); }}>
-                    <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete
-                  </DropdownMenuItem>
+                  {canPin && !isReply && (
+                    <DropdownMenuItem onClick={() => { toggleCommentPin(comment.id, currentUser.id); toast.success(comment.pinned ? 'Comment unpinned' : 'Comment pinned'); }}>
+                      <Pin className="h-3.5 w-3.5 mr-2" /> {comment.pinned ? 'Unpin' : 'Pin'}
+                    </DropdownMenuItem>
+                  )}
+                  {isCommentAuthor && (
+                    <>
+                      <DropdownMenuItem onClick={() => { setEditingCommentId(comment.id); setEditingCommentBody(comment.body); }}>
+                        <Pencil className="h-3.5 w-3.5 mr-2" /> Edit
+                      </DropdownMenuItem>
+                      <DropdownMenuItem className="text-destructive" onClick={() => { deleteComment(comment.id, currentUser.id); toast.success('Comment deleted'); }}>
+                        <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete
+                      </DropdownMenuItem>
+                    </>
+                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
             )}
@@ -793,13 +766,11 @@ function SingleComment({
             )}
           </>
         )}
-        {/* Comment attachments */}
         {comment.attachments.length > 0 && (
           <div className="mt-1.5">
             <AttachmentViewer attachments={comment.attachments} />
           </div>
         )}
-        {/* Comment reactions */}
         {comment.reactions.length > 0 && (
           <div className="flex items-center gap-1 mt-1.5 flex-wrap">
             {comment.reactions.map(r => {
@@ -813,7 +784,6 @@ function SingleComment({
             })}
           </div>
         )}
-        {/* Thread reply input */}
         {isReplying && (
           <div className="mt-2 space-y-2 pl-2 border-l-2 border-primary/30">
             <MentionInput value={threadReplyText} onChange={setThreadReplyText} placeholder={`Reply to ${author?.name || 'comment'}...`} rows={1} />
