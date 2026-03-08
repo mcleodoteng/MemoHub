@@ -116,7 +116,7 @@ export function MemoCard({ memo }: MemoCardProps) {
             </div>
 
             <h3 className="font-display font-bold mt-1.5 text-[15px] leading-snug line-clamp-1">{memo.title}</h3>
-            <p className="text-sm text-muted-foreground mt-1 line-clamp-2 leading-relaxed">{previewText}</p>
+            <p className="text-sm text-muted-foreground mt-1 line-clamp-2 leading-relaxed"><MentionText text={previewText} /></p>
 
             {memo.tags.length > 0 && (
               <div className="flex gap-1.5 mt-2.5 flex-wrap">
