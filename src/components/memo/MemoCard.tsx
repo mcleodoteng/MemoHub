@@ -11,7 +11,7 @@ import { useMemos } from "@/context/MemoContext";
 import {
   Globe, Lock, Shield, Pin, Paperclip, MessageCircle,
   Eye, CheckCircle2, ThumbsUp,
-  Archive, EyeOff, Smile, Trash2, Play, Image as ImageIcon,
+  Archive, EyeOff, Smile, Trash2, Play, Image as ImageIcon, Star,
 } from "lucide-react";
 import { formatDistanceToNow, format } from "date-fns";
 import { useNavigate } from "react-router-dom";
