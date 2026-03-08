@@ -12,7 +12,7 @@ import { MemoEditHistory } from "@/components/memo/MemoEditHistory";
 import { MemoActivityLog } from "@/components/memo/MemoActivityLog";
 import { MentionInput } from "@/components/editor/MentionInput";
 import { MentionText, processMentionsInHtml } from "@/components/shared/MentionText";
-import { AttachmentViewer } from "@/components/attachment/AttachmentManager";
+import { AttachmentViewer, AttachmentUploader } from '@/components/attachment/AttachmentManager';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import {
   Globe, Lock, Shield, Pin, Archive, Trash2, EyeOff,
