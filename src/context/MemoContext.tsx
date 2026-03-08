@@ -107,7 +107,22 @@ export function MemoProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const deleteMemo = useCallback((id: string) => {
-    setMemos(prev => prev.filter(m => m.id !== id));
+    setMemos(prev => prev.map(m => {
+      if (m.id !== id) return m;
+      // Only creator can delete
+      if (m.creatorId !== currentUser.id && currentUser.role !== 'admin') return m;
+      return { ...m, status: 'deleted' as const, deletedBy: currentUser.id, deletedAt: new Date().toISOString() };
+    }));
+  }, []);
+
+  const restoreMemo = useCallback((id: string) => {
+    setMemos(prev => prev.map(m => {
+      if (m.id !== id) return m;
+      // Only the person who deleted can restore
+      if ((m as any).deletedBy !== currentUser.id) return m;
+      const { deletedBy, deletedAt, ...rest } = m as any;
+      return { ...rest, status: 'sent' as const };
+    }));
   }, []);
 
   const togglePin = useCallback((id: string) => {
