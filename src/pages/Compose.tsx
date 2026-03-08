@@ -45,6 +45,10 @@ const Compose = () => {
   const [recipientSearch, setRecipientSearch] = useState("");
   const [customTagInput, setCustomTagInput] = useState("");
   const [isSaved, setIsSaved] = useState(false);
+  const [workflow, setWorkflow] = useState<WorkflowConfig>({
+    enabled: false,
+    approvalChain: [],
+  });
 
   // Load draft data
   useEffect(() => {
