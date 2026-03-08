@@ -19,7 +19,7 @@ import { MemoReferencePicker } from "@/components/memo/MemoReferencePicker";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { MemoVisibility, Attachment } from "@/types";
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
-import { Globe, Lock, Shield, Send, X, FileText, Save } from "lucide-react";
+import { Globe, Lock, Shield, Send, X, FileText, Save, LayoutTemplate, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate, useParams, useBlocker } from "react-router-dom";
 import { useNotifications } from "@/context/NotificationContext";
