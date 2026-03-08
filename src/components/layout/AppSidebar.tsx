@@ -200,8 +200,8 @@ export function AppSidebar() {
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                   <SidebarMenuItem>
-                    <SidebarMenuButton asChild tooltip="Workflow">
-                      <button onClick={() => navigate("/memos?tab=workflow")} className={`nav-item text-sidebar-foreground w-full flex items-center gap-2 ${location.pathname === '/memos' && location.search.includes('tab=workflow') ? 'nav-item-active' : ''}`}>
+                    <SidebarMenuButton asChild isActive={location.pathname === "/workflow"} tooltip="Workflow Dashboard">
+                      <NavLink to="/workflow" className="nav-item text-sidebar-foreground" activeClassName="nav-item-active">
                         <div className="relative">
                           <GitMerge className="h-4 w-4 shrink-0" />
                           {pendingWorkflowApprovals > 0 && (
@@ -220,7 +220,7 @@ export function AppSidebar() {
                             )}
                           </span>
                         )}
-                      </button>
+                      </NavLink>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                   <SidebarMenuItem>
