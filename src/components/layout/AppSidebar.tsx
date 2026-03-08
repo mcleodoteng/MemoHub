@@ -86,6 +86,8 @@ export function AppSidebar() {
     </SidebarMenuItem>
   );
 
+  const deletedCount = memos.filter(m => m.status === 'deleted' && (m as any).deletedBy === currentUser.id).length;
+
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader className="p-4">
@@ -94,10 +96,21 @@ export function AppSidebar() {
             <FileText className="h-4 w-4 text-sidebar-primary-foreground" />
           </div>
           {!collapsed && (
-            <span className="font-display text-lg font-bold text-sidebar-accent-foreground">
+            <span className="font-display text-lg font-bold text-sidebar-accent-foreground flex-1">
               MemoHub
             </span>
           )}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 text-sidebar-muted hover:text-sidebar-foreground transition-colors"
+            onClick={() => {
+              const trigger = document.querySelector('[data-sidebar="trigger"]') as HTMLButtonElement;
+              trigger?.click();
+            }}
+          >
+            {collapsed ? <PanelLeft className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
+          </Button>
         </div>
       </SidebarHeader>
 
