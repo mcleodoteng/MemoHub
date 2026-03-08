@@ -182,7 +182,7 @@ const Compose = () => {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => blocker.reset?.()}>Stay</AlertDialogCancel>
-            <AlertDialogAction variant="outline" onClick={handleDiscardAndLeave}>Discard</AlertDialogAction>
+            <AlertDialogAction className="bg-secondary text-secondary-foreground hover:bg-secondary/80" onClick={handleDiscardAndLeave}>Discard</AlertDialogAction>
             <AlertDialogAction onClick={handleSaveAndLeave}>
               <Save className="h-4 w-4 mr-1.5" /> Save as Draft
             </AlertDialogAction>
