@@ -188,11 +188,11 @@ export function AppSidebar() {
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                   <SidebarMenuItem>
-                    <SidebarMenuButton asChild isActive={isActive("/memos?tab=starred")} tooltip="Starred">
-                      <NavLink to="/memos?tab=starred" className="nav-item text-sidebar-foreground" activeClassName="nav-item-active">
+                    <SidebarMenuButton asChild tooltip="Starred">
+                      <button onClick={() => navigate("/memos?tab=starred")} className={`nav-item text-sidebar-foreground w-full flex items-center gap-2 ${location.pathname === '/memos' && location.search.includes('tab=starred') ? 'nav-item-active' : ''}`}>
                         <Star className="h-4 w-4 shrink-0" />
                         {!collapsed && <span>Starred</span>}
-                      </NavLink>
+                      </button>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                   <SidebarMenuItem>
