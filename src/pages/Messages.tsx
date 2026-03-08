@@ -18,6 +18,9 @@ import {
 } from "lucide-react";
 import { Attachment } from "@/types";
 import { useState, useRef, useEffect, useMemo } from "react";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { formatDistanceToNow, format, isToday, isYesterday, isSameDay } from "date-fns";
 import { useNavigate } from "react-router-dom";
@@ -44,6 +47,7 @@ const Messages = () => {
   const [mobileShowChat, setMobileShowChat] = useState(false);
   const [pendingAttachments, setPendingAttachments] = useState<Attachment[]>([]);
   const [isDragging, setIsDragging] = useState(false);
+  const [lightboxImage, setLightboxImage] = useState<Attachment | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const dragCounter = useRef(0);
@@ -460,7 +464,7 @@ const Messages = () => {
                                       {msg.attachments.filter(a => a.type.startsWith('image/')).map(att => (
                                         <img key={att.id} src={att.url} alt={att.name}
                                           className="max-w-[220px] max-h-[180px] rounded-lg object-cover cursor-pointer hover:opacity-90 transition-opacity border border-border/20"
-                                          onClick={e => { e.stopPropagation(); window.open(att.url, '_blank'); }}
+                                          onClick={e => { e.stopPropagation(); setLightboxImage(att); }}
                                         />
                                       ))}
                                       {msg.attachments.filter(a => !a.type.startsWith('image/')).map(att => (
@@ -658,6 +662,22 @@ const Messages = () => {
           </div>
         </div>
       </div>
+
+      {/* Image Lightbox */}
+      <Dialog open={!!lightboxImage} onOpenChange={() => setLightboxImage(null)}>
+        <DialogContent className="max-w-3xl p-2">
+          <DialogHeader className="px-4 pt-2">
+            <DialogTitle className="text-sm truncate">{lightboxImage?.name}</DialogTitle>
+          </DialogHeader>
+          {lightboxImage && (
+            <img
+              src={lightboxImage.url}
+              alt={lightboxImage.name}
+              className="w-full max-h-[75vh] object-contain rounded-lg"
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 };

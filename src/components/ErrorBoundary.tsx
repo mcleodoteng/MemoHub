@@ -14,13 +14,16 @@ export function RouteErrorBoundary() {
     if (error.status === 404) {
       title = 'Page not found';
       message = 'The page you are looking for does not exist.';
+    } else if (error.status === 403) {
+      title = 'Access denied';
+      message = 'You do not have permission to view this page.';
     } else {
       title = `Error ${error.status}`;
-      message = error.statusText || message;
+      // Don't expose raw status text to users
+      message = 'Something went wrong. Please try again or contact support.';
     }
-  } else if (error instanceof Error) {
-    message = error.message;
   }
+  // Never expose raw error.message to users in production
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
