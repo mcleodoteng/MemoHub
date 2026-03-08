@@ -4,12 +4,14 @@ import { Bell, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { notifications, getUserById } from "@/data/mock";
+import { currentUser, getUserById } from "@/data/mock";
 import { useNavigate } from "react-router-dom";
 import { useState, useMemo } from "react";
 import { useMemos } from "@/context/MemoContext";
 import { useMessages } from "@/context/MessageContext";
+import { useNotifications } from "@/context/NotificationContext";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { getWorkflowPendingCountForUser } from "@/lib/workflow";
 
 interface AppLayoutProps {
   children: React.ReactNode;
