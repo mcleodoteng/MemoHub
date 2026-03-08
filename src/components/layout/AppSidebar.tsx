@@ -35,10 +35,20 @@ export function AppSidebar() {
     m.recipientStatuses.some(s => s.userId === currentUser.id && s.opened && !s.approved)
   ).length;
   const draftCount = memos.filter(m => m.status === 'draft' && m.creatorId === currentUser.id).length;
+  
+  const pendingWorkflowApprovals = memos.filter(m => {
+    if (m.status !== 'sent' || !m.workflow?.enabled) return false;
+    const currentStep = m.workflow.approvalChain.find(s => s.status === 'pending');
+    if (!currentStep) return false;
+    const priorSteps = m.workflow.approvalChain.filter(s => s.order < currentStep.order);
+    if (priorSteps.some(s => s.status !== 'approved')) return false;
+    return currentStep.approverId === currentUser.id;
+  }).length;
+
   const unreadMessages = conversations.filter(c =>
     c.lastMessage && !c.lastMessage.readBy.includes(currentUser.id)
   ).length;
-  const unreadNotifications = pendingApprovals + unreadMessages;
+  const unreadNotifications = pendingApprovals + unreadMessages + pendingWorkflowApprovals;
 
   const myGroups = groups.filter(g => g.memberIds.includes(currentUser.id));
 
