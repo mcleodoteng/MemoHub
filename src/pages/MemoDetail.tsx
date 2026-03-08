@@ -103,8 +103,19 @@ const MemoDetail = () => {
   const vis = visConfig[memo.visibility];
   const VisIcon = vis.icon;
   const memoComments = getCommentsByMemoId(memo.id);
-  const pinnedComments = memoComments.filter(c => c.pinned && !c.parentId);
-  const unpinnedTopLevel = memoComments.filter(c => !c.pinned && !c.parentId);
+  const searchLower = commentSearch.toLowerCase().trim();
+  const matchesSearch = (c: import('@/types').Comment) => {
+    if (!searchLower) return true;
+    const author = getUserById(c.authorId);
+    return c.body.toLowerCase().includes(searchLower) ||
+      (author?.name.toLowerCase().includes(searchLower) ?? false);
+  };
+  const filteredComments = memoComments.filter(c => {
+    if (c.parentId) return true; // replies are shown with parent
+    return matchesSearch(c);
+  });
+  const pinnedComments = filteredComments.filter(c => c.pinned && !c.parentId);
+  const unpinnedTopLevel = filteredComments.filter(c => !c.pinned && !c.parentId);
   const sortedUnpinned = [...unpinnedTopLevel].sort((a, b) => {
     if (commentSort === 'newest') return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     if (commentSort === 'reactions') {
