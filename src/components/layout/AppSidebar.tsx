@@ -327,7 +327,7 @@ export function AppSidebar() {
                 {!collapsed && (
                   <div className="flex flex-col min-w-0">
                     <span className="text-sm font-medium text-sidebar-accent-foreground truncate">{currentUser.name}</span>
-                    <span className="text-xs text-sidebar-muted truncate">{currentUser.department}</span>
+                    <span className="text-xs text-sidebar-muted truncate">{currentUser.department} · <span className="capitalize">{currentUser.role}</span></span>
                   </div>
                 )}
               </NavLink>
