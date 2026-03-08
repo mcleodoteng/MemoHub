@@ -19,6 +19,7 @@ import {
   ArrowLeft, FileText, Edit3, Send,
   CheckCircle2, ThumbsUp, XCircle, Smile, Star,
   MoreHorizontal, Pencil, X, Check, Reply, Paperclip,
+  ArrowUpDown, Clock, ArrowUp, ArrowDown, Heart,
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
