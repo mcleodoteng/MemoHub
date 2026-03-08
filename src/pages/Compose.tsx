@@ -5,6 +5,10 @@ import { Badge } from "@/components/ui/badge";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { users, tags, currentUser, getUserInitials, getUserById } from "@/data/mock";
 import { UserHoverCard } from "@/components/user/UserHoverCard";
 import { useMemos } from "@/context/MemoContext";
@@ -13,10 +17,10 @@ import { AttachmentUploader } from "@/components/attachment/AttachmentManager";
 import { MemoReferencePicker } from "@/components/memo/MemoReferencePicker";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { MemoVisibility, Attachment } from "@/types";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { Globe, Lock, Shield, Send, X, FileText, Save } from "lucide-react";
 import { toast } from "sonner";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useBlocker } from "react-router-dom";
 
 const Compose = () => {
   const navigate = useNavigate();
@@ -35,6 +39,7 @@ const Compose = () => {
   const [referencedMemoIds, setReferencedMemoIds] = useState<string[]>([]);
   const [recipientSearch, setRecipientSearch] = useState("");
   const [customTagInput, setCustomTagInput] = useState("");
+  const [isSaved, setIsSaved] = useState(false);
 
   // Load draft data
   useEffect(() => {
@@ -48,6 +53,45 @@ const Compose = () => {
       setReferencedMemoIds(draft.referencedMemoIds);
     }
   }, [draftId]);
+
+  const hasUnsavedContent = useCallback(() => {
+    if (isSaved) return false;
+    const hasContent = title.trim() || (body.trim() && body !== '<p></p>') || selectedRecipients.length > 0 || selectedTags.length > 0 || attachments.length > 0;
+    return !!hasContent;
+  }, [title, body, selectedRecipients, selectedTags, attachments, isSaved]);
+
+  // Block navigation when there's unsaved content
+  const blocker = useBlocker(({ currentLocation, nextLocation }) => {
+    return hasUnsavedContent() && currentLocation.pathname !== nextLocation.pathname;
+  });
+
+  // Auto-save as draft when user confirms leaving
+  const handleSaveAndLeave = () => {
+    if (title.trim() || body.trim()) {
+      const draftTitle = title.trim() || "Untitled Draft";
+      if (isEditingDraft && draft) {
+        updateMemo(draft.id, {
+          title: draftTitle, body, visibility,
+          recipientIds: selectedRecipients, tags: selectedTags,
+          attachments, referencedMemoIds,
+        });
+      } else {
+        addMemo({
+          title: draftTitle, body, creatorId: currentUser.id, visibility, status: 'draft',
+          recipientIds: selectedRecipients, tags: selectedTags, attachments,
+          pinned: false, archived: false, referencedMemoIds, groupId: undefined,
+        });
+      }
+      toast.success("Memo saved as draft automatically");
+    }
+    setIsSaved(true);
+    blocker.proceed?.();
+  };
+
+  const handleDiscardAndLeave = () => {
+    setIsSaved(true);
+    blocker.proceed?.();
+  };
 
   const otherUsers = users.filter((u) => u.id !== currentUser.id);
   const filteredUsers = useMemo(() =>
@@ -81,6 +125,7 @@ const Compose = () => {
     if (!title.trim()) { toast.error("Please add a title"); return; }
     if (!body.trim() && body !== '<p></p>') { toast.error("Please add content"); return; }
 
+    setIsSaved(true);
     if (isEditingDraft && draft) {
       updateMemo(draft.id, {
         title, body, visibility, status: 'sent',
@@ -105,6 +150,7 @@ const Compose = () => {
   const handleSaveDraft = () => {
     if (!title.trim()) { toast.error("Please add a title for the draft"); return; }
 
+    setIsSaved(true);
     if (isEditingDraft && draft) {
       updateMemo(draft.id, {
         title, body, visibility,
@@ -125,6 +171,25 @@ const Compose = () => {
 
   return (
     <AppLayout title={isEditingDraft ? "Edit Draft" : "Compose Memo"}>
+      {/* Unsaved changes dialog */}
+      <AlertDialog open={blocker.state === "blocked"}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>You have unsaved changes</AlertDialogTitle>
+            <AlertDialogDescription>
+              Would you like to save your memo as a draft before leaving? Your progress will be lost if you discard.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => blocker.reset?.()}>Stay</AlertDialogCancel>
+            <AlertDialogAction variant="outline" onClick={handleDiscardAndLeave}>Discard</AlertDialogAction>
+            <AlertDialogAction onClick={handleSaveAndLeave}>
+              <Save className="h-4 w-4 mr-1.5" /> Save as Draft
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <div className="max-w-3xl mx-auto space-y-6">
         <div className="widget-card space-y-5">
           {/* Title */}

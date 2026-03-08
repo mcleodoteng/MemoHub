@@ -90,9 +90,12 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon">
-      <SidebarHeader className="p-4">
-        <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sidebar-primary">
+      <SidebarHeader className={cn("p-3 transition-all duration-300", collapsed ? "px-1.5" : "p-4")}>
+        <div className={cn("flex items-center", collapsed ? "flex-col gap-2" : "gap-3")}>
+          <div className={cn(
+            "flex items-center justify-center rounded-lg bg-sidebar-primary transition-all duration-300",
+            collapsed ? "h-9 w-9" : "h-8 w-8"
+          )}>
             <FileText className="h-4 w-4 text-sidebar-primary-foreground" />
           </div>
           {!collapsed && (
@@ -103,7 +106,10 @@ export function AppSidebar() {
           <Button
             variant="ghost"
             size="icon"
-            className="h-7 w-7 text-sidebar-muted hover:text-sidebar-foreground transition-colors"
+            className={cn(
+              "text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-accent transition-all duration-300",
+              collapsed ? "h-8 w-8" : "h-7 w-7"
+            )}
             onClick={toggleSidebar}
           >
             {collapsed ? <PanelLeft className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
