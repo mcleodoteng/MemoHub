@@ -22,11 +22,11 @@ function formatMemoDate(dateStr: string) {
 
 const Memos = () => {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const { memos, restoreMemo, permanentlyDeleteMemo } = useMemos();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { memos, restoreMemo, permanentlyDeleteMemo, toggleStar } = useMemos();
   const [search, setSearch] = useState("");
 
-  const defaultTab = searchParams.get("tab") || "all";
+  const activeTab = searchParams.get("tab") || "all";
 
   const visibleMemos = memos.filter(m => !(m.hiddenBy || []).includes(currentUser.id));
 
