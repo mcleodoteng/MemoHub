@@ -40,7 +40,7 @@ const MemoDetail = () => {
   const {
     getMemoById, getCommentsByMemoId, togglePin, toggleArchive, deleteMemo,
     hideMemo, addComment, addReaction, updateMemo, markOpened,
-    acknowledgeMemo, unacknowledgeMemo, approveMemo, unapproveMemo,
+    acknowledgeMemo, unacknowledgeMemo, approveMemo, unapproveMemo, toggleStar,
   } = useMemos();
 
   const memo = getMemoById(id || "");
