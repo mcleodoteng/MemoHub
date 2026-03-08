@@ -47,12 +47,14 @@ const MemoDetail = () => {
   const [threadReplyText, setThreadReplyText] = useState("");
   const [commentAttachments, setCommentAttachments] = useState<Attachment[]>([]);
   const [threadAttachments, setThreadAttachments] = useState<Attachment[]>([]);
+  const [typingUsers, setTypingUsers] = useState<string[]>([]);
   const {
     getMemoById, getCommentsByMemoId, togglePin, toggleArchive, deleteMemo,
     hideMemo, addComment, addReaction, updateMemo, markOpened,
     acknowledgeMemo, unacknowledgeMemo, approveMemo, unapproveMemo, toggleStar,
     editComment, deleteComment, addCommentReaction, toggleCommentPin,
   } = useMemos();
+  const { notifyMentions } = useNotifications();
 
   const memo = getMemoById(id || "");
 
@@ -66,6 +68,21 @@ const MemoDetail = () => {
         }
       }
     }
+  }, [memo?.id]);
+
+  // Simulated typing indicator
+  useEffect(() => {
+    if (!memo || memo.status === 'draft') return;
+    const otherUsers = memo.recipientIds.filter(uid => uid !== currentUser.id);
+    if (otherUsers.length === 0) return;
+    const interval = setInterval(() => {
+      if (Math.random() < 0.3) {
+        const randomUser = otherUsers[Math.floor(Math.random() * otherUsers.length)];
+        setTypingUsers([randomUser]);
+        setTimeout(() => setTypingUsers([]), 2000 + Math.random() * 2000);
+      }
+    }, 5000 + Math.random() * 5000);
+    return () => clearInterval(interval);
   }, [memo?.id]);
 
   if (!memo) {
@@ -92,25 +109,6 @@ const MemoDetail = () => {
   const isDraft = memo.status === 'draft';
   const myStatus = memo.recipientStatuses.find(s => s.userId === currentUser.id);
   const isRecipient = memo.recipientIds.includes(currentUser.id);
-
-  // Simulated typing indicator — randomly shows other users typing
-  const [typingUsers, setTypingUsers] = useState<string[]>([]);
-  useEffect(() => {
-    if (isDraft) return;
-    const otherUsers = memo.recipientIds.filter(uid => uid !== currentUser.id);
-    if (otherUsers.length === 0) return;
-    const interval = setInterval(() => {
-      const shouldType = Math.random() < 0.3;
-      if (shouldType) {
-        const randomUser = otherUsers[Math.floor(Math.random() * otherUsers.length)];
-        setTypingUsers([randomUser]);
-        setTimeout(() => setTypingUsers([]), 2000 + Math.random() * 2000);
-      }
-    }, 5000 + Math.random() * 5000);
-    return () => clearInterval(interval);
-  }, [memo.id, isDraft]);
-
-  const { notifyMentions } = useNotifications();
 
   const handleReply = () => {
     if (!replyText.trim() && commentAttachments.length === 0) return;
