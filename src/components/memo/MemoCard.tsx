@@ -298,7 +298,7 @@ export function MemoCard({ memo }: MemoCardProps) {
                     <TooltipContent>Hide memo from your feed</TooltipContent>
                   </Tooltip>
                 )}
-                {isCreator && (
+                {showDelete && (
                   <AlertDialog>
                     <Tooltip>
                       <TooltipTrigger asChild>
