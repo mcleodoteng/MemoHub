@@ -104,7 +104,16 @@ const MemoDetail = () => {
   const memoComments = getCommentsByMemoId(memo.id);
   const pinnedComments = memoComments.filter(c => c.pinned && !c.parentId);
   const unpinnedTopLevel = memoComments.filter(c => !c.pinned && !c.parentId);
-  const topLevelComments = [...pinnedComments, ...unpinnedTopLevel];
+  const sortedUnpinned = [...unpinnedTopLevel].sort((a, b) => {
+    if (commentSort === 'newest') return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    if (commentSort === 'reactions') {
+      const aCount = a.reactions.reduce((sum, r) => sum + r.users.length, 0);
+      const bCount = b.reactions.reduce((sum, r) => sum + r.users.length, 0);
+      return bCount - aCount;
+    }
+    return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+  });
+  const topLevelComments = [...pinnedComments, ...sortedUnpinned];
   const getReplies = (commentId: string) => memoComments.filter(c => c.parentId === commentId);
   const isCreator = memo.creatorId === currentUser.id;
   const isAdmin = currentUser.role === 'admin';
