@@ -1,4 +1,4 @@
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { useMemos } from "@/context/MemoContext";
 import { getUserById, getUserInitials, currentUser } from "@/data/mock";
