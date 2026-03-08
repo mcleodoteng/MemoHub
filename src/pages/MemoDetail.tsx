@@ -49,6 +49,7 @@ const MemoDetail = () => {
   const [commentAttachments, setCommentAttachments] = useState<Attachment[]>([]);
   const [threadAttachments, setThreadAttachments] = useState<Attachment[]>([]);
   const [typingUsers, setTypingUsers] = useState<string[]>([]);
+  const [commentSort, setCommentSort] = useState<'newest' | 'oldest' | 'reactions'>('oldest');
   const {
     getMemoById, getCommentsByMemoId, togglePin, toggleArchive, deleteMemo,
     hideMemo, addComment, addReaction, updateMemo, markOpened,
