@@ -23,6 +23,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { formatDistanceToNow, format } from "date-fns";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
+import { useNotifications } from "@/context/NotificationContext";
 
 const visConfig = {
   public: { icon: Globe, label: "Public", className: "visibility-public" },
