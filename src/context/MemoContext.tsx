@@ -26,6 +26,9 @@ interface MemoContextType {
   toggleCommentPin: (commentId: string, userId: string) => void;
   addCommentReaction: (commentId: string, emoji: string, userId: string) => void;
   addReaction: (memoId: string, emoji: string, userId: string) => void;
+  approveWorkflowStep: (memoId: string, stepId: string, userId: string, approved: boolean, comment?: string) => void;
+  checkEscalations: () => void;
+  checkScheduledMemos: () => void;
   getMemoById: (id: string) => Memo | undefined;
   getCommentsByMemoId: (memoId: string) => Comment[];
 }
