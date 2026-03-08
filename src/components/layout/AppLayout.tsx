@@ -147,14 +147,14 @@ export function AppLayout({ children, title }: AppLayoutProps) {
                   onClick={() => navigate("/notifications")}
                 >
                   <Bell className="h-5 w-5" />
-                  {unreadCount > 0 && (
+                  {headerNotificationCount > 0 && (
                     <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground">
-                      {unreadCount}
+                      {headerNotificationCount > 9 ? "9+" : headerNotificationCount}
                     </span>
                   )}
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>View notifications ({unreadCount} unread)</TooltipContent>
+              <TooltipContent>View notifications ({headerNotificationCount} unread)</TooltipContent>
             </Tooltip>
           </header>
 
