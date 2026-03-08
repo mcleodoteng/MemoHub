@@ -489,138 +489,43 @@ const MemoDetail = () => {
           <div className="widget-card">
             <h3 className="font-display font-semibold mb-3">Comments ({memoComments.length})</h3>
             <div className="space-y-4">
-              {memoComments.map(comment => {
-                const author = getUserById(comment.authorId);
-                const isCommentAuthor = comment.authorId === currentUser.id;
-                const isEditing = editingCommentId === comment.id;
-                const wasEdited = comment.createdAt !== comment.updatedAt;
-                return (
-                  <div key={comment.id} className="flex gap-3 animate-slide-in group">
-                    {author ? (
-                      <UserHoverCard user={author}>
-                        <Avatar className="h-7 w-7 shrink-0 cursor-pointer" onClick={() => navigate(`/profile/${author.id}`)}>
-                          <AvatarFallback className="text-[10px] bg-primary/10 text-primary font-semibold">
-                            {getUserInitials(author.name)}
-                          </AvatarFallback>
-                        </Avatar>
-                      </UserHoverCard>
-                    ) : (
-                      <Avatar className="h-7 w-7 shrink-0">
-                        <AvatarFallback className="text-[10px] bg-primary/10 text-primary font-semibold">?</AvatarFallback>
-                      </Avatar>
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        {author ? (
-                          <UserHoverCard user={author}>
-                            <span className="text-sm font-medium cursor-pointer hover:underline" onClick={() => navigate(`/profile/${author.id}`)}>
-                              {author.name}
-                            </span>
-                          </UserHoverCard>
-                        ) : (
-                          <span className="text-sm font-medium">Unknown</span>
-                        )}
-                        <span className="text-xs text-muted-foreground">
-                          {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true })}
-                        </span>
-                        {wasEdited && <span className="text-xs text-muted-foreground italic">(edited)</span>}
-                        <div className="ml-auto flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                          {/* Emoji reaction picker for comment */}
-                          <Popover>
-                            <PopoverTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-6 w-6">
-                                <Smile className="h-3.5 w-3.5" />
-                              </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-2" align="end">
-                              <div className="flex gap-1">
-                                {quickEmojis.map(emoji => (
-                                  <button key={emoji} className="h-7 w-7 flex items-center justify-center rounded hover:bg-secondary transition-colors text-sm"
-                                    onClick={() => addCommentReaction(comment.id, emoji, currentUser.id)}>
-                                    {emoji}
-                                  </button>
-                                ))}
-                              </div>
-                            </PopoverContent>
-                          </Popover>
-                          {isCommentAuthor && (
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-6 w-6">
-                                  <MoreHorizontal className="h-3.5 w-3.5" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => { setEditingCommentId(comment.id); setEditingCommentBody(comment.body); }}>
-                                  <Pencil className="h-3.5 w-3.5 mr-2" /> Edit
-                                </DropdownMenuItem>
-                                <DropdownMenuItem className="text-destructive" onClick={() => { deleteComment(comment.id, currentUser.id); toast.success('Comment deleted'); }}>
-                                  <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          )}
-                        </div>
-                      </div>
-                      {isEditing ? (
-                        <div className="mt-1 space-y-2">
-                          <MentionInput value={editingCommentBody} onChange={setEditingCommentBody} placeholder="Edit comment..." rows={2} />
-                          <div className="flex gap-1.5">
-                            <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => setEditingCommentId(null)}>
-                              <X className="h-3 w-3" /> Cancel
-                            </Button>
-                            <Button size="sm" className="h-7 text-xs gap-1" disabled={!editingCommentBody.trim()}
-                              onClick={() => { editComment(comment.id, editingCommentBody, currentUser.id); setEditingCommentId(null); toast.success('Comment updated'); }}>
-                              <Check className="h-3 w-3" /> Save
-                            </Button>
-                          </div>
-                        </div>
-                      ) : (
-                        <>
-                          {comment.body.startsWith('<') ? (
-                            <div
-                              className="text-sm mt-0.5 prose prose-sm max-w-none [&_a]:text-primary [&_a]:underline [&_a]:cursor-pointer"
-                              dangerouslySetInnerHTML={{ __html: processMentionsInHtml(comment.body) }}
-                              onClick={(e) => {
-                                const target = e.target as HTMLElement;
-                                if (target.tagName === 'A') {
-                                  const href = target.getAttribute('href');
-                                  if (href && href.startsWith('/profile/')) {
-                                    e.preventDefault();
-                                    navigate(href);
-                                  }
-                                }
-                              }}
-                            />
-                          ) : (
-                            <p className="text-sm mt-0.5"><MentionText text={comment.body} /></p>
-                          )}
-                        </>
-                      )}
-                      {/* Comment reactions */}
-                      {comment.reactions.length > 0 && (
-                        <div className="flex items-center gap-1 mt-1.5 flex-wrap">
-                          {comment.reactions.map(r => {
-                            const isActive = r.users.includes(currentUser.id);
-                            return (
-                              <Button key={r.emoji} variant={isActive ? "secondary" : "outline"} size="sm" className="gap-0.5 h-6 text-[11px] px-1.5"
-                                onClick={() => addCommentReaction(comment.id, r.emoji, currentUser.id)}>
-                                {r.emoji} {r.users.length}
-                              </Button>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
+              {topLevelComments.map(comment => (
+                <CommentThread
+                  key={comment.id}
+                  comment={comment}
+                  replies={getReplies(comment.id)}
+                  navigate={navigate}
+                  currentUser={currentUser}
+                  editingCommentId={editingCommentId}
+                  editingCommentBody={editingCommentBody}
+                  setEditingCommentId={setEditingCommentId}
+                  setEditingCommentBody={setEditingCommentBody}
+                  replyingToCommentId={replyingToCommentId}
+                  setReplyingToCommentId={setReplyingToCommentId}
+                  threadReplyText={threadReplyText}
+                  setThreadReplyText={setThreadReplyText}
+                  threadAttachments={threadAttachments}
+                  setThreadAttachments={setThreadAttachments}
+                  handleThreadReply={handleThreadReply}
+                  editComment={editComment}
+                  deleteComment={deleteComment}
+                  addCommentReaction={addCommentReaction}
+                  quickEmojis={quickEmojis}
+                  processMentionsInHtml={processMentionsInHtml}
+                />
+              ))}
               <div className="space-y-2 pt-2 border-t">
                 <MentionInput value={replyText} onChange={setReplyText} placeholder="Write a comment... (type @ to mention)" rows={2} />
+                <AttachmentUploader
+                  attachments={commentAttachments}
+                  onAdd={(atts) => setCommentAttachments(prev => [...prev, ...atts])}
+                  onRemove={(id) => setCommentAttachments(prev => prev.filter(a => a.id !== id))}
+                  compact
+                />
                 <div className="flex justify-end">
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button size="sm" onClick={handleReply} disabled={!replyText.trim()}>Reply</Button>
+                      <Button size="sm" onClick={handleReply} disabled={!replyText.trim() && commentAttachments.length === 0}>Reply</Button>
                     </TooltipTrigger>
                     <TooltipContent>Post your comment</TooltipContent>
                   </Tooltip>
@@ -635,5 +540,273 @@ const MemoDetail = () => {
     </AppLayout>
   );
 };
+
+/* ── Comment Thread Component ── */
+interface CommentThreadProps {
+  comment: import('@/types').Comment;
+  replies: import('@/types').Comment[];
+  navigate: ReturnType<typeof useNavigate>;
+  currentUser: typeof import('@/data/mock').currentUser;
+  editingCommentId: string | null;
+  editingCommentBody: string;
+  setEditingCommentId: (id: string | null) => void;
+  setEditingCommentBody: (body: string) => void;
+  replyingToCommentId: string | null;
+  setReplyingToCommentId: (id: string | null) => void;
+  threadReplyText: string;
+  setThreadReplyText: (text: string) => void;
+  threadAttachments: Attachment[];
+  setThreadAttachments: React.Dispatch<React.SetStateAction<Attachment[]>>;
+  handleThreadReply: (parentId: string) => void;
+  editComment: (commentId: string, body: string, userId: string) => void;
+  deleteComment: (commentId: string, userId: string) => void;
+  addCommentReaction: (commentId: string, emoji: string, userId: string) => void;
+  quickEmojis: string[];
+  processMentionsInHtml: (html: string) => string;
+}
+
+function CommentThread({
+  comment, replies, navigate, currentUser,
+  editingCommentId, editingCommentBody, setEditingCommentId, setEditingCommentBody,
+  replyingToCommentId, setReplyingToCommentId, threadReplyText, setThreadReplyText,
+  threadAttachments, setThreadAttachments, handleThreadReply,
+  editComment, deleteComment, addCommentReaction, quickEmojis, processMentionsInHtml,
+}: CommentThreadProps) {
+  return (
+    <div className="space-y-2">
+      <SingleComment
+        comment={comment}
+        navigate={navigate}
+        currentUser={currentUser}
+        editingCommentId={editingCommentId}
+        editingCommentBody={editingCommentBody}
+        setEditingCommentId={setEditingCommentId}
+        setEditingCommentBody={setEditingCommentBody}
+        replyingToCommentId={replyingToCommentId}
+        setReplyingToCommentId={setReplyingToCommentId}
+        threadReplyText={threadReplyText}
+        setThreadReplyText={setThreadReplyText}
+        threadAttachments={threadAttachments}
+        setThreadAttachments={setThreadAttachments}
+        handleThreadReply={handleThreadReply}
+        editComment={editComment}
+        deleteComment={deleteComment}
+        addCommentReaction={addCommentReaction}
+        quickEmojis={quickEmojis}
+        processMentionsInHtml={processMentionsInHtml}
+      />
+      {replies.length > 0 && (
+        <div className="ml-8 pl-3 border-l-2 border-border space-y-2">
+          {replies.map(reply => (
+            <SingleComment
+              key={reply.id}
+              comment={reply}
+              navigate={navigate}
+              currentUser={currentUser}
+              editingCommentId={editingCommentId}
+              editingCommentBody={editingCommentBody}
+              setEditingCommentId={setEditingCommentId}
+              setEditingCommentBody={setEditingCommentBody}
+              replyingToCommentId={replyingToCommentId}
+              setReplyingToCommentId={setReplyingToCommentId}
+              threadReplyText={threadReplyText}
+              setThreadReplyText={setThreadReplyText}
+              threadAttachments={threadAttachments}
+              setThreadAttachments={setThreadAttachments}
+              handleThreadReply={handleThreadReply}
+              editComment={editComment}
+              deleteComment={deleteComment}
+              addCommentReaction={addCommentReaction}
+              quickEmojis={quickEmojis}
+              processMentionsInHtml={processMentionsInHtml}
+              isReply
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── Single Comment Component ── */
+interface SingleCommentProps extends Omit<CommentThreadProps, 'replies'> {
+  isReply?: boolean;
+}
+
+function SingleComment({
+  comment, navigate, currentUser,
+  editingCommentId, editingCommentBody, setEditingCommentId, setEditingCommentBody,
+  replyingToCommentId, setReplyingToCommentId, threadReplyText, setThreadReplyText,
+  threadAttachments, setThreadAttachments, handleThreadReply,
+  editComment, deleteComment, addCommentReaction, quickEmojis, processMentionsInHtml,
+  isReply,
+}: SingleCommentProps) {
+  const author = getUserById(comment.authorId);
+  const isCommentAuthor = comment.authorId === currentUser.id;
+  const isEditing = editingCommentId === comment.id;
+  const isReplying = replyingToCommentId === comment.id;
+  const wasEdited = comment.createdAt !== comment.updatedAt;
+
+  return (
+    <div className="flex gap-3 animate-slide-in group">
+      {author ? (
+        <UserHoverCard user={author}>
+          <Avatar className={`${isReply ? 'h-6 w-6' : 'h-7 w-7'} shrink-0 cursor-pointer`} onClick={() => navigate(`/profile/${author.id}`)}>
+            <AvatarFallback className="text-[10px] bg-primary/10 text-primary font-semibold">
+              {getUserInitials(author.name)}
+            </AvatarFallback>
+          </Avatar>
+        </UserHoverCard>
+      ) : (
+        <Avatar className={`${isReply ? 'h-6 w-6' : 'h-7 w-7'} shrink-0`}>
+          <AvatarFallback className="text-[10px] bg-primary/10 text-primary font-semibold">?</AvatarFallback>
+        </Avatar>
+      )}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2">
+          {author ? (
+            <UserHoverCard user={author}>
+              <span className="text-sm font-medium cursor-pointer hover:underline" onClick={() => navigate(`/profile/${author.id}`)}>
+                {author.name}
+              </span>
+            </UserHoverCard>
+          ) : (
+            <span className="text-sm font-medium">Unknown</span>
+          )}
+          <span className="text-xs text-muted-foreground">
+            {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true })}
+          </span>
+          {wasEdited && <span className="text-xs text-muted-foreground italic">(edited)</span>}
+          <div className="ml-auto flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+            {!isReply && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => {
+                    setReplyingToCommentId(isReplying ? null : comment.id);
+                    setThreadReplyText("");
+                    setThreadAttachments([]);
+                  }}>
+                    <Reply className="h-3.5 w-3.5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Reply</TooltipContent>
+              </Tooltip>
+            )}
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-6 w-6">
+                  <Smile className="h-3.5 w-3.5" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-2" align="end">
+                <div className="flex gap-1">
+                  {quickEmojis.map(emoji => (
+                    <button key={emoji} className="h-7 w-7 flex items-center justify-center rounded hover:bg-secondary transition-colors text-sm"
+                      onClick={() => addCommentReaction(comment.id, emoji, currentUser.id)}>
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
+            {isCommentAuthor && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-6 w-6">
+                    <MoreHorizontal className="h-3.5 w-3.5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => { setEditingCommentId(comment.id); setEditingCommentBody(comment.body); }}>
+                    <Pencil className="h-3.5 w-3.5 mr-2" /> Edit
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="text-destructive" onClick={() => { deleteComment(comment.id, currentUser.id); toast.success('Comment deleted'); }}>
+                    <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </div>
+        </div>
+        {isEditing ? (
+          <div className="mt-1 space-y-2">
+            <MentionInput value={editingCommentBody} onChange={setEditingCommentBody} placeholder="Edit comment..." rows={2} />
+            <div className="flex gap-1.5">
+              <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => setEditingCommentId(null)}>
+                <X className="h-3 w-3" /> Cancel
+              </Button>
+              <Button size="sm" className="h-7 text-xs gap-1" disabled={!editingCommentBody.trim()}
+                onClick={() => { editComment(comment.id, editingCommentBody, currentUser.id); setEditingCommentId(null); toast.success('Comment updated'); }}>
+                <Check className="h-3 w-3" /> Save
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <>
+            {comment.body.startsWith('<') ? (
+              <div
+                className="text-sm mt-0.5 prose prose-sm max-w-none [&_a]:text-primary [&_a]:underline [&_a]:cursor-pointer"
+                dangerouslySetInnerHTML={{ __html: processMentionsInHtml(comment.body) }}
+                onClick={(e) => {
+                  const target = e.target as HTMLElement;
+                  if (target.tagName === 'A') {
+                    const href = target.getAttribute('href');
+                    if (href && href.startsWith('/profile/')) {
+                      e.preventDefault();
+                      navigate(href);
+                    }
+                  }
+                }}
+              />
+            ) : (
+              <p className="text-sm mt-0.5"><MentionText text={comment.body} /></p>
+            )}
+          </>
+        )}
+        {/* Comment attachments */}
+        {comment.attachments.length > 0 && (
+          <div className="mt-1.5">
+            <AttachmentViewer attachments={comment.attachments} />
+          </div>
+        )}
+        {/* Comment reactions */}
+        {comment.reactions.length > 0 && (
+          <div className="flex items-center gap-1 mt-1.5 flex-wrap">
+            {comment.reactions.map(r => {
+              const isActive = r.users.includes(currentUser.id);
+              return (
+                <Button key={r.emoji} variant={isActive ? "secondary" : "outline"} size="sm" className="gap-0.5 h-6 text-[11px] px-1.5"
+                  onClick={() => addCommentReaction(comment.id, r.emoji, currentUser.id)}>
+                  {r.emoji} {r.users.length}
+                </Button>
+              );
+            })}
+          </div>
+        )}
+        {/* Thread reply input */}
+        {isReplying && (
+          <div className="mt-2 space-y-2 pl-2 border-l-2 border-primary/30">
+            <MentionInput value={threadReplyText} onChange={setThreadReplyText} placeholder={`Reply to ${author?.name || 'comment'}...`} rows={1} />
+            <AttachmentUploader
+              attachments={threadAttachments}
+              onAdd={(atts) => setThreadAttachments(prev => [...prev, ...atts])}
+              onRemove={(attId) => setThreadAttachments(prev => prev.filter(a => a.id !== attId))}
+              compact
+            />
+            <div className="flex gap-1.5">
+              <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => setReplyingToCommentId(null)}>
+                <X className="h-3 w-3" /> Cancel
+              </Button>
+              <Button size="sm" className="h-7 text-xs gap-1" disabled={!threadReplyText.trim() && threadAttachments.length === 0}
+                onClick={() => handleThreadReply(comment.id)}>
+                <Reply className="h-3 w-3" /> Reply
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export default MemoDetail;
