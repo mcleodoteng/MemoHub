@@ -17,7 +17,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import {
   Globe, Lock, Shield, Pin, Archive, Trash2, EyeOff,
   ArrowLeft, FileText, Edit3, Send,
-  CheckCircle2, ThumbsUp, XCircle, Smile,
+  CheckCircle2, ThumbsUp, XCircle, Smile, Star,
 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { formatDistanceToNow, format } from "date-fns";
