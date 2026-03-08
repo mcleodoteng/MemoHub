@@ -89,6 +89,7 @@ export interface Comment {
   memoId: string;
   authorId: string;
   body: string;
+  parentId?: string; // for threaded replies
   attachments: Attachment[];
   reactions: Reaction[];
   referencedMemoIds: string[];

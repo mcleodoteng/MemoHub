@@ -20,7 +20,7 @@ interface MemoContextType {
   approveMemo: (memoId: string, userId: string) => void;
   unapproveMemo: (memoId: string, userId: string) => void;
   markOpened: (memoId: string, userId: string) => void;
-  addComment: (memoId: string, body: string, authorId: string) => void;
+  addComment: (memoId: string, body: string, authorId: string, attachments?: Attachment[], parentId?: string) => void;
   editComment: (commentId: string, newBody: string, userId: string) => void;
   deleteComment: (commentId: string, userId: string) => void;
   addCommentReaction: (commentId: string, emoji: string, userId: string) => void;
@@ -252,14 +252,15 @@ export function MemoProvider({ children }: { children: React.ReactNode }) {
     }));
   }, []);
 
-  const addComment = useCallback((memoId: string, body: string, authorId: string) => {
+  const addComment = useCallback((memoId: string, body: string, authorId: string, attachments: Attachment[] = [], parentId?: string) => {
     const now = new Date().toISOString();
     const newComment: Comment = {
       id: `c${Date.now()}`,
       memoId,
       authorId,
       body,
-      attachments: [],
+      parentId,
+      attachments,
       reactions: [],
       referencedMemoIds: [],
       createdAt: now,
