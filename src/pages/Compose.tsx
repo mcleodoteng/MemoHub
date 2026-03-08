@@ -392,8 +392,8 @@ const Compose = () => {
               className="gap-1.5 text-xs"
               onClick={() => {
                 if (!title.trim()) { toast.error("Add a title first"); return; }
-                const { addTemplate } = useTemplatesRef.current;
                 addTemplate({
+                  name: title.trim().slice(0, 40),
                   name: title.trim().slice(0, 40),
                   description: `Custom template from "${title.trim().slice(0, 30)}"`,
                   title,
