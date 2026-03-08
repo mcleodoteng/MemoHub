@@ -395,7 +395,32 @@ const Messages = () => {
                                   <span className="text-xs font-medium">{msg.sharedMemo.title}</span>
                                 </div>
                               ) : (
-                                <p>{msg.body}</p>
+                                <>
+                                  {msg.body && <p>{msg.body}</p>}
+                                  {msg.attachments.length > 0 && (
+                                    <div className="mt-1.5 space-y-1">
+                                      {msg.attachments.filter(a => a.type.startsWith('image/')).length > 0 && (
+                                        <div className="flex gap-1 flex-wrap">
+                                          {msg.attachments.filter(a => a.type.startsWith('image/')).map(att => (
+                                            <img key={att.id} src={att.url} alt={att.name}
+                                              className="max-w-[200px] max-h-[150px] rounded-lg object-cover cursor-pointer"
+                                              onClick={e => { e.stopPropagation(); window.open(att.url, '_blank'); }}
+                                            />
+                                          ))}
+                                        </div>
+                                      )}
+                                      {msg.attachments.filter(a => !a.type.startsWith('image/')).map(att => (
+                                        <div key={att.id}
+                                          className={`flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs cursor-pointer ${isMe ? 'bg-primary-foreground/10' : 'bg-background'}`}
+                                          onClick={e => { e.stopPropagation(); window.open(att.url, '_blank'); }}>
+                                          <Paperclip className="h-3 w-3 shrink-0" />
+                                          <span className="truncate">{att.name}</span>
+                                          <span className="text-[10px] opacity-60 shrink-0">{(att.size / 1024).toFixed(0)}KB</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                </>
                               )}
                               <p className={`text-[10px] mt-1 ${isMe ? "text-primary-foreground/60" : "text-muted-foreground"}`}>
                                 {format(msgDate, "h:mm a")}
