@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom';
+import DOMPurify from 'dompurify';
 import { users } from '@/data/mock';
 
 interface MentionTextProps {
