@@ -146,6 +146,7 @@ const Compose = () => {
       });
       toast.success("Memo sent successfully!");
     }
+    notifyMentions(body, title, "/memos", currentUser.id);
     navigate("/memos");
   };
 
