@@ -281,7 +281,7 @@ export function MemoProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <MemoContext.Provider value={{
-      memos, comments, addMemo, updateMemo, editMemo, deleteMemo, restoreMemo, togglePin, toggleArchive,
+      memos, comments, addMemo, updateMemo, editMemo, deleteMemo, permanentlyDeleteMemo, restoreMemo, togglePin, toggleArchive,
       hideMemo, acknowledgeMemo, unacknowledgeMemo, approveMemo, unapproveMemo, markOpened,
       addComment, addReaction, getMemoById, getCommentsByMemoId,
     }}>
