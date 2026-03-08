@@ -55,7 +55,7 @@ export function processMentionsInHtml(html: string): string {
       (u) => u.name.toLowerCase() === name.trim().toLowerCase()
     );
     if (user) {
-      return `<a href="/profile/${user.id}" class="text-primary font-medium hover:underline cursor-pointer" data-mention="${user.id}">@${user.name}</a>`;
+      return `<a href="/profile/${user.id}" class="text-primary font-medium underline decoration-primary/50 hover:decoration-primary cursor-pointer" data-mention="${user.id}">@${user.name}</a>`;
     }
     return match;
   });
