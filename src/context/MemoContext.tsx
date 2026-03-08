@@ -9,6 +9,7 @@ interface MemoContextType {
   updateMemo: (id: string, updates: Partial<Memo>) => void;
   editMemo: (id: string, updates: { title?: string; body?: string; tags?: string[]; visibility?: MemoVisibility; attachments?: Attachment[]; recipientIds?: string[]; referencedMemoIds?: string[] }, editorId: string) => void;
   deleteMemo: (id: string) => void;
+  restoreMemo: (id: string) => void;
   togglePin: (id: string) => void;
   toggleArchive: (id: string) => void;
   hideMemo: (memoId: string, userId: string) => void;
