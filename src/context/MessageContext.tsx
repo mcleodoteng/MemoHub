@@ -1,11 +1,11 @@
 import React, { createContext, useContext, useState, useCallback, useRef } from 'react';
-import { Message, Conversation, SharedMemo } from '@/types';
+import { Message, Conversation, SharedMemo, Attachment } from '@/types';
 import { conversations as initialConversations, messages as initialMessages, currentUser, getUserById } from '@/data/mock';
 
 interface MessageContextType {
   conversations: Conversation[];
   messages: Message[];
-  sendMessage: (conversationId: string, body: string, sharedMemo?: SharedMemo) => void;
+  sendMessage: (conversationId: string, body: string, sharedMemo?: SharedMemo, attachments?: Attachment[]) => void;
   sendSystemMessage: (conversationId: string, body: string) => void;
   addReaction: (messageId: string, emoji: string, userId: string) => void;
   markAsRead: (conversationId: string, userId: string) => void;
@@ -35,14 +35,14 @@ export function MessageProvider({ children }: { children: React.ReactNode }) {
 
   const starredMessages = messages.filter(m => m.starredBy?.includes(currentUser.id));
 
-  const sendMessage = useCallback((conversationId: string, body: string, sharedMemo?: SharedMemo) => {
+  const sendMessage = useCallback((conversationId: string, body: string, sharedMemo?: SharedMemo, attachments?: Attachment[]) => {
     const now = new Date().toISOString();
     const newMsg: Message = {
       id: `msg${Date.now()}`,
       conversationId,
       senderId: currentUser.id,
       body,
-      attachments: [],
+      attachments: attachments || [],
       reactions: [],
       sharedMemo,
       readBy: [currentUser.id],

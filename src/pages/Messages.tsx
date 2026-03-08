@@ -14,8 +14,9 @@ import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   Send, Users as UsersIcon, SmilePlus, FileText, Share2, Search, X,
-  Star, StarOff, Hash, MessageCircle, ArrowLeft,
+  Star, StarOff, Hash, MessageCircle, ArrowLeft, Paperclip, Image as ImageIcon,
 } from "lucide-react";
+import { Attachment } from "@/types";
 import { useState, useRef, useEffect, useMemo } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { formatDistanceToNow, format, isToday, isYesterday, isSameDay } from "date-fns";
@@ -41,6 +42,8 @@ const Messages = () => {
   const [showMsgSearch, setShowMsgSearch] = useState(false);
   const [tab, setTab] = useState<'direct' | 'channels' | 'starred'>('direct');
   const [mobileShowChat, setMobileShowChat] = useState(false);
+  const [pendingAttachments, setPendingAttachments] = useState<Attachment[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const activeConv = conversations.find(c => c.id === selectedConv);
@@ -108,9 +111,29 @@ const Messages = () => {
   }, [convMessages, msgSearch]);
 
   const handleSend = () => {
-    if (!newMessage.trim()) return;
-    sendMessage(selectedConv, newMessage);
+    if (!newMessage.trim() && pendingAttachments.length === 0) return;
+    sendMessage(selectedConv, newMessage, undefined, pendingAttachments.length > 0 ? pendingAttachments : undefined);
     setNewMessage("");
+    setPendingAttachments([]);
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+    const newAtts: Attachment[] = Array.from(files).map(file => ({
+      id: `att-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      name: file.name,
+      type: file.type,
+      size: file.size,
+      url: URL.createObjectURL(file),
+      thumbnailUrl: file.type.startsWith('image/') ? URL.createObjectURL(file) : undefined,
+    }));
+    setPendingAttachments(prev => [...prev, ...newAtts]);
+    e.target.value = '';
+  };
+
+  const removePendingAttachment = (id: string) => {
+    setPendingAttachments(prev => prev.filter(a => a.id !== id));
   };
 
   const handleShareMemo = (memoId: string, memoTitle: string) => {
@@ -372,7 +395,32 @@ const Messages = () => {
                                   <span className="text-xs font-medium">{msg.sharedMemo.title}</span>
                                 </div>
                               ) : (
-                                <p>{msg.body}</p>
+                                <>
+                                  {msg.body && <p>{msg.body}</p>}
+                                  {msg.attachments.length > 0 && (
+                                    <div className="mt-1.5 space-y-1">
+                                      {msg.attachments.filter(a => a.type.startsWith('image/')).length > 0 && (
+                                        <div className="flex gap-1 flex-wrap">
+                                          {msg.attachments.filter(a => a.type.startsWith('image/')).map(att => (
+                                            <img key={att.id} src={att.url} alt={att.name}
+                                              className="max-w-[200px] max-h-[150px] rounded-lg object-cover cursor-pointer"
+                                              onClick={e => { e.stopPropagation(); window.open(att.url, '_blank'); }}
+                                            />
+                                          ))}
+                                        </div>
+                                      )}
+                                      {msg.attachments.filter(a => !a.type.startsWith('image/')).map(att => (
+                                        <div key={att.id}
+                                          className={`flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs cursor-pointer ${isMe ? 'bg-primary-foreground/10' : 'bg-background'}`}
+                                          onClick={e => { e.stopPropagation(); window.open(att.url, '_blank'); }}>
+                                          <Paperclip className="h-3 w-3 shrink-0" />
+                                          <span className="truncate">{att.name}</span>
+                                          <span className="text-[10px] opacity-60 shrink-0">{(att.size / 1024).toFixed(0)}KB</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                </>
                               )}
                               <p className={`text-[10px] mt-1 ${isMe ? "text-primary-foreground/60" : "text-muted-foreground"}`}>
                                 {format(msgDate, "h:mm a")}
@@ -461,7 +509,47 @@ const Messages = () => {
                   <div ref={messagesEndRef} />
                 </div>
 
-                <div className="p-3 border-t flex gap-2">
+                {/* Pending attachments preview */}
+                {pendingAttachments.length > 0 && (
+                  <div className="px-3 pt-2 border-t flex gap-2 flex-wrap">
+                    {pendingAttachments.map(att => (
+                      <div key={att.id} className="relative group/att">
+                        {att.type.startsWith('image/') ? (
+                          <img src={att.url} alt={att.name} className="h-16 w-16 rounded-lg object-cover border" />
+                        ) : (
+                          <div className="h-16 px-3 rounded-lg border bg-secondary flex items-center gap-2">
+                            <Paperclip className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                            <span className="text-xs truncate max-w-[100px]">{att.name}</span>
+                          </div>
+                        )}
+                        <button
+                          className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover/att:opacity-100 transition-opacity"
+                          onClick={() => removePendingAttachment(att.id)}
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div className={`p-3 ${pendingAttachments.length === 0 ? 'border-t' : ''} flex gap-2`}>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    multiple
+                    className="hidden"
+                    onChange={handleFileSelect}
+                    accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.zip"
+                  />
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="icon" className="shrink-0" onClick={() => fileInputRef.current?.click()}>
+                        <Paperclip className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Attach files</TooltipContent>
+                  </Tooltip>
                   <Popover open={shareOpen} onOpenChange={setShareOpen}>
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -498,7 +586,7 @@ const Messages = () => {
                   />
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button size="icon" onClick={handleSend} disabled={!newMessage.trim()}>
+                      <Button size="icon" onClick={handleSend} disabled={!newMessage.trim() && pendingAttachments.length === 0}>
                         <Send className="h-4 w-4" />
                       </Button>
                     </TooltipTrigger>
