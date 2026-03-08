@@ -21,11 +21,13 @@ import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { Globe, Lock, Shield, Send, X, FileText, Save } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate, useParams, useBlocker } from "react-router-dom";
+import { useNotifications } from "@/context/NotificationContext";
 
 const Compose = () => {
   const navigate = useNavigate();
   const { draftId } = useParams<{ draftId?: string }>();
   const { addMemo, getMemoById, updateMemo, editMemo } = useMemos();
+  const { notifyMentions } = useNotifications();
 
   const draft = draftId ? getMemoById(draftId) : undefined;
   const isEditingDraft = !!draft && draft.status === 'draft' && draft.creatorId === currentUser.id;
@@ -144,6 +146,7 @@ const Compose = () => {
       });
       toast.success("Memo sent successfully!");
     }
+    notifyMentions(body, title, "/memos", currentUser.id);
     navigate("/memos");
   };
 

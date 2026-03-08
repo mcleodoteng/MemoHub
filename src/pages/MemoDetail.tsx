@@ -23,6 +23,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { formatDistanceToNow, format } from "date-fns";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
+import { useNotifications } from "@/context/NotificationContext";
 
 const visConfig = {
   public: { icon: Globe, label: "Public", className: "visibility-public" },
@@ -78,9 +79,12 @@ const MemoDetail = () => {
   const myStatus = memo.recipientStatuses.find(s => s.userId === currentUser.id);
   const isRecipient = memo.recipientIds.includes(currentUser.id);
 
+  const { notifyMentions } = useNotifications();
+
   const handleReply = () => {
     if (!replyText.trim()) return;
     addComment(memo.id, replyText, currentUser.id);
+    notifyMentions(replyText, memo.title, `/memos/${memo.id}`, currentUser.id);
     setReplyText("");
     toast.success("Comment added!");
   };
