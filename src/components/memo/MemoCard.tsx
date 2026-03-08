@@ -219,9 +219,9 @@ export function MemoCard({ memo }: MemoCardProps) {
             )}
 
             {/* Status badges + inline actions */}
-            <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border/50">
+            <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border/50 flex-wrap">
               {memo.status !== 'draft' && totalRecipients > 0 && (
-                <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground flex-wrap">
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <span className="inline-flex items-center gap-0.5 bg-info/10 text-info px-1.5 py-0.5 rounded-md">

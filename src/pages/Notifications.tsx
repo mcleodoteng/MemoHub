@@ -110,9 +110,9 @@ const Notifications = () => {
   return (
     <AppLayout title="Notifications">
       <div className="max-w-3xl mx-auto space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:justify-between">
           <div className="flex items-center gap-3">
-            <Bell className="h-5 w-5 text-primary" />
+            <Bell className="h-5 w-5 text-primary shrink-0" />
             <div>
               <h2 className="font-display font-bold text-lg">Notification Center</h2>
               <p className="text-xs text-muted-foreground">{totalUnread} unread</p>

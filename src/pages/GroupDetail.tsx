@@ -191,48 +191,54 @@ const GroupDetail = () => {
   return (
     <AppLayout title="">
       <div className="max-w-5xl mx-auto space-y-4">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="sm" className="gap-2" onClick={() => navigate("/groups")}>
-            <ArrowLeft className="h-4 w-4" /> Groups
-          </Button>
-          <div className="flex items-center gap-2 flex-1">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
-              <Users className="h-4 w-4 text-primary" />
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm" className="gap-2 shrink-0" onClick={() => navigate("/groups")}>
+              <ArrowLeft className="h-4 w-4" /> <span className="hidden sm:inline">Groups</span>
+            </Button>
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 shrink-0">
+                <Users className="h-4 w-4 text-primary" />
+              </div>
+              <h1 className="font-display text-lg font-bold truncate">{group.name}</h1>
+              <Badge variant="secondary" className="text-[10px] shrink-0 hidden sm:inline-flex">{group.type}</Badge>
+              <span className="text-xs text-muted-foreground shrink-0 hidden sm:inline">{group.memberIds.length} members</span>
             </div>
-            <h1 className="font-display text-lg font-bold">{group.name}</h1>
-            <Badge variant="secondary" className="text-[10px]">{group.type}</Badge>
-            <span className="text-xs text-muted-foreground">{group.memberIds.length} members</span>
           </div>
-          <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setReminderDialogOpen(true)}>
-            <Bell className="h-3.5 w-3.5" /> Reminder
-          </Button>
-          <Button size="sm" className="gap-1.5" onClick={() => setMemoDialogOpen(true)}>
-            <PenSquare className="h-3.5 w-3.5" /> Send Memo
-          </Button>
-          {isAdmin && (
-            <Button size="sm" variant="destructive" onClick={() => {
-              deleteGroup(group.id); toast.success("Group deleted"); navigate("/groups");
-            }}>Delete Group</Button>
-          )}
+          <div className="flex items-center gap-2 flex-wrap">
+            <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setReminderDialogOpen(true)}>
+              <Bell className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Reminder</span>
+            </Button>
+            <Button size="sm" className="gap-1.5" onClick={() => setMemoDialogOpen(true)}>
+              <PenSquare className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Send Memo</span>
+            </Button>
+            {isAdmin && (
+              <Button size="sm" variant="destructive" onClick={() => {
+                deleteGroup(group.id); toast.success("Group deleted"); navigate("/groups");
+              }}>Delete</Button>
+            )}
+          </div>
         </div>
 
         <p className="text-sm text-muted-foreground">{group.description}</p>
 
         <Tabs defaultValue="feed" className="w-full">
-          <TabsList>
-            <TabsTrigger value="feed" className="gap-1.5">
-              <FileText className="h-3.5 w-3.5" /> Feed ({groupMemos.length})
-            </TabsTrigger>
-            <TabsTrigger value="chat" className="gap-1.5">
-              <MessageSquare className="h-3.5 w-3.5" /> Chat
-            </TabsTrigger>
-            <TabsTrigger value="files" className="gap-1.5">
-              <FolderOpen className="h-3.5 w-3.5" /> Files ({allGroupFiles.length})
-            </TabsTrigger>
-            <TabsTrigger value="members" className="gap-1.5">
-              <Users className="h-3.5 w-3.5" /> Members ({group.memberIds.length})
-            </TabsTrigger>
-          </TabsList>
+          <div className="overflow-x-auto -mx-3 px-3 md:mx-0 md:px-0">
+            <TabsList className="inline-flex w-auto min-w-max">
+              <TabsTrigger value="feed" className="gap-1.5">
+                <FileText className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Feed</span> ({groupMemos.length})
+              </TabsTrigger>
+              <TabsTrigger value="chat" className="gap-1.5">
+                <MessageSquare className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Chat</span>
+              </TabsTrigger>
+              <TabsTrigger value="files" className="gap-1.5">
+                <FolderOpen className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Files</span> ({allGroupFiles.length})
+              </TabsTrigger>
+              <TabsTrigger value="members" className="gap-1.5">
+                <Users className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Members</span> ({group.memberIds.length})
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           {/* Feed Tab */}
           <TabsContent value="feed" className="mt-4">

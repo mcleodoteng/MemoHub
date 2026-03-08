@@ -110,17 +110,19 @@ const Memos = () => {
         </div>
 
         <Tabs value={activeTab} onValueChange={(val) => setSearchParams({ tab: val })}>
-          <TabsList className="flex-wrap">
-            <TabsTrigger value="all">All ({sentMemos.filter(m => !m.archived).length})</TabsTrigger>
-            <TabsTrigger value="drafts">Drafts ({draftMemos.length})</TabsTrigger>
-            <TabsTrigger value="public">Public ({publicMemos.length})</TabsTrigger>
-            <TabsTrigger value="private">Private ({privateMemos.length})</TabsTrigger>
-            <TabsTrigger value="protected">Protected ({protectedMemos.length})</TabsTrigger>
-            <TabsTrigger value="pinned">Pinned ({pinnedMemos.length})</TabsTrigger>
-            <TabsTrigger value="archived">Archived ({archivedMemos.length})</TabsTrigger>
-            <TabsTrigger value="starred">Starred ({starredMemos.length})</TabsTrigger>
-            <TabsTrigger value="deleted">Trash ({deletedMemos.length})</TabsTrigger>
-          </TabsList>
+          <div className="overflow-x-auto -mx-3 px-3 md:mx-0 md:px-0">
+            <TabsList className="inline-flex w-auto min-w-max">
+              <TabsTrigger value="all">All ({sentMemos.filter(m => !m.archived).length})</TabsTrigger>
+              <TabsTrigger value="drafts">Drafts ({draftMemos.length})</TabsTrigger>
+              <TabsTrigger value="public">Public ({publicMemos.length})</TabsTrigger>
+              <TabsTrigger value="private">Private ({privateMemos.length})</TabsTrigger>
+              <TabsTrigger value="protected">Protected ({protectedMemos.length})</TabsTrigger>
+              <TabsTrigger value="pinned">Pinned ({pinnedMemos.length})</TabsTrigger>
+              <TabsTrigger value="archived">Archived ({archivedMemos.length})</TabsTrigger>
+              <TabsTrigger value="starred">Starred ({starredMemos.length})</TabsTrigger>
+              <TabsTrigger value="deleted">Trash ({deletedMemos.length})</TabsTrigger>
+            </TabsList>
+          </div>
 
           <TabsContent value="all" className="mt-4"><MemoList items={allNonArchived} /></TabsContent>
           <TabsContent value="drafts" className="mt-4"><MemoList items={draftMemos} /></TabsContent>
