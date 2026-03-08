@@ -2,6 +2,8 @@ import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Link from '@tiptap/extension-link';
 import Placeholder from '@tiptap/extension-placeholder';
+import Mention from '@tiptap/extension-mention';
+import { mentionSuggestion } from './MentionSuggestion';
 import {
   Bold, Italic, List, ListOrdered, Link as LinkIcon,
   Quote, Heading2, Undo, Redo, Code, Unlink,
@@ -46,6 +48,23 @@ export function RichTextEditor({
         },
       }),
       Placeholder.configure({ placeholder }),
+      Mention.configure({
+        HTMLAttributes: {
+          class: 'text-primary font-medium underline decoration-primary/50 hover:decoration-primary cursor-pointer',
+        },
+        suggestion: mentionSuggestion,
+        renderHTML({ options, node }) {
+          return [
+            'a',
+            {
+              ...options.HTMLAttributes,
+              href: `/profile/${node.attrs.id}`,
+              'data-mention': node.attrs.id,
+            },
+            `@${node.attrs.label ?? node.attrs.id}`,
+          ];
+        },
+      }),
     ],
     content,
     onUpdate: ({ editor }) => {

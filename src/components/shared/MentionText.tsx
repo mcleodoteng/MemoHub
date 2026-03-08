@@ -28,7 +28,7 @@ export function MentionText({ text, className }: MentionTextProps) {
             return (
               <span
                 key={i}
-                className="text-primary font-medium cursor-pointer hover:underline"
+                className="text-primary font-medium cursor-pointer underline decoration-primary/50 hover:decoration-primary"
                 onClick={(e) => {
                   e.stopPropagation();
                   navigate(`/profile/${matchedUser.id}`);
@@ -55,7 +55,7 @@ export function processMentionsInHtml(html: string): string {
       (u) => u.name.toLowerCase() === name.trim().toLowerCase()
     );
     if (user) {
-      return `<a href="/profile/${user.id}" class="text-primary font-medium hover:underline cursor-pointer" data-mention="${user.id}">@${user.name}</a>`;
+      return `<a href="/profile/${user.id}" class="text-primary font-medium underline decoration-primary/50 hover:decoration-primary cursor-pointer" data-mention="${user.id}">@${user.name}</a>`;
     }
     return match;
   });

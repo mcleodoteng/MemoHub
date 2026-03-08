@@ -1,4 +1,5 @@
 import { AppLayout } from "@/components/layout/AppLayout";
+import { MentionInput } from "@/components/editor/MentionInput";
 import { useMessages } from "@/context/MessageContext";
 import { useMemos } from "@/context/MemoContext";
 import { useGroups } from "@/context/GroupContext";
@@ -480,12 +481,12 @@ const Messages = () => {
                       </div>
                     </PopoverContent>
                   </Popover>
-                  <Input
-                    placeholder="Type a message..."
+                  <MentionInput
                     value={newMessage}
-                    onChange={e => setNewMessage(e.target.value)}
+                    onChange={setNewMessage}
+                    placeholder="Type a message... (@ to mention)"
                     className="flex-1"
-                    onKeyDown={e => e.key === "Enter" && handleSend()}
+                    rows={1}
                   />
                   <Tooltip>
                     <TooltipTrigger asChild>

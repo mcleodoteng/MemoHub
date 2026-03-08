@@ -259,3 +259,15 @@
   text-decoration: underline;
   cursor: pointer;
 }
+
+.tiptap .mention {
+  color: hsl(var(--primary));
+  font-weight: 500;
+  text-decoration: underline;
+  text-decoration-color: hsl(var(--primary) / 0.5);
+  cursor: pointer;
+}
+
+.tiptap .mention:hover {
+  text-decoration-color: hsl(var(--primary));
+}
