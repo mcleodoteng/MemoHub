@@ -40,10 +40,13 @@ const MemoDetail = () => {
   const navigate = useNavigate();
   const [replyText, setReplyText] = useState("");
   const [editOpen, setEditOpen] = useState(false);
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  const [editingCommentBody, setEditingCommentBody] = useState("");
   const {
     getMemoById, getCommentsByMemoId, togglePin, toggleArchive, deleteMemo,
     hideMemo, addComment, addReaction, updateMemo, markOpened,
     acknowledgeMemo, unacknowledgeMemo, approveMemo, unapproveMemo, toggleStar,
+    editComment, deleteComment, addCommentReaction,
   } = useMemos();
 
   const memo = getMemoById(id || "");
