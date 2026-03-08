@@ -19,7 +19,7 @@ import {
   ArrowLeft, FileText, Edit3, Send,
   CheckCircle2, ThumbsUp, XCircle, Smile, Star,
   MoreHorizontal, Pencil, X, Check, Reply, Paperclip,
-  ArrowUpDown, Clock, ArrowUp, ArrowDown, Heart,
+  ArrowUpDown, Clock, ArrowUp, ArrowDown, Heart, Search,
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -50,6 +50,7 @@ const MemoDetail = () => {
   const [threadAttachments, setThreadAttachments] = useState<Attachment[]>([]);
   const [typingUsers, setTypingUsers] = useState<string[]>([]);
   const [commentSort, setCommentSort] = useState<'newest' | 'oldest' | 'reactions'>('oldest');
+  const [commentSearch, setCommentSearch] = useState("");
   const {
     getMemoById, getCommentsByMemoId, togglePin, toggleArchive, deleteMemo,
     hideMemo, addComment, addReaction, updateMemo, markOpened,
@@ -102,8 +103,19 @@ const MemoDetail = () => {
   const vis = visConfig[memo.visibility];
   const VisIcon = vis.icon;
   const memoComments = getCommentsByMemoId(memo.id);
-  const pinnedComments = memoComments.filter(c => c.pinned && !c.parentId);
-  const unpinnedTopLevel = memoComments.filter(c => !c.pinned && !c.parentId);
+  const searchLower = commentSearch.toLowerCase().trim();
+  const matchesSearch = (c: import('@/types').Comment) => {
+    if (!searchLower) return true;
+    const author = getUserById(c.authorId);
+    return c.body.toLowerCase().includes(searchLower) ||
+      (author?.name.toLowerCase().includes(searchLower) ?? false);
+  };
+  const filteredComments = memoComments.filter(c => {
+    if (c.parentId) return true; // replies are shown with parent
+    return matchesSearch(c);
+  });
+  const pinnedComments = filteredComments.filter(c => c.pinned && !c.parentId);
+  const unpinnedTopLevel = filteredComments.filter(c => !c.pinned && !c.parentId);
   const sortedUnpinned = [...unpinnedTopLevel].sort((a, b) => {
     if (commentSort === 'newest') return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     if (commentSort === 'reactions') {
@@ -517,28 +529,50 @@ const MemoDetail = () => {
           <div className="widget-card">
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-display font-semibold">Comments ({memoComments.length})</h3>
-              {memoComments.length > 1 && (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm" className="h-7 text-xs gap-1.5">
-                      <ArrowUpDown className="h-3 w-3" />
-                      {commentSort === 'newest' ? 'Newest' : commentSort === 'reactions' ? 'Most reactions' : 'Oldest'}
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => setCommentSort('oldest')}>
-                      <ArrowUp className="h-3.5 w-3.5 mr-2" /> Oldest first
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setCommentSort('newest')}>
-                      <ArrowDown className="h-3.5 w-3.5 mr-2" /> Newest first
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setCommentSort('reactions')}>
-                      <Heart className="h-3.5 w-3.5 mr-2" /> Most reactions
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              )}
+              <div className="flex items-center gap-1">
+                {memoComments.length > 2 && (
+                  <div className="relative">
+                    <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+                    <input
+                      type="text"
+                      value={commentSearch}
+                      onChange={(e) => setCommentSearch(e.target.value)}
+                      placeholder="Search comments..."
+                      className="h-7 w-40 pl-7 pr-6 text-xs rounded-md border border-input bg-background focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    />
+                    {commentSearch && (
+                      <button onClick={() => setCommentSearch("")} className="absolute right-1.5 top-1/2 -translate-y-1/2">
+                        <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                      </button>
+                    )}
+                  </div>
+                )}
+                {memoComments.length > 1 && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="sm" className="h-7 text-xs gap-1.5">
+                        <ArrowUpDown className="h-3 w-3" />
+                        {commentSort === 'newest' ? 'Newest' : commentSort === 'reactions' ? 'Most reactions' : 'Oldest'}
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => setCommentSort('oldest')}>
+                        <ArrowUp className="h-3.5 w-3.5 mr-2" /> Oldest first
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setCommentSort('newest')}>
+                        <ArrowDown className="h-3.5 w-3.5 mr-2" /> Newest first
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setCommentSort('reactions')}>
+                        <Heart className="h-3.5 w-3.5 mr-2" /> Most reactions
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
+              </div>
             </div>
+            {commentSearch && topLevelComments.length === 0 && (
+              <p className="text-sm text-muted-foreground text-center py-4">No comments matching "{commentSearch}"</p>
+            )}
             <div className="space-y-4">
               {topLevelComments.map(comment => (
                 <CommentThread
