@@ -19,8 +19,8 @@
     " />
 
     <!-- Security headers via meta -->
-    <meta http-equiv="X-Content-Type-Options" content="nosniff" />
-    <meta http-equiv="X-Frame-Options" content="DENY" />
+    <!-- X-Frame-Options and X-Content-Type-Options must be set as HTTP headers on your hosting provider -->
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
     <meta name="referrer" content="strict-origin-when-cross-origin" />
 
     <title>MemoHub</title>
