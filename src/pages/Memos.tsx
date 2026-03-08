@@ -163,7 +163,7 @@ const Memos = () => {
           <TabsContent value="pinned" className="mt-4"><MemoList items={pinnedMemos} /></TabsContent>
           <TabsContent value="archived" className="mt-4"><MemoList items={archivedMemos} /></TabsContent>
           <TabsContent value="starred" className="mt-4"><MemoList items={starredMemos} /></TabsContent>
-          <TabsContent value="workflow" className="mt-4"><MemoList items={workflowMemos} /></TabsContent>
+          <TabsContent value="workflow" className="mt-4"><MemoList items={workflowMemos} showWorkflow={true} /></TabsContent>
           <TabsContent value="deleted" className="mt-4">
             {deletedMemos.length === 0 ? (
               <p className="text-center text-muted-foreground py-8">No deleted memos</p>
