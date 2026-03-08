@@ -44,6 +44,7 @@ export function MemoCard({ memo }: MemoCardProps) {
 
   const isCreator = memo.creatorId === currentUser.id;
   const isAdmin = currentUser.role === 'admin';
+  const isStarred = (memo.starredBy || []).includes(currentUser.id);
 
   const openedCount = memo.recipientStatuses.filter((s) => s.opened).length;
   const acknowledgedCount = memo.recipientStatuses.filter((s) => s.acknowledged).length;
