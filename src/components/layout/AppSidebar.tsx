@@ -21,7 +21,8 @@ import { useGroups } from "@/context/GroupContext";
 import { useState } from "react";
 
 export function AppSidebar() {
-  const { state, toggleSidebar } = useSidebar();
+  const sidebarContext = useSidebar();
+  const { state, toggleSidebar } = sidebarContext;
   const collapsed = state === "collapsed";
   const location = useLocation();
   const navigate = useNavigate();
