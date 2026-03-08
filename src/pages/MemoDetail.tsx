@@ -47,12 +47,14 @@ const MemoDetail = () => {
   const [threadReplyText, setThreadReplyText] = useState("");
   const [commentAttachments, setCommentAttachments] = useState<Attachment[]>([]);
   const [threadAttachments, setThreadAttachments] = useState<Attachment[]>([]);
+  const [typingUsers, setTypingUsers] = useState<string[]>([]);
   const {
     getMemoById, getCommentsByMemoId, togglePin, toggleArchive, deleteMemo,
     hideMemo, addComment, addReaction, updateMemo, markOpened,
     acknowledgeMemo, unacknowledgeMemo, approveMemo, unapproveMemo, toggleStar,
-    editComment, deleteComment, addCommentReaction,
+    editComment, deleteComment, addCommentReaction, toggleCommentPin,
   } = useMemos();
+  const { notifyMentions } = useNotifications();
 
   const memo = getMemoById(id || "");
 
@@ -66,6 +68,21 @@ const MemoDetail = () => {
         }
       }
     }
+  }, [memo?.id]);
+
+  // Simulated typing indicator
+  useEffect(() => {
+    if (!memo || memo.status === 'draft') return;
+    const otherUsers = memo.recipientIds.filter(uid => uid !== currentUser.id);
+    if (otherUsers.length === 0) return;
+    const interval = setInterval(() => {
+      if (Math.random() < 0.3) {
+        const randomUser = otherUsers[Math.floor(Math.random() * otherUsers.length)];
+        setTypingUsers([randomUser]);
+        setTimeout(() => setTypingUsers([]), 2000 + Math.random() * 2000);
+      }
+    }, 5000 + Math.random() * 5000);
+    return () => clearInterval(interval);
   }, [memo?.id]);
 
   if (!memo) {
@@ -83,15 +100,15 @@ const MemoDetail = () => {
   const vis = visConfig[memo.visibility];
   const VisIcon = vis.icon;
   const memoComments = getCommentsByMemoId(memo.id);
-  const topLevelComments = memoComments.filter(c => !c.parentId);
+  const pinnedComments = memoComments.filter(c => c.pinned && !c.parentId);
+  const unpinnedTopLevel = memoComments.filter(c => !c.pinned && !c.parentId);
+  const topLevelComments = [...pinnedComments, ...unpinnedTopLevel];
   const getReplies = (commentId: string) => memoComments.filter(c => c.parentId === commentId);
   const isCreator = memo.creatorId === currentUser.id;
   const isAdmin = currentUser.role === 'admin';
   const isDraft = memo.status === 'draft';
   const myStatus = memo.recipientStatuses.find(s => s.userId === currentUser.id);
   const isRecipient = memo.recipientIds.includes(currentUser.id);
-
-  const { notifyMentions } = useNotifications();
 
   const handleReply = () => {
     if (!replyText.trim() && commentAttachments.length === 0) return;
@@ -510,10 +527,23 @@ const MemoDetail = () => {
                   editComment={editComment}
                   deleteComment={deleteComment}
                   addCommentReaction={addCommentReaction}
+                  toggleCommentPin={toggleCommentPin}
+                  isMemoCreator={isCreator}
                   quickEmojis={quickEmojis}
                   processMentionsInHtml={processMentionsInHtml}
                 />
               ))}
+              {/* Typing indicator */}
+              {typingUsers.length > 0 && (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground animate-pulse">
+                  <div className="flex gap-0.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: '0ms' }} />
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: '150ms' }} />
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: '300ms' }} />
+                  </div>
+                  {typingUsers.map(uid => getUserById(uid)?.name || 'Someone').join(', ')} {typingUsers.length === 1 ? 'is' : 'are'} typing...
+                </div>
+              )}
               <div className="space-y-2 pt-2 border-t">
                 <MentionInput value={replyText} onChange={setReplyText} placeholder="Write a comment... (type @ to mention)" rows={2} />
                 <AttachmentUploader
@@ -561,66 +591,21 @@ interface CommentThreadProps {
   editComment: (commentId: string, body: string, userId: string) => void;
   deleteComment: (commentId: string, userId: string) => void;
   addCommentReaction: (commentId: string, emoji: string, userId: string) => void;
+  toggleCommentPin: (commentId: string, userId: string) => void;
+  isMemoCreator: boolean;
   quickEmojis: string[];
   processMentionsInHtml: (html: string) => string;
 }
 
-function CommentThread({
-  comment, replies, navigate, currentUser,
-  editingCommentId, editingCommentBody, setEditingCommentId, setEditingCommentBody,
-  replyingToCommentId, setReplyingToCommentId, threadReplyText, setThreadReplyText,
-  threadAttachments, setThreadAttachments, handleThreadReply,
-  editComment, deleteComment, addCommentReaction, quickEmojis, processMentionsInHtml,
-}: CommentThreadProps) {
+function CommentThread(props: CommentThreadProps) {
+  const { comment, replies, ...rest } = props;
   return (
     <div className="space-y-2">
-      <SingleComment
-        comment={comment}
-        navigate={navigate}
-        currentUser={currentUser}
-        editingCommentId={editingCommentId}
-        editingCommentBody={editingCommentBody}
-        setEditingCommentId={setEditingCommentId}
-        setEditingCommentBody={setEditingCommentBody}
-        replyingToCommentId={replyingToCommentId}
-        setReplyingToCommentId={setReplyingToCommentId}
-        threadReplyText={threadReplyText}
-        setThreadReplyText={setThreadReplyText}
-        threadAttachments={threadAttachments}
-        setThreadAttachments={setThreadAttachments}
-        handleThreadReply={handleThreadReply}
-        editComment={editComment}
-        deleteComment={deleteComment}
-        addCommentReaction={addCommentReaction}
-        quickEmojis={quickEmojis}
-        processMentionsInHtml={processMentionsInHtml}
-      />
+      <SingleComment comment={comment} {...rest} />
       {replies.length > 0 && (
         <div className="ml-8 pl-3 border-l-2 border-border space-y-2">
           {replies.map(reply => (
-            <SingleComment
-              key={reply.id}
-              comment={reply}
-              navigate={navigate}
-              currentUser={currentUser}
-              editingCommentId={editingCommentId}
-              editingCommentBody={editingCommentBody}
-              setEditingCommentId={setEditingCommentId}
-              setEditingCommentBody={setEditingCommentBody}
-              replyingToCommentId={replyingToCommentId}
-              setReplyingToCommentId={setReplyingToCommentId}
-              threadReplyText={threadReplyText}
-              setThreadReplyText={setThreadReplyText}
-              threadAttachments={threadAttachments}
-              setThreadAttachments={setThreadAttachments}
-              handleThreadReply={handleThreadReply}
-              editComment={editComment}
-              deleteComment={deleteComment}
-              addCommentReaction={addCommentReaction}
-              quickEmojis={quickEmojis}
-              processMentionsInHtml={processMentionsInHtml}
-              isReply
-            />
+            <SingleComment key={reply.id} comment={reply} {...rest} isReply />
           ))}
         </div>
       )}
@@ -638,17 +623,18 @@ function SingleComment({
   editingCommentId, editingCommentBody, setEditingCommentId, setEditingCommentBody,
   replyingToCommentId, setReplyingToCommentId, threadReplyText, setThreadReplyText,
   threadAttachments, setThreadAttachments, handleThreadReply,
-  editComment, deleteComment, addCommentReaction, quickEmojis, processMentionsInHtml,
-  isReply,
+  editComment, deleteComment, addCommentReaction, toggleCommentPin, isMemoCreator,
+  quickEmojis, processMentionsInHtml, isReply,
 }: SingleCommentProps) {
   const author = getUserById(comment.authorId);
   const isCommentAuthor = comment.authorId === currentUser.id;
   const isEditing = editingCommentId === comment.id;
   const isReplying = replyingToCommentId === comment.id;
   const wasEdited = comment.createdAt !== comment.updatedAt;
+  const canPin = isMemoCreator || isCommentAuthor;
 
   return (
-    <div className="flex gap-3 animate-slide-in group">
+    <div className={`flex gap-3 animate-slide-in group ${comment.pinned ? 'bg-primary/5 rounded-lg p-2 -m-2' : ''}`}>
       {author ? (
         <UserHoverCard user={author}>
           <Avatar className={`${isReply ? 'h-6 w-6' : 'h-7 w-7'} shrink-0 cursor-pointer`} onClick={() => navigate(`/profile/${author.id}`)}>
@@ -664,6 +650,14 @@ function SingleComment({
       )}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
+          {comment.pinned && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Pin className="h-3 w-3 text-primary shrink-0" />
+              </TooltipTrigger>
+              <TooltipContent>Pinned comment</TooltipContent>
+            </Tooltip>
+          )}
           {author ? (
             <UserHoverCard user={author}>
               <span className="text-sm font-medium cursor-pointer hover:underline" onClick={() => navigate(`/profile/${author.id}`)}>
@@ -709,7 +703,7 @@ function SingleComment({
                 </div>
               </PopoverContent>
             </Popover>
-            {isCommentAuthor && (
+            {(isCommentAuthor || canPin) && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="icon" className="h-6 w-6">
@@ -717,12 +711,21 @@ function SingleComment({
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => { setEditingCommentId(comment.id); setEditingCommentBody(comment.body); }}>
-                    <Pencil className="h-3.5 w-3.5 mr-2" /> Edit
-                  </DropdownMenuItem>
-                  <DropdownMenuItem className="text-destructive" onClick={() => { deleteComment(comment.id, currentUser.id); toast.success('Comment deleted'); }}>
-                    <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete
-                  </DropdownMenuItem>
+                  {canPin && !isReply && (
+                    <DropdownMenuItem onClick={() => { toggleCommentPin(comment.id, currentUser.id); toast.success(comment.pinned ? 'Comment unpinned' : 'Comment pinned'); }}>
+                      <Pin className="h-3.5 w-3.5 mr-2" /> {comment.pinned ? 'Unpin' : 'Pin'}
+                    </DropdownMenuItem>
+                  )}
+                  {isCommentAuthor && (
+                    <>
+                      <DropdownMenuItem onClick={() => { setEditingCommentId(comment.id); setEditingCommentBody(comment.body); }}>
+                        <Pencil className="h-3.5 w-3.5 mr-2" /> Edit
+                      </DropdownMenuItem>
+                      <DropdownMenuItem className="text-destructive" onClick={() => { deleteComment(comment.id, currentUser.id); toast.success('Comment deleted'); }}>
+                        <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete
+                      </DropdownMenuItem>
+                    </>
+                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
             )}
@@ -763,13 +766,11 @@ function SingleComment({
             )}
           </>
         )}
-        {/* Comment attachments */}
         {comment.attachments.length > 0 && (
           <div className="mt-1.5">
             <AttachmentViewer attachments={comment.attachments} />
           </div>
         )}
-        {/* Comment reactions */}
         {comment.reactions.length > 0 && (
           <div className="flex items-center gap-1 mt-1.5 flex-wrap">
             {comment.reactions.map(r => {
@@ -783,7 +784,6 @@ function SingleComment({
             })}
           </div>
         )}
-        {/* Thread reply input */}
         {isReplying && (
           <div className="mt-2 space-y-2 pl-2 border-l-2 border-primary/30">
             <MentionInput value={threadReplyText} onChange={setThreadReplyText} placeholder={`Reply to ${author?.name || 'comment'}...`} rows={1} />

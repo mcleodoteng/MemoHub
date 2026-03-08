@@ -90,6 +90,8 @@ export interface Comment {
   authorId: string;
   body: string;
   parentId?: string; // for threaded replies
+  pinned?: boolean;
+  pinnedBy?: string;
   attachments: Attachment[];
   reactions: Reaction[];
   referencedMemoIds: string[];

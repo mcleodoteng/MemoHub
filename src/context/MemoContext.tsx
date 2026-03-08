@@ -23,6 +23,7 @@ interface MemoContextType {
   addComment: (memoId: string, body: string, authorId: string, attachments?: Attachment[], parentId?: string) => void;
   editComment: (commentId: string, newBody: string, userId: string) => void;
   deleteComment: (commentId: string, userId: string) => void;
+  toggleCommentPin: (commentId: string, userId: string) => void;
   addCommentReaction: (commentId: string, emoji: string, userId: string) => void;
   addReaction: (memoId: string, emoji: string, userId: string) => void;
   getMemoById: (id: string) => Memo | undefined;
@@ -289,6 +290,13 @@ export function MemoProvider({ children }: { children: React.ReactNode }) {
     setComments(prev => prev.filter(c => !(c.id === commentId && c.authorId === userId)));
   }, []);
 
+  const toggleCommentPin = useCallback((commentId: string, userId: string) => {
+    setComments(prev => prev.map(c => {
+      if (c.id !== commentId) return c;
+      return { ...c, pinned: !c.pinned, pinnedBy: c.pinned ? undefined : userId };
+    }));
+  }, []);
+
   const addCommentReaction = useCallback((commentId: string, emoji: string, userId: string) => {
     setComments(prev => prev.map(c => {
       if (c.id !== commentId) return c;
@@ -327,7 +335,7 @@ export function MemoProvider({ children }: { children: React.ReactNode }) {
     <MemoContext.Provider value={{
       memos, comments, addMemo, updateMemo, editMemo, deleteMemo, permanentlyDeleteMemo, restoreMemo, togglePin, toggleArchive, toggleStar,
       hideMemo, acknowledgeMemo, unacknowledgeMemo, approveMemo, unapproveMemo, markOpened,
-      addComment, editComment, deleteComment, addCommentReaction, addReaction, getMemoById, getCommentsByMemoId,
+      addComment, editComment, deleteComment, toggleCommentPin, addCommentReaction, addReaction, getMemoById, getCommentsByMemoId,
     }}>
       {children}
     </MemoContext.Provider>
