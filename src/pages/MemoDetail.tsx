@@ -18,7 +18,9 @@ import {
   Globe, Lock, Shield, Pin, Archive, Trash2, EyeOff,
   ArrowLeft, FileText, Edit3, Send,
   CheckCircle2, ThumbsUp, XCircle, Smile, Star,
+  MoreHorizontal, Pencil, X, Check,
 } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { formatDistanceToNow, format } from "date-fns";
 import { useState, useEffect } from "react";
