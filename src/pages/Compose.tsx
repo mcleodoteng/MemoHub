@@ -60,6 +60,7 @@ const Compose = () => {
       setSelectedTags(draft.tags);
       setAttachments(draft.attachments);
       setReferencedMemoIds(draft.referencedMemoIds);
+      if (draft.workflow) setWorkflow(draft.workflow);
     }
   }, [draftId]);
 
