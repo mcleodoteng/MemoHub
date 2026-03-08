@@ -431,11 +431,16 @@ const Messages = () => {
 
                 <div className="p-3 border-t flex gap-2">
                   <Popover open={shareOpen} onOpenChange={setShareOpen}>
-                    <PopoverTrigger asChild>
-                      <Button variant="ghost" size="icon" className="shrink-0">
-                        <Share2 className="h-4 w-4" />
-                      </Button>
-                    </PopoverTrigger>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <PopoverTrigger asChild>
+                          <Button variant="ghost" size="icon" className="shrink-0">
+                            <Share2 className="h-4 w-4" />
+                          </Button>
+                        </PopoverTrigger>
+                      </TooltipTrigger>
+                      <TooltipContent>Share a memo in this conversation</TooltipContent>
+                    </Tooltip>
                     <PopoverContent className="w-72 p-2" align="start">
                       <p className="text-xs font-medium text-muted-foreground mb-2 px-1">Share a memo</p>
                       <div className="space-y-1 max-h-48 overflow-auto scrollbar-thin">
