@@ -6,7 +6,7 @@ export const currentUser: User = {
   name: 'Alex Johnson',
   email: 'alex@memohub.com',
   avatar: '',
-  role: 'admin',
+  role: 'member',
   department: 'Engineering',
   status: 'online',
   createdAt: '2024-01-15T08:00:00Z',
