@@ -232,7 +232,7 @@ const MemoDetail = () => {
                 {format(new Date(memo.createdAt), "MMM d, yyyy 'at' h:mm a")}
               </p>
             </div>
-            <div className="flex gap-1">
+            <div className="flex gap-1 flex-wrap justify-end shrink-0">
               {(() => {
                 const isStarred = (memo.starredBy || []).includes(currentUser.id);
                 return (
