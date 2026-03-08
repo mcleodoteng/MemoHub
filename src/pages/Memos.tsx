@@ -32,6 +32,7 @@ const Memos = () => {
   const protectedMemos = sentMemos.filter(m => m.visibility === "protected" && !m.archived);
   const pinnedMemos = sentMemos.filter(m => m.pinned && !m.archived);
   const archivedMemos = sentMemos.filter(m => m.archived);
+  const deletedMemos = filtered.filter(m => m.status === 'deleted' && (m as any).deletedBy === currentUser.id);
 
   // Sort pinned memos first
   const allNonArchived = sentMemos.filter(m => !m.archived).sort((a, b) => {
