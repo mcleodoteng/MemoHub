@@ -231,7 +231,7 @@ const Messages = () => {
                       <div
                         key={msg.id}
                         className="flex items-start gap-2 p-3 cursor-pointer hover:bg-secondary/50 transition-colors border-b border-border/50"
-                        onClick={() => setSelectedConv(msg.conversationId)}
+                        onClick={() => { setSelectedConv(msg.conversationId); if (isMobile) setMobileShowChat(true); }}
                       >
                         <Star className="h-3.5 w-3.5 text-warning shrink-0 mt-1" />
                         <div className="min-w-0 flex-1">
