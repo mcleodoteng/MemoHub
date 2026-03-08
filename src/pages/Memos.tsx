@@ -129,6 +129,14 @@ const Memos = () => {
               <TabsTrigger value="pinned">Pinned ({pinnedMemos.length})</TabsTrigger>
               <TabsTrigger value="archived">Archived ({archivedMemos.length})</TabsTrigger>
               <TabsTrigger value="starred">Starred ({starredMemos.length})</TabsTrigger>
+              <TabsTrigger value="workflow" className="relative pr-6">
+                Workflow ({workflowMemos.length})
+                {pendingWorkflowApprovals > 0 && (
+                  <span className="absolute right-1 top-1.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-destructive text-[9px] font-bold text-destructive-foreground">
+                    {pendingWorkflowApprovals}
+                  </span>
+                )}
+              </TabsTrigger>
               <TabsTrigger value="deleted">Trash ({deletedMemos.length})</TabsTrigger>
             </TabsList>
           </div>
