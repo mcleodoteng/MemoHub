@@ -2,6 +2,8 @@ import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Link from '@tiptap/extension-link';
 import Placeholder from '@tiptap/extension-placeholder';
+import Mention from '@tiptap/extension-mention';
+import { mentionSuggestion } from './MentionSuggestion';
 import {
   Bold, Italic, List, ListOrdered, Link as LinkIcon,
   Quote, Heading2, Undo, Redo, Code, Unlink,
