@@ -109,9 +109,16 @@ export function MemoProvider({ children }: { children: React.ReactNode }) {
   const deleteMemo = useCallback((id: string) => {
     setMemos(prev => prev.map(m => {
       if (m.id !== id) return m;
-      // Only creator can delete
-      if (m.creatorId !== currentUser.id && currentUser.role !== 'admin') return m;
+      if (m.creatorId !== currentUser.id) return m;
       return { ...m, status: 'deleted' as const, deletedBy: currentUser.id, deletedAt: new Date().toISOString() };
+    }));
+  }, []);
+
+  const permanentlyDeleteMemo = useCallback((id: string) => {
+    setMemos(prev => prev.filter(m => {
+      if (m.id !== id) return true;
+      if ((m as any).deletedBy !== currentUser.id) return true;
+      return false;
     }));
   }, []);
 
