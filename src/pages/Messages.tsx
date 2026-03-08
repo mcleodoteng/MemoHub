@@ -294,8 +294,24 @@ const Messages = () => {
                   </div>
                 )}
 
-                <div className="flex-1 overflow-auto p-4 space-y-3 scrollbar-thin">
-                  {filteredMessages.map(msg => {
+                <div className="flex-1 overflow-auto p-4 space-y-1 scrollbar-thin">
+                  {filteredMessages.map((msg, idx) => {
+                    const prevMsg = idx > 0 ? filteredMessages[idx - 1] : null;
+                    const msgDate = new Date(msg.createdAt);
+                    const showDateSep = !prevMsg || !isSameDay(new Date(prevMsg.createdAt), msgDate);
+                    const dateSepLabel = isToday(msgDate) ? "Today" : isYesterday(msgDate) ? "Yesterday" : format(msgDate, "EEEE, MMMM d");
+
+                    return (
+                      <div key={msg.id}>
+                        {showDateSep && (
+                          <div className="flex items-center gap-3 my-4">
+                            <div className="flex-1 h-px bg-border" />
+                            <span className="text-[11px] font-medium text-muted-foreground bg-card px-3 py-1 rounded-full border shadow-sm">
+                              {dateSepLabel}
+                            </span>
+                            <div className="flex-1 h-px bg-border" />
+                          </div>
+                        )
                     if (msg.isSystem) {
                       return (
                         <div key={msg.id} className="flex justify-center">
