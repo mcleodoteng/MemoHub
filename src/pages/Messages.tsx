@@ -14,8 +14,9 @@ import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   Send, Users as UsersIcon, SmilePlus, FileText, Share2, Search, X,
-  Star, StarOff, Hash, MessageCircle, ArrowLeft,
+  Star, StarOff, Hash, MessageCircle, ArrowLeft, Paperclip, Image as ImageIcon,
 } from "lucide-react";
+import { Attachment } from "@/types";
 import { useState, useRef, useEffect, useMemo } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { formatDistanceToNow, format, isToday, isYesterday, isSameDay } from "date-fns";
