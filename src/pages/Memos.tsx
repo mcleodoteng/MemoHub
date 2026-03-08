@@ -1,5 +1,6 @@
 import { AppLayout } from "@/components/layout/AppLayout";
 import { MemoCard } from "@/components/memo/MemoCard";
+import { WorkflowStatus } from "@/components/memo/WorkflowStatus";
 import { useMemos } from "@/context/MemoContext";
 import { currentUser } from "@/data/mock";
 import { Button } from "@/components/ui/button";
