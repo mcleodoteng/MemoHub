@@ -398,6 +398,9 @@ const Compose = () => {
             />
           </div>
 
+          {/* Workflow Automation */}
+          <WorkflowConfigPanel workflow={workflow} onChange={setWorkflow} />
+
           {/* Actions */}
           <div className="flex items-center gap-2 md:gap-3 pt-2 border-t flex-wrap">
             <Button
