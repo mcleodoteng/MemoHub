@@ -20,7 +20,7 @@ interface MemoContextType {
   approveMemo: (memoId: string, userId: string) => void;
   unapproveMemo: (memoId: string, userId: string) => void;
   markOpened: (memoId: string, userId: string) => void;
-  addComment: (memoId: string, body: string, authorId: string) => void;
+  addComment: (memoId: string, body: string, authorId: string, attachments?: Attachment[], parentId?: string) => void;
   editComment: (commentId: string, newBody: string, userId: string) => void;
   deleteComment: (commentId: string, userId: string) => void;
   addCommentReaction: (commentId: string, emoji: string, userId: string) => void;
