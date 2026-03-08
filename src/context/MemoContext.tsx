@@ -13,6 +13,7 @@ interface MemoContextType {
   restoreMemo: (id: string) => void;
   togglePin: (id: string) => void;
   toggleArchive: (id: string) => void;
+  toggleStar: (memoId: string, userId: string) => void;
   hideMemo: (memoId: string, userId: string) => void;
   acknowledgeMemo: (memoId: string, userId: string) => void;
   unacknowledgeMemo: (memoId: string, userId: string) => void;
