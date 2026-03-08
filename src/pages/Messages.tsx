@@ -43,8 +43,10 @@ const Messages = () => {
   const [tab, setTab] = useState<'direct' | 'channels' | 'starred'>('direct');
   const [mobileShowChat, setMobileShowChat] = useState(false);
   const [pendingAttachments, setPendingAttachments] = useState<Attachment[]>([]);
+  const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const dragCounter = useRef(0);
 
   const activeConv = conversations.find(c => c.id === selectedConv);
   const convMessages = getConversationMessages(selectedConv);
@@ -134,6 +136,47 @@ const Messages = () => {
 
   const removePendingAttachment = (id: string) => {
     setPendingAttachments(prev => prev.filter(a => a.id !== id));
+  };
+
+  const processDroppedFiles = (files: FileList | File[]) => {
+    const newAtts: Attachment[] = Array.from(files).map(file => ({
+      id: `att-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      name: file.name,
+      type: file.type,
+      size: file.size,
+      url: URL.createObjectURL(file),
+      thumbnailUrl: file.type.startsWith('image/') ? URL.createObjectURL(file) : undefined,
+    }));
+    setPendingAttachments(prev => [...prev, ...newAtts]);
+  };
+
+  const handleDragEnter = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounter.current++;
+    if (e.dataTransfer.types.includes('Files')) setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounter.current--;
+    if (dragCounter.current === 0) setIsDragging(false);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    dragCounter.current = 0;
+    if (e.dataTransfer.files?.length > 0) {
+      processDroppedFiles(e.dataTransfer.files);
+    }
   };
 
   const handleShareMemo = (memoId: string, memoTitle: string) => {
@@ -277,7 +320,22 @@ const Messages = () => {
           </div>
 
           {/* Chat Area */}
-          <div className={`flex-1 flex flex-col ${isMobile && !mobileShowChat ? 'hidden' : ''}`}>
+          <div
+            className={`flex-1 flex flex-col ${isMobile && !mobileShowChat ? 'hidden' : ''} relative`}
+            onDragEnter={handleDragEnter}
+            onDragLeave={handleDragLeave}
+            onDragOver={handleDragOver}
+            onDrop={handleDrop}
+          >
+            {/* Drag overlay */}
+            {isDragging && (
+              <div className="absolute inset-0 z-50 bg-primary/5 border-2 border-dashed border-primary rounded-xl flex items-center justify-center backdrop-blur-sm">
+                <div className="text-center space-y-2">
+                  <Paperclip className="h-8 w-8 text-primary mx-auto" />
+                  <p className="text-sm font-medium text-primary">Drop files here to attach</p>
+                </div>
+              </div>
+            )}
             {activeConv ? (
               <>
                 <div className="p-3 border-b flex items-center gap-3">
@@ -398,24 +456,22 @@ const Messages = () => {
                                 <>
                                   {msg.body && <p>{msg.body}</p>}
                                   {msg.attachments.length > 0 && (
-                                    <div className="mt-1.5 space-y-1">
-                                      {msg.attachments.filter(a => a.type.startsWith('image/')).length > 0 && (
-                                        <div className="flex gap-1 flex-wrap">
-                                          {msg.attachments.filter(a => a.type.startsWith('image/')).map(att => (
-                                            <img key={att.id} src={att.url} alt={att.name}
-                                              className="max-w-[200px] max-h-[150px] rounded-lg object-cover cursor-pointer"
-                                              onClick={e => { e.stopPropagation(); window.open(att.url, '_blank'); }}
-                                            />
-                                          ))}
-                                        </div>
-                                      )}
+                                    <div className="mt-2 space-y-1.5">
+                                      {msg.attachments.filter(a => a.type.startsWith('image/')).map(att => (
+                                        <img key={att.id} src={att.url} alt={att.name}
+                                          className="max-w-[220px] max-h-[180px] rounded-lg object-cover cursor-pointer hover:opacity-90 transition-opacity border border-border/20"
+                                          onClick={e => { e.stopPropagation(); window.open(att.url, '_blank'); }}
+                                        />
+                                      ))}
                                       {msg.attachments.filter(a => !a.type.startsWith('image/')).map(att => (
                                         <div key={att.id}
-                                          className={`flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs cursor-pointer ${isMe ? 'bg-primary-foreground/10' : 'bg-background'}`}
+                                          className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs cursor-pointer hover:opacity-80 transition-opacity ${isMe ? 'bg-primary-foreground/15' : 'bg-background border border-border/50'}`}
                                           onClick={e => { e.stopPropagation(); window.open(att.url, '_blank'); }}>
-                                          <Paperclip className="h-3 w-3 shrink-0" />
-                                          <span className="truncate">{att.name}</span>
-                                          <span className="text-[10px] opacity-60 shrink-0">{(att.size / 1024).toFixed(0)}KB</span>
+                                          <FileText className="h-4 w-4 shrink-0" />
+                                          <div className="min-w-0 flex-1">
+                                            <p className="truncate font-medium">{att.name}</p>
+                                            <p className="opacity-60">{att.size < 1024 * 1024 ? `${(att.size / 1024).toFixed(0)} KB` : `${(att.size / (1024 * 1024)).toFixed(1)} MB`}</p>
+                                          </div>
                                         </div>
                                       ))}
                                     </div>
