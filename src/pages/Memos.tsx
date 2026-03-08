@@ -109,7 +109,7 @@ const Memos = () => {
           </Tooltip>
         </div>
 
-        <Tabs defaultValue={defaultTab}>
+        <Tabs value={activeTab} onValueChange={(val) => setSearchParams({ tab: val })}>
           <TabsList className="flex-wrap">
             <TabsTrigger value="all">All ({sentMemos.filter(m => !m.archived).length})</TabsTrigger>
             <TabsTrigger value="drafts">Drafts ({draftMemos.length})</TabsTrigger>

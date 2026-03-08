@@ -196,8 +196,8 @@ export function AppSidebar() {
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                   <SidebarMenuItem>
-                    <SidebarMenuButton asChild isActive={isActive("/memos?tab=deleted")} tooltip="Trash">
-                      <NavLink to="/memos?tab=deleted" className="nav-item text-sidebar-foreground" activeClassName="nav-item-active">
+                    <SidebarMenuButton asChild tooltip="Trash">
+                      <button onClick={() => navigate("/memos?tab=deleted")} className={`nav-item text-sidebar-foreground w-full flex items-center gap-2 ${location.pathname === '/memos' && location.search.includes('tab=deleted') ? 'nav-item-active' : ''}`}>
                         <div className="relative">
                           <Trash2 className="h-4 w-4 shrink-0" />
                           {deletedCount > 0 && (
@@ -216,7 +216,7 @@ export function AppSidebar() {
                             )}
                           </span>
                         )}
-                      </NavLink>
+                      </button>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 </SidebarMenu>

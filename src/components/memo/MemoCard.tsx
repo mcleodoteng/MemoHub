@@ -257,6 +257,15 @@ export function MemoCard({ memo }: MemoCardProps) {
               <div className="flex items-center gap-0.5 ml-auto opacity-0 group-hover/card:opacity-100 transition-opacity">
                 <Tooltip>
                   <TooltipTrigger asChild>
+                    <Button variant="ghost" size="icon" className={`h-7 w-7 ${isStarred ? 'text-yellow-500' : 'text-muted-foreground'}`}
+                      onClick={stopProp(() => { toggleStar(memo.id, currentUser.id); toast.success(isStarred ? 'Unstarred' : 'Starred!'); })}>
+                      <Star className={`h-3.5 w-3.5 ${isStarred ? 'fill-yellow-500' : ''}`} />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>{isStarred ? "Unstar memo" : "Star memo"}</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
                     <Button variant="ghost" size="icon" className={`h-7 w-7 ${memo.pinned ? 'text-warning' : 'text-muted-foreground'}`}
                       onClick={stopProp(() => { togglePin(memo.id); toast.success(memo.pinned ? 'Unpinned' : 'Pinned!'); })}>
                       <Pin className="h-3.5 w-3.5" />
