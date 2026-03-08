@@ -21,6 +21,9 @@ interface MemoContextType {
   unapproveMemo: (memoId: string, userId: string) => void;
   markOpened: (memoId: string, userId: string) => void;
   addComment: (memoId: string, body: string, authorId: string) => void;
+  editComment: (commentId: string, newBody: string, userId: string) => void;
+  deleteComment: (commentId: string, userId: string) => void;
+  addCommentReaction: (commentId: string, emoji: string, userId: string) => void;
   addReaction: (memoId: string, emoji: string, userId: string) => void;
   getMemoById: (id: string) => Memo | undefined;
   getCommentsByMemoId: (memoId: string) => Comment[];
@@ -274,6 +277,34 @@ export function MemoProvider({ children }: { children: React.ReactNode }) {
     }));
   }, []);
 
+  const editComment = useCallback((commentId: string, newBody: string, userId: string) => {
+    setComments(prev => prev.map(c => {
+      if (c.id !== commentId || c.authorId !== userId) return c;
+      return { ...c, body: newBody, updatedAt: new Date().toISOString() };
+    }));
+  }, []);
+
+  const deleteComment = useCallback((commentId: string, userId: string) => {
+    setComments(prev => prev.filter(c => !(c.id === commentId && c.authorId === userId)));
+  }, []);
+
+  const addCommentReaction = useCallback((commentId: string, emoji: string, userId: string) => {
+    setComments(prev => prev.map(c => {
+      if (c.id !== commentId) return c;
+      const existing = c.reactions.find(r => r.emoji === emoji);
+      if (existing) {
+        if (existing.users.includes(userId)) {
+          const updated = c.reactions.map(r =>
+            r.emoji === emoji ? { ...r, users: r.users.filter(u => u !== userId) } : r
+          ).filter(r => r.users.length > 0);
+          return { ...c, reactions: updated };
+        }
+        return { ...c, reactions: c.reactions.map(r => r.emoji === emoji ? { ...r, users: [...r.users, userId] } : r) };
+      }
+      return { ...c, reactions: [...c.reactions, { emoji, users: [userId] }] };
+    }));
+  }, []);
+
   const addReaction = useCallback((memoId: string, emoji: string, userId: string) => {
     setMemos(prev => prev.map(m => {
       if (m.id !== memoId) return m;
@@ -295,7 +326,7 @@ export function MemoProvider({ children }: { children: React.ReactNode }) {
     <MemoContext.Provider value={{
       memos, comments, addMemo, updateMemo, editMemo, deleteMemo, permanentlyDeleteMemo, restoreMemo, togglePin, toggleArchive, toggleStar,
       hideMemo, acknowledgeMemo, unacknowledgeMemo, approveMemo, unapproveMemo, markOpened,
-      addComment, addReaction, getMemoById, getCommentsByMemoId,
+      addComment, editComment, deleteComment, addCommentReaction, addReaction, getMemoById, getCommentsByMemoId,
     }}>
       {children}
     </MemoContext.Provider>
