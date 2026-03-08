@@ -394,7 +394,6 @@ const Compose = () => {
                 if (!title.trim()) { toast.error("Add a title first"); return; }
                 addTemplate({
                   name: title.trim().slice(0, 40),
-                  name: title.trim().slice(0, 40),
                   description: `Custom template from "${title.trim().slice(0, 30)}"`,
                   title,
                   body,
