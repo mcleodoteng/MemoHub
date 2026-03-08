@@ -12,6 +12,7 @@ import {
 import { users, tags, currentUser, getUserInitials, getUserById } from "@/data/mock";
 import { UserHoverCard } from "@/components/user/UserHoverCard";
 import { useMemos } from "@/context/MemoContext";
+import { useTemplates } from "@/context/TemplateContext";
 import { RichTextEditor } from "@/components/editor/RichTextEditor";
 import { AttachmentUploader } from "@/components/attachment/AttachmentManager";
 import { MemoReferencePicker } from "@/components/memo/MemoReferencePicker";
