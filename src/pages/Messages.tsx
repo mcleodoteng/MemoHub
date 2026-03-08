@@ -254,10 +254,15 @@ const Messages = () => {
           </div>
 
           {/* Chat Area */}
-          <div className="flex-1 flex flex-col">
+          <div className={`flex-1 flex flex-col ${isMobile && !mobileShowChat ? 'hidden' : ''}`}>
             {activeConv ? (
               <>
                 <div className="p-3 border-b flex items-center gap-3">
+                  {isMobile && (
+                    <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => setMobileShowChat(false)}>
+                      <ArrowLeft className="h-4 w-4" />
+                    </Button>
+                  )}
                   <Avatar className="h-8 w-8">
                     <AvatarFallback className="text-xs bg-primary/10 text-primary font-semibold">
                       {activeConv.type === 'group' ? <Hash className="h-4 w-4" /> : getConvInitials(activeConv)}
