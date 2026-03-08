@@ -51,12 +51,17 @@ export function MentionText({ text, className }: MentionTextProps) {
  * Returns modified HTML string.
  */
 export function processMentionsInHtml(html: string): string {
-  return html.replace(/@(\w[\w\s]*?\b)/g, (match, name) => {
+  // Sanitize HTML first to prevent XSS
+  const sanitized = DOMPurify.sanitize(html, {
+    ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 'a', 'ul', 'ol', 'li', 'h2', 'h3', 'blockquote', 'code', 'span'],
+    ALLOWED_ATTR: ['href', 'class', 'data-mention'],
+  });
+  return sanitized.replace(/@(\w[\w\s]*?\b)/g, (match, name) => {
     const user = users.find(
       (u) => u.name.toLowerCase() === name.trim().toLowerCase()
     );
     if (user) {
-      return `<a href="/profile/${user.id}" class="text-primary font-medium underline decoration-primary/50 hover:decoration-primary cursor-pointer" data-mention="${user.id}">@${user.name}</a>`;
+      return `<a href="/profile/${encodeURIComponent(user.id)}" class="text-primary font-medium underline decoration-primary/50 hover:decoration-primary cursor-pointer" data-mention="${encodeURIComponent(user.id)}">@${DOMPurify.sanitize(user.name)}</a>`;
     }
     return match;
   });

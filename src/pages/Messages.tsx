@@ -464,7 +464,7 @@ const Messages = () => {
                                       {msg.attachments.filter(a => a.type.startsWith('image/')).map(att => (
                                         <img key={att.id} src={att.url} alt={att.name}
                                           className="max-w-[220px] max-h-[180px] rounded-lg object-cover cursor-pointer hover:opacity-90 transition-opacity border border-border/20"
-                                          onClick={e => { e.stopPropagation(); window.open(att.url, '_blank'); }}
+                                          onClick={e => { e.stopPropagation(); setLightboxImage(att); }}
                                         />
                                       ))}
                                       {msg.attachments.filter(a => !a.type.startsWith('image/')).map(att => (
