@@ -73,7 +73,7 @@ const Memos = () => {
     return groups;
   };
 
-  const MemoList = ({ items }: { items: typeof memos }) => {
+  const MemoList = ({ items, showWorkflow = false }: { items: typeof memos; showWorkflow?: boolean }) => {
     if (items.length === 0) return <p className="text-center text-muted-foreground py-8">No memos found</p>;
     const grouped = groupByDate(items);
     return (
@@ -87,8 +87,21 @@ const Memos = () => {
               </span>
               <div className="flex-1 h-px bg-border" />
             </div>
-            <div className="space-y-3">
-              {memoItems.map(m => <MemoCard key={m.id} memo={m} />)}
+            <div className="space-y-4">
+              {memoItems.map(m => (
+                <div key={m.id} className="space-y-2">
+                  <MemoCard memo={m} />
+                  {showWorkflow && m.workflow?.enabled && (
+                    <div className="ml-4 pl-4 border-l-2 border-primary/20">
+                      <WorkflowStatus 
+                        memo={m} 
+                        currentUserId={currentUser.id} 
+                        onApprove={(stepId, approved, comment) => approveWorkflowStep(m.id, stepId, currentUser.id, approved, comment)}
+                      />
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
         ))}
