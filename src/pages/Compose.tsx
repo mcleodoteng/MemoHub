@@ -385,14 +385,34 @@ const Compose = () => {
           </div>
 
           {/* Actions */}
-          <div className="flex items-center gap-3 pt-2 border-t">
-            <div className="flex-1" />
-            <Button variant="outline" onClick={() => navigate("/memos")}>Cancel</Button>
-            <Button variant="secondary" onClick={handleSaveDraft} className="gap-2">
-              <Save className="h-4 w-4" /> {isEditingDraft ? "Update Draft" : "Save Draft"}
+          <div className="flex items-center gap-2 md:gap-3 pt-2 border-t flex-wrap">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="gap-1.5 text-xs"
+              onClick={() => {
+                if (!title.trim()) { toast.error("Add a title first"); return; }
+                const { addTemplate } = useTemplatesRef.current;
+                addTemplate({
+                  name: title.trim().slice(0, 40),
+                  description: `Custom template from "${title.trim().slice(0, 30)}"`,
+                  title,
+                  body,
+                  tags: selectedTags,
+                  visibility,
+                });
+                toast.success("Saved as template!");
+              }}
+            >
+              <LayoutTemplate className="h-3.5 w-3.5" /> Save as Template
             </Button>
-            <Button onClick={handleSend} className="gap-2">
-              <Send className="h-4 w-4" /> Send Memo
+            <div className="flex-1" />
+            <Button variant="outline" size="sm" className="md:size-default" onClick={() => navigate("/memos")}>Cancel</Button>
+            <Button variant="secondary" size="sm" className="gap-2 md:size-default" onClick={handleSaveDraft}>
+              <Save className="h-4 w-4" /> <span className="hidden sm:inline">{isEditingDraft ? "Update Draft" : "Save Draft"}</span><span className="sm:hidden">Draft</span>
+            </Button>
+            <Button size="sm" className="gap-2 md:size-default" onClick={handleSend}>
+              <Send className="h-4 w-4" /> <span className="hidden sm:inline">Send Memo</span><span className="sm:hidden">Send</span>
             </Button>
           </div>
         </div>
