@@ -36,7 +36,7 @@ export function RichTextEditor({
         heading: { levels: [2, 3] },
       }),
       Link.configure({
-        openOnClick: true,
+        openOnClick: false,
         autolink: true,
         linkOnPaste: true,
         HTMLAttributes: {
