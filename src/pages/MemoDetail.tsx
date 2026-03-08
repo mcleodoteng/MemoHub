@@ -166,6 +166,20 @@ const MemoDetail = () => {
               </p>
             </div>
             <div className="flex gap-1">
+              {(() => {
+                const isStarred = (memo.starredBy || []).includes(currentUser.id);
+                return (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="icon" className={`h-8 w-8 ${isStarred ? 'text-yellow-500' : ''}`}
+                        onClick={() => { toggleStar(memo.id, currentUser.id); toast.success(isStarred ? 'Unstarred' : 'Starred!'); }}>
+                        <Star className={`h-4 w-4 ${isStarred ? 'fill-yellow-500' : ''}`} />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>{isStarred ? "Unstar memo" : "Star memo"}</TooltipContent>
+                  </Tooltip>
+                );
+              })()}
               {isCreator && !isDraft && (
                 <Tooltip>
                   <TooltipTrigger asChild>
