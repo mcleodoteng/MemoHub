@@ -515,7 +515,30 @@ const MemoDetail = () => {
 
         {!isDraft && (
           <div className="widget-card">
-            <h3 className="font-display font-semibold mb-3">Comments ({memoComments.length})</h3>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-display font-semibold">Comments ({memoComments.length})</h3>
+              {memoComments.length > 1 && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm" className="h-7 text-xs gap-1.5">
+                      <ArrowUpDown className="h-3 w-3" />
+                      {commentSort === 'newest' ? 'Newest' : commentSort === 'reactions' ? 'Most reactions' : 'Oldest'}
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => setCommentSort('oldest')}>
+                      <ArrowUp className="h-3.5 w-3.5 mr-2" /> Oldest first
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setCommentSort('newest')}>
+                      <ArrowDown className="h-3.5 w-3.5 mr-2" /> Newest first
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setCommentSort('reactions')}>
+                      <Heart className="h-3.5 w-3.5 mr-2" /> Most reactions
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+            </div>
             <div className="space-y-4">
               {topLevelComments.map(comment => (
                 <CommentThread
