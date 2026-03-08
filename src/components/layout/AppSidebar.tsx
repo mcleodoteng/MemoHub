@@ -206,6 +206,30 @@ export function AppSidebar() {
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                   <SidebarMenuItem>
+                    <SidebarMenuButton asChild tooltip="Workflow">
+                      <button onClick={() => navigate("/memos?tab=workflow")} className={`nav-item text-sidebar-foreground w-full flex items-center gap-2 ${location.pathname === '/memos' && location.search.includes('tab=workflow') ? 'nav-item-active' : ''}`}>
+                        <div className="relative">
+                          <GitMerge className="h-4 w-4 shrink-0" />
+                          {pendingWorkflowApprovals > 0 && (
+                            <span className="absolute -right-1.5 -top-1.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-destructive text-[9px] font-bold text-destructive-foreground">
+                              {pendingWorkflowApprovals > 9 ? "9+" : pendingWorkflowApprovals}
+                            </span>
+                          )}
+                        </div>
+                        {!collapsed && (
+                          <span className="flex items-center justify-between flex-1">
+                            Workflow
+                            {pendingWorkflowApprovals > 0 && (
+                              <span className="ml-auto rounded-full bg-destructive px-1.5 py-0.5 text-[10px] font-semibold text-destructive-foreground">
+                                {pendingWorkflowApprovals}
+                              </span>
+                            )}
+                          </span>
+                        )}
+                      </button>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
                     <SidebarMenuButton asChild tooltip="Starred">
                       <button onClick={() => navigate("/memos?tab=starred")} className={`nav-item text-sidebar-foreground w-full flex items-center gap-2 ${location.pathname === '/memos' && location.search.includes('tab=starred') ? 'nav-item-active' : ''}`}>
                         <Star className="h-4 w-4 shrink-0" />
