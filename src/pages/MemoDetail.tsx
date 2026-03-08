@@ -473,8 +473,11 @@ const MemoDetail = () => {
             <div className="space-y-4">
               {memoComments.map(comment => {
                 const author = getUserById(comment.authorId);
+                const isCommentAuthor = comment.authorId === currentUser.id;
+                const isEditing = editingCommentId === comment.id;
+                const wasEdited = comment.createdAt !== comment.updatedAt;
                 return (
-                  <div key={comment.id} className="flex gap-3 animate-slide-in">
+                  <div key={comment.id} className="flex gap-3 animate-slide-in group">
                     {author ? (
                       <UserHoverCard user={author}>
                         <Avatar className="h-7 w-7 shrink-0 cursor-pointer" onClick={() => navigate(`/profile/${author.id}`)}>
@@ -488,7 +491,7 @@ const MemoDetail = () => {
                         <AvatarFallback className="text-[10px] bg-primary/10 text-primary font-semibold">?</AvatarFallback>
                       </Avatar>
                     )}
-                    <div className="flex-1">
+                    <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         {author ? (
                           <UserHoverCard user={author}>
@@ -502,8 +505,94 @@ const MemoDetail = () => {
                         <span className="text-xs text-muted-foreground">
                           {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true })}
                         </span>
+                        {wasEdited && <span className="text-xs text-muted-foreground italic">(edited)</span>}
+                        <div className="ml-auto flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                          {/* Emoji reaction picker for comment */}
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-6 w-6">
+                                <Smile className="h-3.5 w-3.5" />
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-2" align="end">
+                              <div className="flex gap-1">
+                                {quickEmojis.map(emoji => (
+                                  <button key={emoji} className="h-7 w-7 flex items-center justify-center rounded hover:bg-secondary transition-colors text-sm"
+                                    onClick={() => addCommentReaction(comment.id, emoji, currentUser.id)}>
+                                    {emoji}
+                                  </button>
+                                ))}
+                              </div>
+                            </PopoverContent>
+                          </Popover>
+                          {isCommentAuthor && (
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-6 w-6">
+                                  <MoreHorizontal className="h-3.5 w-3.5" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => { setEditingCommentId(comment.id); setEditingCommentBody(comment.body); }}>
+                                  <Pencil className="h-3.5 w-3.5 mr-2" /> Edit
+                                </DropdownMenuItem>
+                                <DropdownMenuItem className="text-destructive" onClick={() => { deleteComment(comment.id, currentUser.id); toast.success('Comment deleted'); }}>
+                                  <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          )}
+                        </div>
                       </div>
-                      <p className="text-sm mt-0.5"><MentionText text={comment.body} /></p>
+                      {isEditing ? (
+                        <div className="mt-1 space-y-2">
+                          <MentionInput value={editingCommentBody} onChange={setEditingCommentBody} placeholder="Edit comment..." rows={2} />
+                          <div className="flex gap-1.5">
+                            <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => setEditingCommentId(null)}>
+                              <X className="h-3 w-3" /> Cancel
+                            </Button>
+                            <Button size="sm" className="h-7 text-xs gap-1" disabled={!editingCommentBody.trim()}
+                              onClick={() => { editComment(comment.id, editingCommentBody, currentUser.id); setEditingCommentId(null); toast.success('Comment updated'); }}>
+                              <Check className="h-3 w-3" /> Save
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          {comment.body.startsWith('<') ? (
+                            <div
+                              className="text-sm mt-0.5 prose prose-sm max-w-none [&_a]:text-primary [&_a]:underline [&_a]:cursor-pointer"
+                              dangerouslySetInnerHTML={{ __html: processMentionsInHtml(comment.body) }}
+                              onClick={(e) => {
+                                const target = e.target as HTMLElement;
+                                if (target.tagName === 'A') {
+                                  const href = target.getAttribute('href');
+                                  if (href && href.startsWith('/profile/')) {
+                                    e.preventDefault();
+                                    navigate(href);
+                                  }
+                                }
+                              }}
+                            />
+                          ) : (
+                            <p className="text-sm mt-0.5"><MentionText text={comment.body} /></p>
+                          )}
+                        </>
+                      )}
+                      {/* Comment reactions */}
+                      {comment.reactions.length > 0 && (
+                        <div className="flex items-center gap-1 mt-1.5 flex-wrap">
+                          {comment.reactions.map(r => {
+                            const isActive = r.users.includes(currentUser.id);
+                            return (
+                              <Button key={r.emoji} variant={isActive ? "secondary" : "outline"} size="sm" className="gap-0.5 h-6 text-[11px] px-1.5"
+                                onClick={() => addCommentReaction(comment.id, r.emoji, currentUser.id)}>
+                                {r.emoji} {r.users.length}
+                              </Button>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
                   </div>
                 );
