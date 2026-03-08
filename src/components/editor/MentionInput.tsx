@@ -73,7 +73,7 @@ export const MentionInput = forwardRef<HTMLDivElement, MentionInputProps>(({
   };
 
   return (
-    <div className="relative">
+    <div className="relative" ref={ref}>
       <textarea
         ref={textareaRef}
         value={value}
@@ -110,4 +110,6 @@ export const MentionInput = forwardRef<HTMLDivElement, MentionInputProps>(({
       )}
     </div>
   );
-}
+});
+
+MentionInput.displayName = 'MentionInput';
