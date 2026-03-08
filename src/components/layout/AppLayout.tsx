@@ -18,8 +18,6 @@ interface AppLayoutProps {
   title?: string;
 }
 
-const unreadCount = notifications.filter((n) => !n.read).length;
-
 function stripHtml(html: string): string {
   const doc = new DOMParser().parseFromString(html, "text/html");
   return doc.body.textContent || "";
@@ -33,6 +31,13 @@ export function AppLayout({ children, title }: AppLayoutProps) {
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const { memos } = useMemos();
   const { conversations } = useMessages();
+  const { unreadCount } = useNotifications();
+
+  const pendingWorkflowUnread = useMemo(
+    () => getWorkflowPendingCountForUser(memos, currentUser.id),
+    [memos],
+  );
+  const headerNotificationCount = unreadCount + pendingWorkflowUnread;
 
   const searchResults = useMemo(() => {
     if (!search.trim()) return { memos: [], conversations: [] };
