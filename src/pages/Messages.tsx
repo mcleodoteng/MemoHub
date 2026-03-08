@@ -25,6 +25,7 @@ const QUICK_EMOJIS = ['👍', '❤️', '😂', '🎉', '🚀', '👏', '🔥', 
 
 const Messages = () => {
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const {
     conversations, sendMessage, addReaction, markAsRead,
     getConversationMessages, typingUsers, starMessage, starredMessages, getUnreadCount,
@@ -39,6 +40,7 @@ const Messages = () => {
   const [msgSearch, setMsgSearch] = useState("");
   const [showMsgSearch, setShowMsgSearch] = useState(false);
   const [tab, setTab] = useState<'direct' | 'channels' | 'starred'>('direct');
+  const [mobileShowChat, setMobileShowChat] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const activeConv = conversations.find(c => c.id === selectedConv);
