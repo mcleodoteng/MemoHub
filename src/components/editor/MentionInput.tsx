@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, forwardRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { users, currentUser } from '@/data/mock';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { getUserInitials } from '@/data/mock';
@@ -13,14 +13,14 @@ interface MentionInputProps {
   onMention?: (userId: string) => void;
 }
 
-export const MentionInput = forwardRef<HTMLDivElement, MentionInputProps>(({
+export function MentionInput({
   value,
   onChange,
   placeholder = 'Type @ to mention someone...',
   className,
   rows = 3,
   onMention,
-}, ref) => {
+}: MentionInputProps) {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [mentionQuery, setMentionQuery] = useState('');
   const [cursorPosition, setCursorPosition] = useState(0);
@@ -38,7 +38,6 @@ export const MentionInput = forwardRef<HTMLDivElement, MentionInputProps>(({
     onChange(newValue);
     setCursorPosition(pos);
 
-    // Check for @ trigger
     const textBefore = newValue.slice(0, pos);
     const lastAtIndex = textBefore.lastIndexOf('@');
 
@@ -73,7 +72,7 @@ export const MentionInput = forwardRef<HTMLDivElement, MentionInputProps>(({
   };
 
   return (
-    <div className="relative" ref={ref}>
+    <div className="relative">
       <textarea
         ref={textareaRef}
         value={value}
@@ -110,6 +109,4 @@ export const MentionInput = forwardRef<HTMLDivElement, MentionInputProps>(({
       )}
     </div>
   );
-});
-
-MentionInput.displayName = 'MentionInput';
+}

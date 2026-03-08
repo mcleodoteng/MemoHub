@@ -8,6 +8,7 @@ import { GroupProvider } from "@/context/GroupContext";
 import { MessageProvider } from "@/context/MessageContext";
 import { ReminderProvider } from "@/context/ReminderContext";
 import { NotificationProvider } from "@/context/NotificationContext";
+import { RouteErrorBoundary } from "@/components/ErrorBoundary";
 import Index from "./pages/Index";
 import Memos from "./pages/Memos";
 import MemoDetail from "./pages/MemoDetail";
@@ -26,19 +27,19 @@ import { ReminderAlerts } from "@/components/reminder/ReminderAlerts";
 const queryClient = new QueryClient();
 
 const router = createBrowserRouter([
-  { path: "/", element: <Index /> },
-  { path: "/memos", element: <Memos /> },
-  { path: "/memos/:id", element: <MemoDetail /> },
-  { path: "/compose", element: <Compose /> },
-  { path: "/compose/:draftId", element: <Compose /> },
-  { path: "/drafts", element: <Drafts /> },
-  { path: "/messages", element: <Messages /> },
-  { path: "/groups", element: <Groups /> },
-  { path: "/groups/:id", element: <GroupDetail /> },
-  { path: "/notifications", element: <Notifications /> },
-  { path: "/profile", element: <Profile /> },
-  { path: "/profile/:userId", element: <UserProfile /> },
-  { path: "/reminders", element: <Reminders /> },
+  { path: "/", element: <Index />, errorElement: <RouteErrorBoundary /> },
+  { path: "/memos", element: <Memos />, errorElement: <RouteErrorBoundary /> },
+  { path: "/memos/:id", element: <MemoDetail />, errorElement: <RouteErrorBoundary /> },
+  { path: "/compose", element: <Compose />, errorElement: <RouteErrorBoundary /> },
+  { path: "/compose/:draftId", element: <Compose />, errorElement: <RouteErrorBoundary /> },
+  { path: "/drafts", element: <Drafts />, errorElement: <RouteErrorBoundary /> },
+  { path: "/messages", element: <Messages />, errorElement: <RouteErrorBoundary /> },
+  { path: "/groups", element: <Groups />, errorElement: <RouteErrorBoundary /> },
+  { path: "/groups/:id", element: <GroupDetail />, errorElement: <RouteErrorBoundary /> },
+  { path: "/notifications", element: <Notifications />, errorElement: <RouteErrorBoundary /> },
+  { path: "/profile", element: <Profile />, errorElement: <RouteErrorBoundary /> },
+  { path: "/profile/:userId", element: <UserProfile />, errorElement: <RouteErrorBoundary /> },
+  { path: "/reminders", element: <Reminders />, errorElement: <RouteErrorBoundary /> },
   { path: "*", element: <NotFound /> },
 ]);
 
