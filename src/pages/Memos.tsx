@@ -22,11 +22,11 @@ function formatMemoDate(dateStr: string) {
 
 const Memos = () => {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const { memos, restoreMemo, permanentlyDeleteMemo } = useMemos();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { memos, restoreMemo, permanentlyDeleteMemo, toggleStar } = useMemos();
   const [search, setSearch] = useState("");
 
-  const defaultTab = searchParams.get("tab") || "all";
+  const activeTab = searchParams.get("tab") || "all";
 
   const visibleMemos = memos.filter(m => !(m.hiddenBy || []).includes(currentUser.id));
 
@@ -44,7 +44,7 @@ const Memos = () => {
   const pinnedMemos = sentMemos.filter(m => m.pinned && !m.archived);
   const archivedMemos = sentMemos.filter(m => m.archived);
   const deletedMemos = filtered.filter(m => m.status === 'deleted' && (m as any).deletedBy === currentUser.id);
-  const starredMemos = sentMemos.filter(m => m.pinned); // Using pinned as starred for now
+  const starredMemos = sentMemos.filter(m => (m.starredBy || []).includes(currentUser.id) && !m.archived);
 
   const allNonArchived = sentMemos.filter(m => !m.archived).sort((a, b) => {
     if (a.pinned && !b.pinned) return -1;
@@ -109,7 +109,7 @@ const Memos = () => {
           </Tooltip>
         </div>
 
-        <Tabs defaultValue={defaultTab}>
+        <Tabs value={activeTab} onValueChange={(val) => setSearchParams({ tab: val })}>
           <TabsList className="flex-wrap">
             <TabsTrigger value="all">All ({sentMemos.filter(m => !m.archived).length})</TabsTrigger>
             <TabsTrigger value="drafts">Drafts ({draftMemos.length})</TabsTrigger>

@@ -13,6 +13,7 @@ interface MemoContextType {
   restoreMemo: (id: string) => void;
   togglePin: (id: string) => void;
   toggleArchive: (id: string) => void;
+  toggleStar: (memoId: string, userId: string) => void;
   hideMemo: (memoId: string, userId: string) => void;
   acknowledgeMemo: (memoId: string, userId: string) => void;
   unacknowledgeMemo: (memoId: string, userId: string) => void;
@@ -139,6 +140,17 @@ export function MemoProvider({ children }: { children: React.ReactNode }) {
 
   const toggleArchive = useCallback((id: string) => {
     setMemos(prev => prev.map(m => m.id === id ? { ...m, archived: !m.archived } : m));
+  }, []);
+
+  const toggleStar = useCallback((memoId: string, userId: string) => {
+    setMemos(prev => prev.map(m => {
+      if (m.id !== memoId) return m;
+      const starred = m.starredBy || [];
+      if (starred.includes(userId)) {
+        return { ...m, starredBy: starred.filter(id => id !== userId) };
+      }
+      return { ...m, starredBy: [...starred, userId] };
+    }));
   }, []);
 
   const hideMemo = useCallback((memoId: string, userId: string) => {
@@ -281,7 +293,7 @@ export function MemoProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <MemoContext.Provider value={{
-      memos, comments, addMemo, updateMemo, editMemo, deleteMemo, permanentlyDeleteMemo, restoreMemo, togglePin, toggleArchive,
+      memos, comments, addMemo, updateMemo, editMemo, deleteMemo, permanentlyDeleteMemo, restoreMemo, togglePin, toggleArchive, toggleStar,
       hideMemo, acknowledgeMemo, unacknowledgeMemo, approveMemo, unapproveMemo, markOpened,
       addComment, addReaction, getMemoById, getCommentsByMemoId,
     }}>

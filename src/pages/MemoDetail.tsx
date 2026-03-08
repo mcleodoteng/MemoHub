@@ -17,7 +17,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import {
   Globe, Lock, Shield, Pin, Archive, Trash2, EyeOff,
   ArrowLeft, FileText, Edit3, Send,
-  CheckCircle2, ThumbsUp, XCircle, Smile,
+  CheckCircle2, ThumbsUp, XCircle, Smile, Star,
 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { formatDistanceToNow, format } from "date-fns";
@@ -40,7 +40,7 @@ const MemoDetail = () => {
   const {
     getMemoById, getCommentsByMemoId, togglePin, toggleArchive, deleteMemo,
     hideMemo, addComment, addReaction, updateMemo, markOpened,
-    acknowledgeMemo, unacknowledgeMemo, approveMemo, unapproveMemo,
+    acknowledgeMemo, unacknowledgeMemo, approveMemo, unapproveMemo, toggleStar,
   } = useMemos();
 
   const memo = getMemoById(id || "");
@@ -166,6 +166,20 @@ const MemoDetail = () => {
               </p>
             </div>
             <div className="flex gap-1">
+              {(() => {
+                const isStarred = (memo.starredBy || []).includes(currentUser.id);
+                return (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="icon" className={`h-8 w-8 ${isStarred ? 'text-yellow-500' : ''}`}
+                        onClick={() => { toggleStar(memo.id, currentUser.id); toast.success(isStarred ? 'Unstarred' : 'Starred!'); }}>
+                        <Star className={`h-4 w-4 ${isStarred ? 'fill-yellow-500' : ''}`} />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>{isStarred ? "Unstar memo" : "Star memo"}</TooltipContent>
+                  </Tooltip>
+                );
+              })()}
               {isCreator && !isDraft && (
                 <Tooltip>
                   <TooltipTrigger asChild>

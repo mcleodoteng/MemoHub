@@ -78,6 +78,7 @@ export interface Memo {
   editHistory: MemoEditEntry[];
   activityLog: MemoActivityEntry[];
   hiddenBy?: string[];
+  starredBy?: string[];
   createdAt: string;
   updatedAt: string;
 }

@@ -20,7 +20,7 @@ import { useGroups } from "@/context/GroupContext";
 import { useState } from "react";
 
 export function AppSidebar() {
-  const { state } = useSidebar();
+  const { state, toggleSidebar } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
   const navigate = useNavigate();
@@ -104,10 +104,7 @@ export function AppSidebar() {
             variant="ghost"
             size="icon"
             className="h-7 w-7 text-sidebar-muted hover:text-sidebar-foreground transition-colors"
-            onClick={() => {
-              const trigger = document.querySelector('[data-sidebar="trigger"]') as HTMLButtonElement;
-              trigger?.click();
-            }}
+            onClick={toggleSidebar}
           >
             {collapsed ? <PanelLeft className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
           </Button>
@@ -191,16 +188,16 @@ export function AppSidebar() {
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                   <SidebarMenuItem>
-                    <SidebarMenuButton asChild isActive={isActive("/memos?tab=starred")} tooltip="Starred">
-                      <NavLink to="/memos?tab=starred" className="nav-item text-sidebar-foreground" activeClassName="nav-item-active">
+                    <SidebarMenuButton asChild tooltip="Starred">
+                      <button onClick={() => navigate("/memos?tab=starred")} className={`nav-item text-sidebar-foreground w-full flex items-center gap-2 ${location.pathname === '/memos' && location.search.includes('tab=starred') ? 'nav-item-active' : ''}`}>
                         <Star className="h-4 w-4 shrink-0" />
                         {!collapsed && <span>Starred</span>}
-                      </NavLink>
+                      </button>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                   <SidebarMenuItem>
-                    <SidebarMenuButton asChild isActive={isActive("/memos?tab=deleted")} tooltip="Trash">
-                      <NavLink to="/memos?tab=deleted" className="nav-item text-sidebar-foreground" activeClassName="nav-item-active">
+                    <SidebarMenuButton asChild tooltip="Trash">
+                      <button onClick={() => navigate("/memos?tab=deleted")} className={`nav-item text-sidebar-foreground w-full flex items-center gap-2 ${location.pathname === '/memos' && location.search.includes('tab=deleted') ? 'nav-item-active' : ''}`}>
                         <div className="relative">
                           <Trash2 className="h-4 w-4 shrink-0" />
                           {deletedCount > 0 && (
@@ -219,7 +216,7 @@ export function AppSidebar() {
                             )}
                           </span>
                         )}
-                      </NavLink>
+                      </button>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 </SidebarMenu>

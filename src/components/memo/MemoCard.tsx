@@ -11,7 +11,7 @@ import { useMemos } from "@/context/MemoContext";
 import {
   Globe, Lock, Shield, Pin, Paperclip, MessageCircle,
   Eye, CheckCircle2, ThumbsUp,
-  Archive, EyeOff, Smile, Trash2, Play, Image as ImageIcon,
+  Archive, EyeOff, Smile, Trash2, Play, Image as ImageIcon, Star,
 } from "lucide-react";
 import { formatDistanceToNow, format } from "date-fns";
 import { useNavigate } from "react-router-dom";
@@ -40,10 +40,11 @@ export function MemoCard({ memo }: MemoCardProps) {
   const vis = visibilityConfig[memo.visibility];
   const VisIcon = vis.icon;
   const navigate = useNavigate();
-  const { togglePin, toggleArchive, hideMemo, addReaction, deleteMemo } = useMemos();
+  const { togglePin, toggleArchive, hideMemo, addReaction, deleteMemo, toggleStar } = useMemos();
 
   const isCreator = memo.creatorId === currentUser.id;
   const isAdmin = currentUser.role === 'admin';
+  const isStarred = (memo.starredBy || []).includes(currentUser.id);
 
   const openedCount = memo.recipientStatuses.filter((s) => s.opened).length;
   const acknowledgedCount = memo.recipientStatuses.filter((s) => s.acknowledged).length;
@@ -254,6 +255,15 @@ export function MemoCard({ memo }: MemoCardProps) {
               )}
 
               <div className="flex items-center gap-0.5 ml-auto opacity-0 group-hover/card:opacity-100 transition-opacity">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="icon" className={`h-7 w-7 ${isStarred ? 'text-yellow-500' : 'text-muted-foreground'}`}
+                      onClick={stopProp(() => { toggleStar(memo.id, currentUser.id); toast.success(isStarred ? 'Unstarred' : 'Starred!'); })}>
+                      <Star className={`h-3.5 w-3.5 ${isStarred ? 'fill-yellow-500' : ''}`} />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>{isStarred ? "Unstar memo" : "Star memo"}</TooltipContent>
+                </Tooltip>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button variant="ghost" size="icon" className={`h-7 w-7 ${memo.pinned ? 'text-warning' : 'text-muted-foreground'}`}
