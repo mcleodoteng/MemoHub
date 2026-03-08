@@ -89,6 +89,30 @@ const Memos = () => {
           <TabsContent value="protected" className="mt-4"><MemoList items={protectedMemos} /></TabsContent>
           <TabsContent value="pinned" className="mt-4"><MemoList items={pinnedMemos} /></TabsContent>
           <TabsContent value="archived" className="mt-4"><MemoList items={archivedMemos} /></TabsContent>
+          <TabsContent value="deleted" className="mt-4">
+            {deletedMemos.length === 0 ? (
+              <p className="text-center text-muted-foreground py-8">No deleted memos</p>
+            ) : (
+              <div className="space-y-3">
+                {deletedMemos.map(m => (
+                  <div key={m.id} className="flex items-center gap-3 bg-card rounded-xl border p-4 opacity-70">
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-semibold text-sm line-clamp-1">{m.title}</h4>
+                      <p className="text-xs text-muted-foreground mt-0.5">Deleted {(m as any).deletedAt ? new Date((m as any).deletedAt).toLocaleDateString() : ''}</p>
+                    </div>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button variant="outline" size="sm" className="gap-1.5 shrink-0" onClick={() => { restoreMemo(m.id); toast.success('Memo restored!'); }}>
+                          <RotateCcw className="h-3.5 w-3.5" /> Restore
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Restore this memo back to your feed</TooltipContent>
+                    </Tooltip>
+                  </div>
+                ))}
+              </div>
+            )}
+          </TabsContent>
         </Tabs>
       </div>
     </AppLayout>
