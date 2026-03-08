@@ -48,6 +48,23 @@ export function RichTextEditor({
         },
       }),
       Placeholder.configure({ placeholder }),
+      Mention.configure({
+        HTMLAttributes: {
+          class: 'text-primary font-medium underline decoration-primary/50 hover:decoration-primary cursor-pointer',
+        },
+        suggestion: mentionSuggestion,
+        renderHTML({ options, node }) {
+          return [
+            'a',
+            {
+              ...options.HTMLAttributes,
+              href: `/profile/${node.attrs.id}`,
+              'data-mention': node.attrs.id,
+            },
+            `@${node.attrs.label ?? node.attrs.id}`,
+          ];
+        },
+      }),
     ],
     content,
     onUpdate: ({ editor }) => {
