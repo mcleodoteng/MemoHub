@@ -18,6 +18,7 @@ import { currentUser, getUserInitials, tags as allTags } from "@/data/mock";
 import { useMemos } from "@/context/MemoContext";
 import { useMessages } from "@/context/MessageContext";
 import { useGroups } from "@/context/GroupContext";
+import { getWorkflowPendingCountForUser } from "@/lib/workflow";
 import { useState } from "react";
 
 export function AppSidebar() {
@@ -35,15 +36,8 @@ export function AppSidebar() {
     m.recipientStatuses.some(s => s.userId === currentUser.id && s.opened && !s.approved)
   ).length;
   const draftCount = memos.filter(m => m.status === 'draft' && m.creatorId === currentUser.id).length;
-  
-  const pendingWorkflowApprovals = memos.filter(m => {
-    if (m.status !== 'sent' || !m.workflow?.enabled) return false;
-    const currentStep = m.workflow.approvalChain.find(s => s.status === 'pending');
-    if (!currentStep) return false;
-    const priorSteps = m.workflow.approvalChain.filter(s => s.order < currentStep.order);
-    if (priorSteps.some(s => s.status !== 'approved')) return false;
-    return currentStep.approverId === currentUser.id;
-  }).length;
+
+  const pendingWorkflowApprovals = getWorkflowPendingCountForUser(memos, currentUser.id);
 
   const unreadMessages = conversations.filter(c =>
     c.lastMessage && !c.lastMessage.readBy.includes(currentUser.id)

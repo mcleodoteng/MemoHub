@@ -1,13 +1,14 @@
 import { useState, useMemo } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { useNotifications } from "@/context/NotificationContext";
+import { useMemos } from "@/context/MemoContext";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   FileText, MessageCircle, Heart, Mail, AtSign, Users,
-  CheckCircle2, CheckCheck, Bell, Clock, Star, Filter, X,
+  CheckCircle2, CheckCheck, Bell, Clock, Star, Filter, X, GitMerge,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useNavigate } from "react-router-dom";
@@ -15,6 +16,7 @@ import { useReminders } from "@/context/ReminderContext";
 import { useGroups } from "@/context/GroupContext";
 import { currentUser } from "@/data/mock";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { getActiveWorkflowMemos, getCurrentPendingApprovalStep } from "@/lib/workflow";
 
 const typeIcons: Record<string, typeof FileText> = {
   memo_received: Mail,
@@ -26,6 +28,7 @@ const typeIcons: Record<string, typeof FileText> = {
   group_invite: Users,
   reminder: Clock,
   starred_activity: Star,
+  workflow_pending_approval: GitMerge,
 };
 
 const typeLabels: Record<string, string> = {
@@ -38,6 +41,7 @@ const typeLabels: Record<string, string> = {
   group_invite: "Groups",
   reminder: "Reminders",
   starred_activity: "Starred",
+  workflow_pending_approval: "Workflow",
 };
 
 const typeColors: Record<string, string> = {
@@ -50,26 +54,33 @@ const typeColors: Record<string, string> = {
   group_invite: "bg-primary/10 text-primary",
   reminder: "bg-warning/10 text-warning",
   starred_activity: "bg-warning/10 text-warning",
+  workflow_pending_approval: "bg-warning/10 text-warning",
 };
 
 const Notifications = () => {
   const navigate = useNavigate();
   const { reminders } = useReminders();
   const { groups } = useGroups();
-  const { notifications: contextNotifs, markRead, markAllRead, unreadCount } = useNotifications();
+  const { memos } = useMemos();
+  const { notifications: contextNotifs, markRead, markAllRead } = useNotifications();
 
-  // Merge in dynamic notifications from groups/reminders
+  const [activeFilter, setActiveFilter] = useState<string | null>(null);
+  const [tab, setTab] = useState<"all" | "unread">("all");
+  const [dismissedWorkflowNotifIds, setDismissedWorkflowNotifIds] = useState<string[]>([]);
+
+  // Merge in dynamic notifications from groups/reminders/workflow approvals
   const allNotifs = useMemo(() => {
     const extras: typeof contextNotifs = [];
+
     groups.forEach(g => {
       g.pendingInvites
-        .filter(i => i.userId === currentUser.id && i.status === 'pending')
+        .filter(i => i.userId === currentUser.id && i.status === "pending")
         .forEach(i => {
           extras.push({
             id: `ginv-${g.id}-${i.userId}`,
             userId: currentUser.id,
-            type: 'group_invite' as any,
-            title: 'Group Invitation',
+            type: "group_invite",
+            title: "Group Invitation",
             body: `You've been invited to join "${g.name}"`,
             read: false,
             actionUrl: `/groups/${g.id}`,
@@ -77,35 +88,65 @@ const Notifications = () => {
           });
         });
     });
-    reminders.filter(r => r.fired).forEach(r => {
+
+    reminders
+      .filter(r => r.fired)
+      .forEach(r => {
+        extras.push({
+          id: `rem-${r.id}`,
+          userId: currentUser.id,
+          type: "reminder",
+          title: "Reminder Due",
+          body: r.title + (r.description ? `: ${r.description}` : ""),
+          read: false,
+          actionUrl: "/reminders",
+          createdAt: r.dueAt,
+        });
+      });
+
+    getActiveWorkflowMemos(memos).forEach(memo => {
+      if (memo.archived || (memo.hiddenBy || []).includes(currentUser.id)) return;
+
+      const pendingStep = getCurrentPendingApprovalStep(memo);
+      if (!pendingStep || pendingStep.approverId !== currentUser.id) return;
+
+      const workflowNotificationId = `wf-${memo.id}-${pendingStep.id}`;
       extras.push({
-        id: `rem-${r.id}`,
+        id: workflowNotificationId,
         userId: currentUser.id,
-        type: 'reminder' as any,
-        title: 'Reminder Due',
-        body: r.title + (r.description ? `: ${r.description}` : ''),
-        read: false,
-        actionUrl: '/reminders',
-        createdAt: r.dueAt,
+        type: "workflow_pending_approval",
+        title: "Approval Needed",
+        body: `"${memo.title}" is awaiting your approval (step ${pendingStep.order}/${memo.workflow?.approvalChain.length || 0}).`,
+        read: dismissedWorkflowNotifIds.includes(workflowNotificationId),
+        actionUrl: "/workflow",
+        createdAt: memo.updatedAt,
       });
     });
-    return [...contextNotifs, ...extras].sort((a, b) =>
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    );
-  }, [contextNotifs, groups, reminders]);
 
-  const [activeFilter, setActiveFilter] = useState<string | null>(null);
-  const [tab, setTab] = useState<'all' | 'unread'>('all');
+    return [...contextNotifs, ...extras].sort((a, b) =>
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    );
+  }, [contextNotifs, groups, reminders, memos, dismissedWorkflowNotifIds]);
 
   const filtered = useMemo(() => {
     let items = allNotifs;
-    if (tab === 'unread') items = items.filter(n => !n.read);
+    if (tab === "unread") items = items.filter(n => !n.read);
     if (activeFilter) items = items.filter(n => n.type === activeFilter);
     return items;
   }, [allNotifs, tab, activeFilter]);
 
   const totalUnread = allNotifs.filter(n => !n.read).length;
   const filterTypes = [...new Set(allNotifs.map(n => n.type))];
+
+  const handleMarkAllRead = () => {
+    markAllRead();
+
+    const workflowIds = allNotifs
+      .filter(notif => notif.type === "workflow_pending_approval")
+      .map(notif => notif.id);
+
+    setDismissedWorkflowNotifIds(prev => Array.from(new Set([...prev, ...workflowIds])));
+  };
 
   return (
     <AppLayout title="Notifications">
@@ -133,7 +174,7 @@ const Notifications = () => {
               </Tooltip>
               <PopoverContent className="w-48 p-2" align="end">
                 <button
-                  className={`w-full text-left text-sm px-2 py-1.5 rounded hover:bg-secondary transition-colors ${!activeFilter ? 'bg-secondary font-medium' : ''}`}
+                  className={`w-full text-left text-sm px-2 py-1.5 rounded hover:bg-secondary transition-colors ${!activeFilter ? "bg-secondary font-medium" : ""}`}
                   onClick={() => setActiveFilter(null)}
                 >
                   All types
@@ -143,7 +184,7 @@ const Notifications = () => {
                   return (
                     <button
                       key={type}
-                      className={`w-full text-left text-sm px-2 py-1.5 rounded hover:bg-secondary transition-colors flex items-center gap-2 ${activeFilter === type ? 'bg-secondary font-medium' : ''}`}
+                      className={`w-full text-left text-sm px-2 py-1.5 rounded hover:bg-secondary transition-colors flex items-center gap-2 ${activeFilter === type ? "bg-secondary font-medium" : ""}`}
                       onClick={() => setActiveFilter(type)}
                     >
                       <Icon className="h-3.5 w-3.5" />
@@ -155,7 +196,7 @@ const Notifications = () => {
             </Popover>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-1.5" onClick={markAllRead} disabled={totalUnread === 0}>
+                <Button variant="outline" size="sm" className="gap-1.5" onClick={handleMarkAllRead} disabled={totalUnread === 0}>
                   <CheckCheck className="h-3.5 w-3.5" />
                   Mark all read
                 </Button>
@@ -174,7 +215,7 @@ const Notifications = () => {
           </div>
         )}
 
-        <Tabs value={tab} onValueChange={v => setTab(v as any)}>
+        <Tabs value={tab} onValueChange={v => setTab(v as "all" | "unread")}>
           <TabsList className="h-9">
             <TabsTrigger value="all" className="text-xs gap-1">
               All <Badge variant="secondary" className="text-[10px] px-1.5 py-0 ml-1">{allNotifs.length}</Badge>
@@ -203,6 +244,9 @@ const Notifications = () => {
                           : "bg-secondary/30 hover:bg-secondary/60"
                       }`}
                       onClick={() => {
+                        if (notif.type === "workflow_pending_approval") {
+                          setDismissedWorkflowNotifIds(prev => Array.from(new Set([...prev, notif.id])));
+                        }
                         markRead(notif.id);
                         if (notif.actionUrl) navigate(notif.actionUrl);
                       }}
