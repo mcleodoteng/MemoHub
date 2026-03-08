@@ -23,6 +23,7 @@ interface MemoContextType {
   addComment: (memoId: string, body: string, authorId: string, attachments?: Attachment[], parentId?: string) => void;
   editComment: (commentId: string, newBody: string, userId: string) => void;
   deleteComment: (commentId: string, userId: string) => void;
+  toggleCommentPin: (commentId: string, userId: string) => void;
   addCommentReaction: (commentId: string, emoji: string, userId: string) => void;
   addReaction: (memoId: string, emoji: string, userId: string) => void;
   getMemoById: (id: string) => Memo | undefined;
