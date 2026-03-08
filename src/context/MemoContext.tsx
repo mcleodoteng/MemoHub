@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
-import { Memo, Comment, MemoVisibility, MemoEditEntry, Attachment } from '@/types';
+import { Memo, Comment, MemoVisibility, MemoEditEntry, Attachment, ApprovalStep, WorkflowConfig } from '@/types';
 import { memos as initialMemos, comments as initialComments, currentUser } from '@/data/mock';
 
 interface MemoContextType {
