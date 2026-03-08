@@ -252,14 +252,15 @@ export function MemoProvider({ children }: { children: React.ReactNode }) {
     }));
   }, []);
 
-  const addComment = useCallback((memoId: string, body: string, authorId: string) => {
+  const addComment = useCallback((memoId: string, body: string, authorId: string, attachments: Attachment[] = [], parentId?: string) => {
     const now = new Date().toISOString();
     const newComment: Comment = {
       id: `c${Date.now()}`,
       memoId,
       authorId,
       body,
-      attachments: [],
+      parentId,
+      attachments,
       reactions: [],
       referencedMemoIds: [],
       createdAt: now,
