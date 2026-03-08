@@ -1,5 +1,6 @@
 import { AppLayout } from "@/components/layout/AppLayout";
 import { MemoCard } from "@/components/memo/MemoCard";
+import { WorkflowStatus } from "@/components/memo/WorkflowStatus";
 import { useMemos } from "@/context/MemoContext";
 import { currentUser } from "@/data/mock";
 import { Button } from "@/components/ui/button";
@@ -23,7 +24,7 @@ function formatMemoDate(dateStr: string) {
 const Memos = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { memos, restoreMemo, permanentlyDeleteMemo, toggleStar } = useMemos();
+  const { memos, restoreMemo, permanentlyDeleteMemo, toggleStar, approveWorkflowStep } = useMemos();
   const [search, setSearch] = useState("");
 
   const activeTab = searchParams.get("tab") || "all";
@@ -45,6 +46,15 @@ const Memos = () => {
   const archivedMemos = sentMemos.filter(m => m.archived);
   const deletedMemos = filtered.filter(m => m.status === 'deleted' && (m as any).deletedBy === currentUser.id);
   const starredMemos = sentMemos.filter(m => (m.starredBy || []).includes(currentUser.id) && !m.archived);
+  const workflowMemos = sentMemos.filter(m => m.workflow?.enabled && !m.archived);
+
+  const pendingWorkflowApprovals = workflowMemos.filter(m => {
+    const currentStep = m.workflow?.approvalChain.find(s => s.status === 'pending');
+    if (!currentStep) return false;
+    const priorSteps = m.workflow!.approvalChain.filter(s => s.order < currentStep.order);
+    if (priorSteps.some(s => s.status !== 'approved')) return false;
+    return currentStep.approverId === currentUser.id;
+  }).length;
 
   const allNonArchived = sentMemos.filter(m => !m.archived).sort((a, b) => {
     if (a.pinned && !b.pinned) return -1;
@@ -63,7 +73,7 @@ const Memos = () => {
     return groups;
   };
 
-  const MemoList = ({ items }: { items: typeof memos }) => {
+  const MemoList = ({ items, showWorkflow = false }: { items: typeof memos; showWorkflow?: boolean }) => {
     if (items.length === 0) return <p className="text-center text-muted-foreground py-8">No memos found</p>;
     const grouped = groupByDate(items);
     return (
@@ -77,8 +87,21 @@ const Memos = () => {
               </span>
               <div className="flex-1 h-px bg-border" />
             </div>
-            <div className="space-y-3">
-              {memoItems.map(m => <MemoCard key={m.id} memo={m} />)}
+            <div className="space-y-4">
+              {memoItems.map(m => (
+                <div key={m.id} className="space-y-2">
+                  <MemoCard memo={m} />
+                  {showWorkflow && m.workflow?.enabled && (
+                    <div className="ml-4 pl-4 border-l-2 border-primary/20">
+                      <WorkflowStatus 
+                        memo={m} 
+                        currentUserId={currentUser.id} 
+                        onApprove={(stepId, approved, comment) => approveWorkflowStep(m.id, stepId, currentUser.id, approved, comment)}
+                      />
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
         ))}
@@ -120,6 +143,14 @@ const Memos = () => {
               <TabsTrigger value="pinned">Pinned ({pinnedMemos.length})</TabsTrigger>
               <TabsTrigger value="archived">Archived ({archivedMemos.length})</TabsTrigger>
               <TabsTrigger value="starred">Starred ({starredMemos.length})</TabsTrigger>
+              <TabsTrigger value="workflow" className="relative pr-6">
+                Workflow ({workflowMemos.length})
+                {pendingWorkflowApprovals > 0 && (
+                  <span className="absolute right-1 top-1.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-destructive text-[9px] font-bold text-destructive-foreground">
+                    {pendingWorkflowApprovals}
+                  </span>
+                )}
+              </TabsTrigger>
               <TabsTrigger value="deleted">Trash ({deletedMemos.length})</TabsTrigger>
             </TabsList>
           </div>
@@ -132,6 +163,7 @@ const Memos = () => {
           <TabsContent value="pinned" className="mt-4"><MemoList items={pinnedMemos} /></TabsContent>
           <TabsContent value="archived" className="mt-4"><MemoList items={archivedMemos} /></TabsContent>
           <TabsContent value="starred" className="mt-4"><MemoList items={starredMemos} /></TabsContent>
+          <TabsContent value="workflow" className="mt-4"><MemoList items={workflowMemos} showWorkflow={true} /></TabsContent>
           <TabsContent value="deleted" className="mt-4">
             {deletedMemos.length === 0 ? (
               <p className="text-center text-muted-foreground py-8">No deleted memos</p>

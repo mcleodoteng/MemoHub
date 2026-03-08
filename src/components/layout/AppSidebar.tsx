@@ -1,7 +1,7 @@
 import {
   LayoutDashboard, FileText, MessageSquare, Users,
   Bell, PenSquare, ChevronDown, FileEdit, Tag, ChevronRight,
-  Clock, Trash2, Star, PanelLeftClose, PanelLeft,
+  Clock, Trash2, Star, PanelLeftClose, PanelLeft, GitMerge,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -35,10 +35,20 @@ export function AppSidebar() {
     m.recipientStatuses.some(s => s.userId === currentUser.id && s.opened && !s.approved)
   ).length;
   const draftCount = memos.filter(m => m.status === 'draft' && m.creatorId === currentUser.id).length;
+  
+  const pendingWorkflowApprovals = memos.filter(m => {
+    if (m.status !== 'sent' || !m.workflow?.enabled) return false;
+    const currentStep = m.workflow.approvalChain.find(s => s.status === 'pending');
+    if (!currentStep) return false;
+    const priorSteps = m.workflow.approvalChain.filter(s => s.order < currentStep.order);
+    if (priorSteps.some(s => s.status !== 'approved')) return false;
+    return currentStep.approverId === currentUser.id;
+  }).length;
+
   const unreadMessages = conversations.filter(c =>
     c.lastMessage && !c.lastMessage.readBy.includes(currentUser.id)
   ).length;
-  const unreadNotifications = pendingApprovals + unreadMessages;
+  const unreadNotifications = pendingApprovals + unreadMessages + pendingWorkflowApprovals;
 
   const myGroups = groups.filter(g => g.memberIds.includes(currentUser.id));
 
@@ -193,6 +203,30 @@ export function AppSidebar() {
                           </span>
                         )}
                       </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild tooltip="Workflow">
+                      <button onClick={() => navigate("/memos?tab=workflow")} className={`nav-item text-sidebar-foreground w-full flex items-center gap-2 ${location.pathname === '/memos' && location.search.includes('tab=workflow') ? 'nav-item-active' : ''}`}>
+                        <div className="relative">
+                          <GitMerge className="h-4 w-4 shrink-0" />
+                          {pendingWorkflowApprovals > 0 && (
+                            <span className="absolute -right-1.5 -top-1.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-destructive text-[9px] font-bold text-destructive-foreground">
+                              {pendingWorkflowApprovals > 9 ? "9+" : pendingWorkflowApprovals}
+                            </span>
+                          )}
+                        </div>
+                        {!collapsed && (
+                          <span className="flex items-center justify-between flex-1">
+                            Workflow
+                            {pendingWorkflowApprovals > 0 && (
+                              <span className="ml-auto rounded-full bg-destructive px-1.5 py-0.5 text-[10px] font-semibold text-destructive-foreground">
+                                {pendingWorkflowApprovals}
+                              </span>
+                            )}
+                          </span>
+                        )}
+                      </button>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                   <SidebarMenuItem>
