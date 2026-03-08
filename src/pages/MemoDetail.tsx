@@ -57,6 +57,7 @@ const MemoDetail = () => {
     hideMemo, addComment, addReaction, updateMemo, markOpened,
     acknowledgeMemo, unacknowledgeMemo, approveMemo, unapproveMemo, toggleStar,
     editComment, deleteComment, addCommentReaction, toggleCommentPin,
+    approveWorkflowStep,
   } = useMemos();
   const { notifyMentions } = useNotifications();
 
