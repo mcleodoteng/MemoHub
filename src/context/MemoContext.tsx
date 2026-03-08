@@ -9,6 +9,7 @@ interface MemoContextType {
   updateMemo: (id: string, updates: Partial<Memo>) => void;
   editMemo: (id: string, updates: { title?: string; body?: string; tags?: string[]; visibility?: MemoVisibility; attachments?: Attachment[]; recipientIds?: string[]; referencedMemoIds?: string[] }, editorId: string) => void;
   deleteMemo: (id: string) => void;
+  permanentlyDeleteMemo: (id: string) => void;
   restoreMemo: (id: string) => void;
   togglePin: (id: string) => void;
   toggleArchive: (id: string) => void;
@@ -109,9 +110,16 @@ export function MemoProvider({ children }: { children: React.ReactNode }) {
   const deleteMemo = useCallback((id: string) => {
     setMemos(prev => prev.map(m => {
       if (m.id !== id) return m;
-      // Only creator can delete
-      if (m.creatorId !== currentUser.id && currentUser.role !== 'admin') return m;
+      if (m.creatorId !== currentUser.id) return m;
       return { ...m, status: 'deleted' as const, deletedBy: currentUser.id, deletedAt: new Date().toISOString() };
+    }));
+  }, []);
+
+  const permanentlyDeleteMemo = useCallback((id: string) => {
+    setMemos(prev => prev.filter(m => {
+      if (m.id !== id) return true;
+      if ((m as any).deletedBy !== currentUser.id) return true;
+      return false;
     }));
   }, []);
 
@@ -273,7 +281,7 @@ export function MemoProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <MemoContext.Provider value={{
-      memos, comments, addMemo, updateMemo, editMemo, deleteMemo, restoreMemo, togglePin, toggleArchive,
+      memos, comments, addMemo, updateMemo, editMemo, deleteMemo, permanentlyDeleteMemo, restoreMemo, togglePin, toggleArchive,
       hideMemo, acknowledgeMemo, unacknowledgeMemo, approveMemo, unapproveMemo, markOpened,
       addComment, addReaction, getMemoById, getCommentsByMemoId,
     }}>

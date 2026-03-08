@@ -16,7 +16,7 @@ import {
   Star, StarOff, Hash, MessageCircle,
 } from "lucide-react";
 import { useState, useRef, useEffect, useMemo } from "react";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, format, isToday, isYesterday, isSameDay } from "date-fns";
 import { useNavigate } from "react-router-dom";
 
 const QUICK_EMOJIS = ['👍', '❤️', '😂', '🎉', '🚀', '👏', '🔥', '💡'];
@@ -146,7 +146,7 @@ const Messages = () => {
               {getConvName(conv)}
             </span>
             <span className="text-[10px] text-muted-foreground shrink-0">
-              {conv.lastMessage && formatDistanceToNow(new Date(conv.updatedAt), { addSuffix: false })}
+              {conv.lastMessage && format(new Date(conv.updatedAt), "MMM d")}
             </span>
           </div>
           {typing.length > 0 ? (
@@ -294,14 +294,28 @@ const Messages = () => {
                   </div>
                 )}
 
-                <div className="flex-1 overflow-auto p-4 space-y-3 scrollbar-thin">
-                  {filteredMessages.map(msg => {
+                <div className="flex-1 overflow-auto p-4 space-y-1 scrollbar-thin">
+                  {filteredMessages.map((msg, idx) => {
+                    const prevMsg = idx > 0 ? filteredMessages[idx - 1] : null;
+                    const msgDate = new Date(msg.createdAt);
+                    const showDateSep = !prevMsg || !isSameDay(new Date(prevMsg.createdAt), msgDate);
+                    const dateSepLabel = isToday(msgDate) ? "Today" : isYesterday(msgDate) ? "Yesterday" : format(msgDate, "EEEE, MMMM d");
+
                     if (msg.isSystem) {
                       return (
-                        <div key={msg.id} className="flex justify-center">
-                          <span className="text-[11px] text-muted-foreground bg-secondary px-3 py-1 rounded-full">
-                            {msg.body}
-                          </span>
+                        <div key={msg.id}>
+                          {showDateSep && (
+                            <div className="flex items-center gap-3 my-4">
+                              <div className="flex-1 h-px bg-border" />
+                              <span className="text-[11px] font-medium text-muted-foreground bg-card px-3 py-1 rounded-full border shadow-sm">{dateSepLabel}</span>
+                              <div className="flex-1 h-px bg-border" />
+                            </div>
+                          )}
+                          <div className="flex justify-center my-2">
+                            <span className="text-[11px] text-muted-foreground bg-secondary px-3 py-1 rounded-full">
+                              {msg.body}
+                            </span>
+                          </div>
                         </div>
                       );
                     }
@@ -309,101 +323,110 @@ const Messages = () => {
                     const isMe = msg.senderId === currentUser.id;
                     const isStarred = msg.starredBy?.includes(currentUser.id);
                     return (
-                      <div key={msg.id} className={`flex gap-2 ${isMe ? "flex-row-reverse" : ""} group`}>
-                        {sender ? (
-                          <UserHoverCard user={sender}>
-                            <Avatar className="h-7 w-7 shrink-0 cursor-pointer" onClick={() => navigate(`/profile/${sender.id}`)}>
-                              <AvatarFallback className="text-[10px] bg-primary/10 text-primary font-semibold">
-                                {getUserInitials(sender.name)}
-                              </AvatarFallback>
-                            </Avatar>
-                          </UserHoverCard>
-                        ) : (
-                          <Avatar className="h-7 w-7 shrink-0">
-                            <AvatarFallback className="text-[10px] bg-primary/10 text-primary font-semibold">?</AvatarFallback>
-                          </Avatar>
-                        )}
-                        <div className="max-w-[70%] space-y-1">
-                          <div className={`rounded-xl px-3 py-2 text-sm relative ${
-                            isMe ? "bg-primary text-primary-foreground" : "bg-secondary"
-                          }`}>
-                            {isStarred && <Star className="absolute -top-1.5 -right-1.5 h-3.5 w-3.5 text-warning fill-warning" />}
-                            {!isMe && sender && (
-                              <p className="text-xs font-semibold mb-0.5 opacity-70 cursor-pointer hover:underline"
-                                onClick={() => navigate(`/profile/${sender.id}`)}>
-                                {sender.name}
-                              </p>
-                            )}
-                            {msg.sharedMemo ? (
-                              <div className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer ${isMe ? 'bg-primary-foreground/10' : 'bg-background'}`}
-                                onClick={() => navigate(`/memos/${msg.sharedMemo!.memoId}`)}>
-                                <FileText className="h-4 w-4 shrink-0" />
-                                <span className="text-xs font-medium">{msg.sharedMemo.title}</span>
-                              </div>
-                            ) : (
-                              <p>{msg.body}</p>
-                            )}
-                            <p className={`text-[10px] mt-1 ${isMe ? "text-primary-foreground/60" : "text-muted-foreground"}`}>
-                              {formatDistanceToNow(new Date(msg.createdAt), { addSuffix: true })}
-                            </p>
+                      <div key={msg.id}>
+                        {showDateSep && (
+                          <div className="flex items-center gap-3 my-4">
+                            <div className="flex-1 h-px bg-border" />
+                            <span className="text-[11px] font-medium text-muted-foreground bg-card px-3 py-1 rounded-full border shadow-sm">{dateSepLabel}</span>
+                            <div className="flex-1 h-px bg-border" />
                           </div>
-
-                          {msg.reactions.length > 0 && (
-                            <div className="flex gap-1 flex-wrap">
-                              {msg.reactions.map(r => {
-                                const isActive = r.users.includes(currentUser.id);
-                                return (
-                                  <button
-                                    key={r.emoji}
-                                    className={`text-xs px-1.5 py-0.5 rounded-full border transition-colors ${
-                                      isActive ? 'bg-primary/10 border-primary/30' : 'bg-secondary border-transparent hover:border-border'
-                                    }`}
-                                    onClick={() => addReaction(msg.id, r.emoji, currentUser.id)}
-                                  >
-                                    {r.emoji} {r.users.length}
-                                  </button>
-                                );
-                              })}
-                            </div>
+                        )}
+                        <div className={`flex gap-2 py-1 ${isMe ? "flex-row-reverse" : ""} group`}>
+                          {sender ? (
+                            <UserHoverCard user={sender}>
+                              <Avatar className="h-7 w-7 shrink-0 cursor-pointer" onClick={() => navigate(`/profile/${sender.id}`)}>
+                                <AvatarFallback className="text-[10px] bg-primary/10 text-primary font-semibold">
+                                  {getUserInitials(sender.name)}
+                                </AvatarFallback>
+                              </Avatar>
+                            </UserHoverCard>
+                          ) : (
+                            <Avatar className="h-7 w-7 shrink-0">
+                              <AvatarFallback className="text-[10px] bg-primary/10 text-primary font-semibold">?</AvatarFallback>
+                            </Avatar>
                           )}
-
-                          <div className={`opacity-0 group-hover:opacity-100 transition-opacity flex gap-0.5 ${isMe ? 'justify-end' : ''}`}>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <button
-                                  className="text-xs p-0.5 rounded hover:bg-secondary transition-colors"
-                                  onClick={() => starMessage(msg.id, currentUser.id)}
-                                >
-                                  {isStarred ? <StarOff className="h-3.5 w-3.5 text-warning" /> : <Star className="h-3.5 w-3.5 text-muted-foreground" />}
-                                </button>
-                              </TooltipTrigger>
-                              <TooltipContent>{isStarred ? "Unstar this message" : "Star this message for quick access"}</TooltipContent>
-                            </Tooltip>
-                            {QUICK_EMOJIS.slice(0, 4).map(emoji => (
-                              <button
-                                key={emoji}
-                                className="text-xs p-0.5 rounded hover:bg-secondary transition-colors"
-                                onClick={() => addReaction(msg.id, emoji, currentUser.id)}
-                              >
-                                {emoji}
-                              </button>
-                            ))}
-                            <Popover>
-                              <PopoverTrigger asChild>
-                                <button className="text-xs p-0.5 rounded hover:bg-secondary transition-colors">
-                                  <SmilePlus className="h-3.5 w-3.5 text-muted-foreground" />
-                                </button>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-auto p-2">
-                                <div className="flex gap-1 flex-wrap max-w-[180px]">
-                                  {QUICK_EMOJIS.map(emoji => (
-                                    <button key={emoji} className="text-lg p-1 rounded hover:bg-secondary" onClick={() => addReaction(msg.id, emoji, currentUser.id)}>
-                                      {emoji}
-                                    </button>
-                                  ))}
+                          <div className="max-w-[70%] space-y-1">
+                            <div className={`rounded-xl px-3 py-2 text-sm relative ${
+                              isMe ? "bg-primary text-primary-foreground" : "bg-secondary"
+                            }`}>
+                              {isStarred && <Star className="absolute -top-1.5 -right-1.5 h-3.5 w-3.5 text-warning fill-warning" />}
+                              {!isMe && sender && (
+                                <p className="text-xs font-semibold mb-0.5 opacity-70 cursor-pointer hover:underline"
+                                  onClick={() => navigate(`/profile/${sender.id}`)}>
+                                  {sender.name}
+                                </p>
+                              )}
+                              {msg.sharedMemo ? (
+                                <div className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer ${isMe ? 'bg-primary-foreground/10' : 'bg-background'}`}
+                                  onClick={() => navigate(`/memos/${msg.sharedMemo!.memoId}`)}>
+                                  <FileText className="h-4 w-4 shrink-0" />
+                                  <span className="text-xs font-medium">{msg.sharedMemo.title}</span>
                                 </div>
-                              </PopoverContent>
-                            </Popover>
+                              ) : (
+                                <p>{msg.body}</p>
+                              )}
+                              <p className={`text-[10px] mt-1 ${isMe ? "text-primary-foreground/60" : "text-muted-foreground"}`}>
+                                {format(msgDate, "h:mm a")}
+                              </p>
+                            </div>
+
+                            {msg.reactions.length > 0 && (
+                              <div className="flex gap-1 flex-wrap">
+                                {msg.reactions.map(r => {
+                                  const isActive = r.users.includes(currentUser.id);
+                                  return (
+                                    <button
+                                      key={r.emoji}
+                                      className={`text-xs px-1.5 py-0.5 rounded-full border transition-colors ${
+                                        isActive ? 'bg-primary/10 border-primary/30' : 'bg-secondary border-transparent hover:border-border'
+                                      }`}
+                                      onClick={() => addReaction(msg.id, r.emoji, currentUser.id)}
+                                    >
+                                      {r.emoji} {r.users.length}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            )}
+
+                            <div className={`opacity-0 group-hover:opacity-100 transition-opacity flex gap-0.5 ${isMe ? 'justify-end' : ''}`}>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <button
+                                    className="text-xs p-0.5 rounded hover:bg-secondary transition-colors"
+                                    onClick={() => starMessage(msg.id, currentUser.id)}
+                                  >
+                                    {isStarred ? <StarOff className="h-3.5 w-3.5 text-warning" /> : <Star className="h-3.5 w-3.5 text-muted-foreground" />}
+                                  </button>
+                                </TooltipTrigger>
+                                <TooltipContent>{isStarred ? "Unstar this message" : "Star this message for quick access"}</TooltipContent>
+                              </Tooltip>
+                              {QUICK_EMOJIS.slice(0, 4).map(emoji => (
+                                <button
+                                  key={emoji}
+                                  className="text-xs p-0.5 rounded hover:bg-secondary transition-colors"
+                                  onClick={() => addReaction(msg.id, emoji, currentUser.id)}
+                                >
+                                  {emoji}
+                                </button>
+                              ))}
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <button className="text-xs p-0.5 rounded hover:bg-secondary transition-colors">
+                                    <SmilePlus className="h-3.5 w-3.5 text-muted-foreground" />
+                                  </button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-2">
+                                  <div className="flex gap-1 flex-wrap max-w-[180px]">
+                                    {QUICK_EMOJIS.map(emoji => (
+                                      <button key={emoji} className="text-lg p-1 rounded hover:bg-secondary" onClick={() => addReaction(msg.id, emoji, currentUser.id)}>
+                                        {emoji}
+                                      </button>
+                                    ))}
+                                  </div>
+                                </PopoverContent>
+                              </Popover>
+                            </div>
                           </div>
                         </div>
                       </div>

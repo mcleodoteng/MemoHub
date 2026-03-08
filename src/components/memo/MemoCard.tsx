@@ -6,13 +6,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useMemos } from "@/context/MemoContext";
 import {
   Globe, Lock, Shield, Pin, Paperclip, MessageCircle,
   Eye, CheckCircle2, ThumbsUp,
   Archive, EyeOff, Smile, Trash2, Play, Image as ImageIcon,
 } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, format } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { MentionText } from "@/components/shared/MentionText";
 import { toast } from "sonner";
@@ -98,8 +99,8 @@ export function MemoCard({ memo }: MemoCardProps) {
               ) : (
                 <span className="text-sm font-semibold truncate">Unknown</span>
               )}
-              <span className="text-[11px] text-muted-foreground">
-                {formatDistanceToNow(new Date(memo.createdAt), { addSuffix: true })}
+              <span className="text-[11px] text-muted-foreground" title={format(new Date(memo.createdAt), "EEEE, MMM d, yyyy 'at' h:mm a")}>
+                {format(new Date(memo.createdAt), "MMM d, h:mm a")}
               </span>
               <Badge variant="outline" className={`text-[10px] px-1.5 py-0 gap-1 border-transparent ${vis.className}`}>
                 <VisIcon className="h-2.5 w-2.5" />
@@ -283,15 +284,34 @@ export function MemoCard({ memo }: MemoCardProps) {
                   </Tooltip>
                 )}
                 {isCreator && (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                        onClick={stopProp(() => { deleteMemo(memo.id); toast.success('Memo deleted'); })}>
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Delete memo</TooltipContent>
-                  </Tooltip>
+                  <AlertDialog>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                            onClick={e => e.stopPropagation()}>
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </AlertDialogTrigger>
+                      </TooltipTrigger>
+                      <TooltipContent>Delete memo</TooltipContent>
+                    </Tooltip>
+                    <AlertDialogContent onClick={e => e.stopPropagation()}>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Delete this memo?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This memo will be moved to the Trash. You can restore it later from the Deleted tab.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          onClick={() => { deleteMemo(memo.id); toast.success('Memo moved to trash'); }}>
+                          Delete
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 )}
                 <Popover>
                   <Tooltip>
