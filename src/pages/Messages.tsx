@@ -138,6 +138,47 @@ const Messages = () => {
     setPendingAttachments(prev => prev.filter(a => a.id !== id));
   };
 
+  const processDroppedFiles = (files: FileList | File[]) => {
+    const newAtts: Attachment[] = Array.from(files).map(file => ({
+      id: `att-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      name: file.name,
+      type: file.type,
+      size: file.size,
+      url: URL.createObjectURL(file),
+      thumbnailUrl: file.type.startsWith('image/') ? URL.createObjectURL(file) : undefined,
+    }));
+    setPendingAttachments(prev => [...prev, ...newAtts]);
+  };
+
+  const handleDragEnter = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounter.current++;
+    if (e.dataTransfer.types.includes('Files')) setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounter.current--;
+    if (dragCounter.current === 0) setIsDragging(false);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    dragCounter.current = 0;
+    if (e.dataTransfer.files?.length > 0) {
+      processDroppedFiles(e.dataTransfer.files);
+    }
+  };
+
   const handleShareMemo = (memoId: string, memoTitle: string) => {
     sendMessage(selectedConv, `📋 Shared memo: ${memoTitle}`, { memoId, title: memoTitle });
     setShareOpen(false);
