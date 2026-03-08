@@ -461,7 +461,7 @@ const MemoDetail = () => {
                           {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true })}
                         </span>
                       </div>
-                      <p className="text-sm mt-0.5">{comment.body}</p>
+                      <p className="text-sm mt-0.5"><MentionText text={comment.body} /></p>
                     </div>
                   </div>
                 );
