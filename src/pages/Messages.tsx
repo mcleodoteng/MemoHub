@@ -509,7 +509,47 @@ const Messages = () => {
                   <div ref={messagesEndRef} />
                 </div>
 
-                <div className="p-3 border-t flex gap-2">
+                {/* Pending attachments preview */}
+                {pendingAttachments.length > 0 && (
+                  <div className="px-3 pt-2 border-t flex gap-2 flex-wrap">
+                    {pendingAttachments.map(att => (
+                      <div key={att.id} className="relative group/att">
+                        {att.type.startsWith('image/') ? (
+                          <img src={att.url} alt={att.name} className="h-16 w-16 rounded-lg object-cover border" />
+                        ) : (
+                          <div className="h-16 px-3 rounded-lg border bg-secondary flex items-center gap-2">
+                            <Paperclip className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                            <span className="text-xs truncate max-w-[100px]">{att.name}</span>
+                          </div>
+                        )}
+                        <button
+                          className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover/att:opacity-100 transition-opacity"
+                          onClick={() => removePendingAttachment(att.id)}
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div className={`p-3 ${pendingAttachments.length === 0 ? 'border-t' : ''} flex gap-2`}>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    multiple
+                    className="hidden"
+                    onChange={handleFileSelect}
+                    accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.zip"
+                  />
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="icon" className="shrink-0" onClick={() => fileInputRef.current?.click()}>
+                        <Paperclip className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Attach files</TooltipContent>
+                  </Tooltip>
                   <Popover open={shareOpen} onOpenChange={setShareOpen}>
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -546,7 +586,7 @@ const Messages = () => {
                   />
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button size="icon" onClick={handleSend} disabled={!newMessage.trim()}>
+                      <Button size="icon" onClick={handleSend} disabled={!newMessage.trim() && pendingAttachments.length === 0}>
                         <Send className="h-4 w-4" />
                       </Button>
                     </TooltipTrigger>
