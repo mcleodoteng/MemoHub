@@ -142,6 +142,17 @@ export function MemoProvider({ children }: { children: React.ReactNode }) {
     setMemos(prev => prev.map(m => m.id === id ? { ...m, archived: !m.archived } : m));
   }, []);
 
+  const toggleStar = useCallback((memoId: string, userId: string) => {
+    setMemos(prev => prev.map(m => {
+      if (m.id !== memoId) return m;
+      const starred = m.starredBy || [];
+      if (starred.includes(userId)) {
+        return { ...m, starredBy: starred.filter(id => id !== userId) };
+      }
+      return { ...m, starredBy: [...starred, userId] };
+    }));
+  }, []);
+
   const hideMemo = useCallback((memoId: string, userId: string) => {
     setMemos(prev => prev.map(m => {
       if (m.id !== memoId) return m;
