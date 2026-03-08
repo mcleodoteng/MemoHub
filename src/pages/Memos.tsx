@@ -77,6 +77,7 @@ const Memos = () => {
             <TabsTrigger value="protected">Protected ({protectedMemos.length})</TabsTrigger>
             <TabsTrigger value="pinned">Pinned ({pinnedMemos.length})</TabsTrigger>
             <TabsTrigger value="archived">Archived ({archivedMemos.length})</TabsTrigger>
+            <TabsTrigger value="deleted">Deleted ({deletedMemos.length})</TabsTrigger>
           </TabsList>
 
           <TabsContent value="all" className="mt-4">
