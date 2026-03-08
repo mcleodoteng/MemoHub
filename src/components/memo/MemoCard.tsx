@@ -283,15 +283,34 @@ export function MemoCard({ memo }: MemoCardProps) {
                   </Tooltip>
                 )}
                 {isCreator && (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                        onClick={stopProp(() => { deleteMemo(memo.id); toast.success('Memo deleted'); })}>
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Delete memo</TooltipContent>
-                  </Tooltip>
+                  <AlertDialog>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                            onClick={e => e.stopPropagation()}>
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </AlertDialogTrigger>
+                      </TooltipTrigger>
+                      <TooltipContent>Delete memo</TooltipContent>
+                    </Tooltip>
+                    <AlertDialogContent onClick={e => e.stopPropagation()}>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Delete this memo?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This memo will be moved to the Trash. You can restore it later from the Deleted tab.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          onClick={() => { deleteMemo(memo.id); toast.success('Memo moved to trash'); }}>
+                          Delete
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 )}
                 <Popover>
                   <Tooltip>
