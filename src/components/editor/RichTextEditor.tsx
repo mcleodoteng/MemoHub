@@ -65,6 +65,16 @@ export function RichTextEditor({
         ),
         style: `min-height: ${minHeight}`,
       },
+      handleClick: (view, pos, event) => {
+        const target = event.target as HTMLElement;
+        const link = target.closest('a');
+        if (link && link.href) {
+          event.preventDefault();
+          window.open(link.href, '_blank', 'noopener,noreferrer');
+          return true;
+        }
+        return false;
+      },
     },
   });
 
