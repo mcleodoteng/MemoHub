@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, forwardRef } from 'react';
 import { users, currentUser } from '@/data/mock';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { getUserInitials } from '@/data/mock';
@@ -13,14 +13,14 @@ interface MentionInputProps {
   onMention?: (userId: string) => void;
 }
 
-export function MentionInput({
+export const MentionInput = forwardRef<HTMLDivElement, MentionInputProps>(({
   value,
   onChange,
   placeholder = 'Type @ to mention someone...',
   className,
   rows = 3,
   onMention,
-}: MentionInputProps) {
+}, ref) => {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [mentionQuery, setMentionQuery] = useState('');
   const [cursorPosition, setCursorPosition] = useState(0);
