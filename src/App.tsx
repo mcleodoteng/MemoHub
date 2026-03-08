@@ -48,10 +48,12 @@ const App = () => (
         <GroupProvider>
           <MessageProvider>
             <ReminderProvider>
-              <Toaster />
-              <Sonner />
-              <ReminderAlerts />
-              <RouterProvider router={router} />
+              <NotificationProvider>
+                <Toaster />
+                <Sonner />
+                <ReminderAlerts />
+                <RouterProvider router={router} />
+              </NotificationProvider>
             </ReminderProvider>
           </MessageProvider>
         </GroupProvider>
