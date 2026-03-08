@@ -99,8 +99,8 @@ export function MemoCard({ memo }: MemoCardProps) {
               ) : (
                 <span className="text-sm font-semibold truncate">Unknown</span>
               )}
-              <span className="text-[11px] text-muted-foreground">
-                {formatDistanceToNow(new Date(memo.createdAt), { addSuffix: true })}
+              <span className="text-[11px] text-muted-foreground" title={format(new Date(memo.createdAt), "EEEE, MMM d, yyyy 'at' h:mm a")}>
+                {format(new Date(memo.createdAt), "MMM d, h:mm a")}
               </span>
               <Badge variant="outline" className={`text-[10px] px-1.5 py-0 gap-1 border-transparent ${vis.className}`}>
                 <VisIcon className="h-2.5 w-2.5" />

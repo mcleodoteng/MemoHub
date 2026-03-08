@@ -146,7 +146,7 @@ const Messages = () => {
               {getConvName(conv)}
             </span>
             <span className="text-[10px] text-muted-foreground shrink-0">
-              {conv.lastMessage && formatDistanceToNow(new Date(conv.updatedAt), { addSuffix: false })}
+              {conv.lastMessage && format(new Date(conv.updatedAt), "MMM d")}
             </span>
           </div>
           {typing.length > 0 ? (
