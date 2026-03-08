@@ -28,7 +28,7 @@ export function MentionText({ text, className }: MentionTextProps) {
             return (
               <span
                 key={i}
-                className="text-primary font-medium cursor-pointer hover:underline"
+                className="text-primary font-medium cursor-pointer underline decoration-primary/50 hover:decoration-primary"
                 onClick={(e) => {
                   e.stopPropagation();
                   navigate(`/profile/${matchedUser.id}`);
