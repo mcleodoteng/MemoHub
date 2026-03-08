@@ -13,7 +13,7 @@ import { toast } from "sonner";
 
 const Memos = () => {
   const navigate = useNavigate();
-  const { memos } = useMemos();
+  const { memos, restoreMemo } = useMemos();
   const [search, setSearch] = useState("");
 
   // Filter out memos hidden by current user
