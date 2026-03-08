@@ -23,6 +23,7 @@ import Profile from "./pages/Profile";
 import UserProfile from "./pages/UserProfile";
 import Drafts from "./pages/Drafts";
 import Reminders from "./pages/Reminders";
+import WorkflowDashboard from "./pages/WorkflowDashboard";
 import NotFound from "./pages/NotFound";
 import { ReminderAlerts } from "@/components/reminder/ReminderAlerts";
 
@@ -42,6 +43,7 @@ const router = createBrowserRouter([
   { path: "/profile", element: <Profile />, errorElement: <RouteErrorBoundary /> },
   { path: "/profile/:userId", element: <UserProfile />, errorElement: <RouteErrorBoundary /> },
   { path: "/reminders", element: <Reminders />, errorElement: <RouteErrorBoundary /> },
+  { path: "/workflow", element: <WorkflowDashboard />, errorElement: <RouteErrorBoundary /> },
   { path: "*", element: <NotFound /> },
 ]);
 
