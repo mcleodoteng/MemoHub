@@ -464,9 +464,14 @@ const Messages = () => {
                     className="flex-1"
                     onKeyDown={e => e.key === "Enter" && handleSend()}
                   />
-                  <Button size="icon" onClick={handleSend} disabled={!newMessage.trim()}>
-                    <Send className="h-4 w-4" />
-                  </Button>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button size="icon" onClick={handleSend} disabled={!newMessage.trim()}>
+                        <Send className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Send message</TooltipContent>
+                  </Tooltip>
                 </div>
               </>
             ) : (
