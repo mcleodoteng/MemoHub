@@ -184,7 +184,7 @@ const Messages = () => {
       <div className="max-w-5xl mx-auto">
         <div className="flex h-[calc(100vh-8rem)] rounded-xl border bg-card overflow-hidden">
           {/* Conversation List */}
-          <div className="w-80 border-r flex flex-col shrink-0">
+          <div className={`${isMobile ? 'w-full' : 'w-80'} border-r flex flex-col shrink-0 ${isMobile && mobileShowChat ? 'hidden' : ''}`}>
             <div className="p-3 border-b space-y-2">
               <Tabs value={tab} onValueChange={(v) => setTab(v as any)} className="w-full">
                 <TabsList className="w-full h-8">
