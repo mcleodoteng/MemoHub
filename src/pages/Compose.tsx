@@ -12,13 +12,14 @@ import {
 import { users, tags, currentUser, getUserInitials, getUserById } from "@/data/mock";
 import { UserHoverCard } from "@/components/user/UserHoverCard";
 import { useMemos } from "@/context/MemoContext";
+import { useTemplates } from "@/context/TemplateContext";
 import { RichTextEditor } from "@/components/editor/RichTextEditor";
 import { AttachmentUploader } from "@/components/attachment/AttachmentManager";
 import { MemoReferencePicker } from "@/components/memo/MemoReferencePicker";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { MemoVisibility, Attachment } from "@/types";
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
-import { Globe, Lock, Shield, Send, X, FileText, Save } from "lucide-react";
+import { Globe, Lock, Shield, Send, X, FileText, Save, LayoutTemplate, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate, useParams, useBlocker } from "react-router-dom";
 import { useNotifications } from "@/context/NotificationContext";
@@ -28,6 +29,7 @@ const Compose = () => {
   const { draftId } = useParams<{ draftId?: string }>();
   const { addMemo, getMemoById, updateMemo, editMemo } = useMemos();
   const { notifyMentions } = useNotifications();
+  const { templates, addTemplate } = useTemplates();
 
   const draft = draftId ? getMemoById(draftId) : undefined;
   const isEditingDraft = !!draft && draft.status === 'draft' && draft.creatorId === currentUser.id;
@@ -194,6 +196,37 @@ const Compose = () => {
       </AlertDialog>
 
       <div className="max-w-3xl mx-auto space-y-6">
+        {/* Template Picker */}
+        {!isEditingDraft && (
+          <div className="widget-card">
+            <div className="flex items-center gap-2 mb-3">
+              <LayoutTemplate className="h-4 w-4 text-primary" />
+              <span className="text-sm font-semibold">Start from a template</span>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+              {templates.map(tpl => (
+                <button
+                  key={tpl.id}
+                  className="text-left p-3 rounded-lg border border-border hover:border-primary/50 hover:bg-primary/5 transition-all group"
+                  onClick={() => {
+                    setTitle(tpl.title);
+                    setBody(tpl.body);
+                    setSelectedTags(tpl.tags);
+                    setVisibility(tpl.visibility);
+                    toast.success(`Template "${tpl.name}" applied`);
+                  }}
+                >
+                  <p className="text-xs font-semibold group-hover:text-primary transition-colors truncate">{tpl.name}</p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5 line-clamp-2">{tpl.description}</p>
+                  {!tpl.isBuiltIn && (
+                    <Badge variant="outline" className="mt-1.5 text-[9px] h-4">Custom</Badge>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="widget-card space-y-5">
           {/* Title */}
           <div>
@@ -352,14 +385,33 @@ const Compose = () => {
           </div>
 
           {/* Actions */}
-          <div className="flex items-center gap-3 pt-2 border-t">
-            <div className="flex-1" />
-            <Button variant="outline" onClick={() => navigate("/memos")}>Cancel</Button>
-            <Button variant="secondary" onClick={handleSaveDraft} className="gap-2">
-              <Save className="h-4 w-4" /> {isEditingDraft ? "Update Draft" : "Save Draft"}
+          <div className="flex items-center gap-2 md:gap-3 pt-2 border-t flex-wrap">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="gap-1.5 text-xs"
+              onClick={() => {
+                if (!title.trim()) { toast.error("Add a title first"); return; }
+                addTemplate({
+                  name: title.trim().slice(0, 40),
+                  description: `Custom template from "${title.trim().slice(0, 30)}"`,
+                  title,
+                  body,
+                  tags: selectedTags,
+                  visibility,
+                });
+                toast.success("Saved as template!");
+              }}
+            >
+              <LayoutTemplate className="h-3.5 w-3.5" /> Save as Template
             </Button>
-            <Button onClick={handleSend} className="gap-2">
-              <Send className="h-4 w-4" /> Send Memo
+            <div className="flex-1" />
+            <Button variant="outline" size="sm" className="md:size-default" onClick={() => navigate("/memos")}>Cancel</Button>
+            <Button variant="secondary" size="sm" className="gap-2 md:size-default" onClick={handleSaveDraft}>
+              <Save className="h-4 w-4" /> <span className="hidden sm:inline">{isEditingDraft ? "Update Draft" : "Save Draft"}</span><span className="sm:hidden">Draft</span>
+            </Button>
+            <Button size="sm" className="gap-2 md:size-default" onClick={handleSend}>
+              <Send className="h-4 w-4" /> <span className="hidden sm:inline">Send Memo</span><span className="sm:hidden">Send</span>
             </Button>
           </div>
         </div>

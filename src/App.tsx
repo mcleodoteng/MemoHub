@@ -8,6 +8,8 @@ import { GroupProvider } from "@/context/GroupContext";
 import { MessageProvider } from "@/context/MessageContext";
 import { ReminderProvider } from "@/context/ReminderContext";
 import { NotificationProvider } from "@/context/NotificationContext";
+import { RoleProvider } from "@/context/RoleContext";
+import { TemplateProvider } from "@/context/TemplateContext";
 import { RouteErrorBoundary } from "@/components/ErrorBoundary";
 import Index from "./pages/Index";
 import Memos from "./pages/Memos";
@@ -46,20 +48,24 @@ const router = createBrowserRouter([
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <MemoProvider>
-        <GroupProvider>
-          <MessageProvider>
-            <ReminderProvider>
-              <NotificationProvider>
-                <Toaster />
-                <Sonner />
-                <ReminderAlerts />
-                <RouterProvider router={router} />
-              </NotificationProvider>
-            </ReminderProvider>
-          </MessageProvider>
-        </GroupProvider>
-      </MemoProvider>
+      <RoleProvider>
+        <TemplateProvider>
+          <MemoProvider>
+            <GroupProvider>
+              <MessageProvider>
+                <ReminderProvider>
+                  <NotificationProvider>
+                    <Toaster />
+                    <Sonner />
+                    <ReminderAlerts />
+                    <RouterProvider router={router} />
+                  </NotificationProvider>
+                </ReminderProvider>
+              </MessageProvider>
+            </GroupProvider>
+          </MemoProvider>
+        </TemplateProvider>
+      </RoleProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );

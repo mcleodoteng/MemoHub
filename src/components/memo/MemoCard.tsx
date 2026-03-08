@@ -8,6 +8,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useMemos } from "@/context/MemoContext";
+import { useRoles } from "@/context/RoleContext";
 import {
   Globe, Lock, Shield, Pin, Paperclip, MessageCircle,
   Eye, CheckCircle2, ThumbsUp,
@@ -41,10 +42,12 @@ export function MemoCard({ memo }: MemoCardProps) {
   const VisIcon = vis.icon;
   const navigate = useNavigate();
   const { togglePin, toggleArchive, hideMemo, addReaction, deleteMemo, toggleStar } = useMemos();
+  const { hasPermission, canDeleteMemo } = useRoles();
 
   const isCreator = memo.creatorId === currentUser.id;
-  const isAdmin = currentUser.role === 'admin';
   const isStarred = (memo.starredBy || []).includes(currentUser.id);
+  const showPinArchive = isCreator || hasPermission('canPinMemos');
+  const showDelete = canDeleteMemo(memo.creatorId);
 
   const openedCount = memo.recipientStatuses.filter((s) => s.opened).length;
   const acknowledgedCount = memo.recipientStatuses.filter((s) => s.acknowledged).length;
@@ -267,20 +270,22 @@ export function MemoCard({ memo }: MemoCardProps) {
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button variant="ghost" size="icon" className={`h-7 w-7 ${memo.pinned ? 'text-warning' : 'text-muted-foreground'}`}
-                      onClick={stopProp(() => { togglePin(memo.id); toast.success(memo.pinned ? 'Unpinned' : 'Pinned!'); })}>
+                      onClick={stopProp(() => { togglePin(memo.id); toast.success(memo.pinned ? 'Unpinned' : 'Pinned!'); })}
+                      disabled={!showPinArchive}>
                       <Pin className="h-3.5 w-3.5" />
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent>{memo.pinned ? "Unpin memo" : "Pin memo to top"}</TooltipContent>
+                  <TooltipContent>{showPinArchive ? (memo.pinned ? "Unpin memo" : "Pin memo to top") : "Insufficient permissions"}</TooltipContent>
                 </Tooltip>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button variant="ghost" size="icon" className={`h-7 w-7 ${memo.archived ? 'text-primary' : 'text-muted-foreground'}`}
-                      onClick={stopProp(() => { toggleArchive(memo.id); toast.success(memo.archived ? 'Unarchived' : 'Archived!'); })}>
+                      onClick={stopProp(() => { toggleArchive(memo.id); toast.success(memo.archived ? 'Unarchived' : 'Archived!'); })}
+                      disabled={!showPinArchive}>
                       <Archive className="h-3.5 w-3.5" />
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent>{memo.archived ? "Unarchive memo" : "Archive memo"}</TooltipContent>
+                  <TooltipContent>{showPinArchive ? (memo.archived ? "Unarchive memo" : "Archive memo") : "Insufficient permissions"}</TooltipContent>
                 </Tooltip>
                 {!isCreator && (
                   <Tooltip>
@@ -293,7 +298,7 @@ export function MemoCard({ memo }: MemoCardProps) {
                     <TooltipContent>Hide memo from your feed</TooltipContent>
                   </Tooltip>
                 )}
-                {isCreator && (
+                {showDelete && (
                   <AlertDialog>
                     <Tooltip>
                       <TooltipTrigger asChild>

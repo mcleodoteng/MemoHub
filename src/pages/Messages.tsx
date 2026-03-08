@@ -14,9 +14,10 @@ import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   Send, Users as UsersIcon, SmilePlus, FileText, Share2, Search, X,
-  Star, StarOff, Hash, MessageCircle,
+  Star, StarOff, Hash, MessageCircle, ArrowLeft,
 } from "lucide-react";
 import { useState, useRef, useEffect, useMemo } from "react";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { formatDistanceToNow, format, isToday, isYesterday, isSameDay } from "date-fns";
 import { useNavigate } from "react-router-dom";
 
@@ -24,6 +25,7 @@ const QUICK_EMOJIS = ['👍', '❤️', '😂', '🎉', '🚀', '👏', '🔥', 
 
 const Messages = () => {
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const {
     conversations, sendMessage, addReaction, markAsRead,
     getConversationMessages, typingUsers, starMessage, starredMessages, getUnreadCount,
@@ -38,6 +40,7 @@ const Messages = () => {
   const [msgSearch, setMsgSearch] = useState("");
   const [showMsgSearch, setShowMsgSearch] = useState(false);
   const [tab, setTab] = useState<'direct' | 'channels' | 'starred'>('direct');
+  const [mobileShowChat, setMobileShowChat] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const activeConv = conversations.find(c => c.id === selectedConv);
@@ -126,7 +129,7 @@ const Messages = () => {
         className={`flex items-center gap-3 p-3 cursor-pointer transition-colors ${
           selectedConv === conv.id ? "bg-secondary" : "hover:bg-secondary/50"
         }`}
-        onClick={() => { setSelectedConv(conv.id); }}
+        onClick={() => { setSelectedConv(conv.id); if (isMobile) setMobileShowChat(true); }}
       >
         <div className="relative">
           <Avatar className="h-9 w-9 shrink-0">
@@ -181,7 +184,7 @@ const Messages = () => {
       <div className="max-w-5xl mx-auto">
         <div className="flex h-[calc(100vh-8rem)] rounded-xl border bg-card overflow-hidden">
           {/* Conversation List */}
-          <div className="w-80 border-r flex flex-col shrink-0">
+          <div className={`${isMobile ? 'w-full' : 'w-80'} border-r flex flex-col shrink-0 ${isMobile && mobileShowChat ? 'hidden' : ''}`}>
             <div className="p-3 border-b space-y-2">
               <Tabs value={tab} onValueChange={(v) => setTab(v as any)} className="w-full">
                 <TabsList className="w-full h-8">
@@ -228,7 +231,7 @@ const Messages = () => {
                       <div
                         key={msg.id}
                         className="flex items-start gap-2 p-3 cursor-pointer hover:bg-secondary/50 transition-colors border-b border-border/50"
-                        onClick={() => setSelectedConv(msg.conversationId)}
+                        onClick={() => { setSelectedConv(msg.conversationId); if (isMobile) setMobileShowChat(true); }}
                       >
                         <Star className="h-3.5 w-3.5 text-warning shrink-0 mt-1" />
                         <div className="min-w-0 flex-1">
@@ -251,10 +254,15 @@ const Messages = () => {
           </div>
 
           {/* Chat Area */}
-          <div className="flex-1 flex flex-col">
+          <div className={`flex-1 flex flex-col ${isMobile && !mobileShowChat ? 'hidden' : ''}`}>
             {activeConv ? (
               <>
                 <div className="p-3 border-b flex items-center gap-3">
+                  {isMobile && (
+                    <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => setMobileShowChat(false)}>
+                      <ArrowLeft className="h-4 w-4" />
+                    </Button>
+                  )}
                   <Avatar className="h-8 w-8">
                     <AvatarFallback className="text-xs bg-primary/10 text-primary font-semibold">
                       {activeConv.type === 'group' ? <Hash className="h-4 w-4" /> : getConvInitials(activeConv)}
