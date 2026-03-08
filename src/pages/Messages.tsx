@@ -263,9 +263,14 @@ const Messages = () => {
                     <p className="text-sm font-semibold">{getConvName(activeConv)}</p>
                     <p className="text-xs text-muted-foreground">{activeConv.participantIds.length} participants</p>
                   </div>
-                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setShowMsgSearch(!showMsgSearch)}>
-                    <Search className="h-4 w-4" />
-                  </Button>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setShowMsgSearch(!showMsgSearch)}>
+                        <Search className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Search messages in this conversation</TooltipContent>
+                  </Tooltip>
                 </div>
 
                 {showMsgSearch && (
