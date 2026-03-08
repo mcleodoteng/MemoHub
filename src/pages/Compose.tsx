@@ -29,6 +29,7 @@ const Compose = () => {
   const { draftId } = useParams<{ draftId?: string }>();
   const { addMemo, getMemoById, updateMemo, editMemo } = useMemos();
   const { notifyMentions } = useNotifications();
+  const { templates } = useTemplates();
 
   const draft = draftId ? getMemoById(draftId) : undefined;
   const isEditingDraft = !!draft && draft.status === 'draft' && draft.creatorId === currentUser.id;
