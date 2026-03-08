@@ -1,5 +1,5 @@
 import { Memo } from "@/types";
-import { getUserById, getUserInitials, currentUser } from "@/data/mock";
+import { getUserById, getUserInitials, currentUser, users } from "@/data/mock";
 import { UserHoverCard } from "@/components/user/UserHoverCard";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
