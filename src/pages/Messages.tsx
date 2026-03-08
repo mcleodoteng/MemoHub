@@ -368,13 +368,17 @@ const Messages = () => {
                           )}
 
                           <div className={`opacity-0 group-hover:opacity-100 transition-opacity flex gap-0.5 ${isMe ? 'justify-end' : ''}`}>
-                            <button
-                              className="text-xs p-0.5 rounded hover:bg-secondary transition-colors"
-                              onClick={() => starMessage(msg.id, currentUser.id)}
-                              title={isStarred ? "Unstar" : "Star"}
-                            >
-                              {isStarred ? <StarOff className="h-3.5 w-3.5 text-warning" /> : <Star className="h-3.5 w-3.5 text-muted-foreground" />}
-                            </button>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button
+                                  className="text-xs p-0.5 rounded hover:bg-secondary transition-colors"
+                                  onClick={() => starMessage(msg.id, currentUser.id)}
+                                >
+                                  {isStarred ? <StarOff className="h-3.5 w-3.5 text-warning" /> : <Star className="h-3.5 w-3.5 text-muted-foreground" />}
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent>{isStarred ? "Unstar this message" : "Star this message for quick access"}</TooltipContent>
+                            </Tooltip>
                             {QUICK_EMOJIS.slice(0, 4).map(emoji => (
                               <button
                                 key={emoji}
