@@ -9,6 +9,7 @@ import { useNavigate } from "react-router-dom";
 import { useState, useMemo } from "react";
 import { useMemos } from "@/context/MemoContext";
 import { useMessages } from "@/context/MessageContext";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -24,8 +25,10 @@ function stripHtml(html: string): string {
 
 export function AppLayout({ children, title }: AppLayoutProps) {
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const [search, setSearch] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const { memos } = useMemos();
   const { conversations } = useMessages();
 
@@ -48,12 +51,50 @@ export function AppLayout({ children, title }: AppLayoutProps) {
 
   const hasResults = searchResults.memos.length > 0 || searchResults.conversations.length > 0;
 
+  const searchDropdown = search.trim() && searchOpen && (
+    <div className="absolute top-full mt-1 left-0 right-0 bg-popover border rounded-lg shadow-lg z-50 max-h-80 overflow-auto">
+      {!hasResults ? (
+        <p className="text-sm text-muted-foreground p-3 text-center">No results found</p>
+      ) : (
+        <div className="py-1">
+          {searchResults.memos.length > 0 && (
+            <>
+              <p className="text-[10px] font-semibold text-muted-foreground px-3 py-1.5 uppercase tracking-wider">Memos</p>
+              {searchResults.memos.map(m => (
+                <button key={m.id} className="w-full text-left px-3 py-2 hover:bg-secondary transition-colors flex flex-col gap-0.5"
+                  onClick={() => { navigate(`/memos/${m.id}`); setSearch(""); setSearchOpen(false); setMobileSearchOpen(false); }}>
+                  <span className="text-sm font-medium line-clamp-1">{m.title}</span>
+                  <span className="text-[11px] text-muted-foreground line-clamp-1">{stripHtml(m.body)}</span>
+                </button>
+              ))}
+            </>
+          )}
+          {searchResults.conversations.length > 0 && (
+            <>
+              <p className="text-[10px] font-semibold text-muted-foreground px-3 py-1.5 uppercase tracking-wider border-t">Messages</p>
+              {searchResults.conversations.map(c => {
+                const name = c.name || c.participantIds.map(id => getUserById(id)?.name || '').join(', ');
+                return (
+                  <button key={c.id} className="w-full text-left px-3 py-2 hover:bg-secondary transition-colors flex flex-col gap-0.5"
+                    onClick={() => { navigate(`/messages`); setSearch(""); setSearchOpen(false); setMobileSearchOpen(false); }}>
+                    <span className="text-sm font-medium line-clamp-1">{name}</span>
+                    {c.lastMessage && <span className="text-[11px] text-muted-foreground line-clamp-1">{c.lastMessage.body}</span>}
+                  </button>
+                );
+              })}
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
         <AppSidebar />
         <div className="flex-1 flex flex-col min-w-0">
-          <header className="h-14 flex items-center gap-3 border-b bg-card px-4 shrink-0">
+          <header className="h-14 flex items-center gap-2 md:gap-3 border-b bg-card px-3 md:px-4 shrink-0">
             <Tooltip>
               <TooltipTrigger asChild>
                 <SidebarTrigger className="shrink-0" />
@@ -61,11 +102,13 @@ export function AppLayout({ children, title }: AppLayoutProps) {
               <TooltipContent>Toggle sidebar navigation</TooltipContent>
             </Tooltip>
             {title && (
-              <h1 className="font-display text-lg font-semibold truncate">
+              <h1 className="font-display text-base md:text-lg font-semibold truncate">
                 {title}
               </h1>
             )}
             <div className="flex-1" />
+
+            {/* Desktop search */}
             <div className="relative max-w-xs hidden md:block">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
@@ -76,53 +119,18 @@ export function AppLayout({ children, title }: AppLayoutProps) {
                 className="pl-9 h-9 bg-secondary border-none text-sm pr-8"
               />
               {search && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button className="absolute right-2 top-1/2 -translate-y-1/2" onClick={() => { setSearch(""); setSearchOpen(false); }}>
-                      <X className="h-3.5 w-3.5 text-muted-foreground" />
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent>Clear search</TooltipContent>
-                </Tooltip>
+                <button className="absolute right-2 top-1/2 -translate-y-1/2" onClick={() => { setSearch(""); setSearchOpen(false); }}>
+                  <X className="h-3.5 w-3.5 text-muted-foreground" />
+                </button>
               )}
-              {searchOpen && search.trim() && (
-                <div className="absolute top-full mt-1 left-0 right-0 bg-popover border rounded-lg shadow-lg z-50 max-h-80 overflow-auto">
-                  {!hasResults ? (
-                    <p className="text-sm text-muted-foreground p-3 text-center">No results found</p>
-                  ) : (
-                    <div className="py-1">
-                      {searchResults.memos.length > 0 && (
-                        <>
-                          <p className="text-[10px] font-semibold text-muted-foreground px-3 py-1.5 uppercase tracking-wider">Memos</p>
-                          {searchResults.memos.map(m => (
-                            <button key={m.id} className="w-full text-left px-3 py-2 hover:bg-secondary transition-colors flex flex-col gap-0.5"
-                              onClick={() => { navigate(`/memos/${m.id}`); setSearch(""); setSearchOpen(false); }}>
-                              <span className="text-sm font-medium line-clamp-1">{m.title}</span>
-                              <span className="text-[11px] text-muted-foreground line-clamp-1">{stripHtml(m.body)}</span>
-                            </button>
-                          ))}
-                        </>
-                      )}
-                      {searchResults.conversations.length > 0 && (
-                        <>
-                          <p className="text-[10px] font-semibold text-muted-foreground px-3 py-1.5 uppercase tracking-wider border-t">Messages</p>
-                          {searchResults.conversations.map(c => {
-                            const name = c.name || c.participantIds.map(id => getUserById(id)?.name || '').join(', ');
-                            return (
-                              <button key={c.id} className="w-full text-left px-3 py-2 hover:bg-secondary transition-colors flex flex-col gap-0.5"
-                                onClick={() => { navigate(`/messages`); setSearch(""); setSearchOpen(false); }}>
-                                <span className="text-sm font-medium line-clamp-1">{name}</span>
-                                {c.lastMessage && <span className="text-[11px] text-muted-foreground line-clamp-1">{c.lastMessage.body}</span>}
-                              </button>
-                            );
-                          })}
-                        </>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
+              {searchDropdown}
             </div>
+
+            {/* Mobile search toggle */}
+            <Button variant="ghost" size="icon" className="md:hidden shrink-0" onClick={() => setMobileSearchOpen(!mobileSearchOpen)}>
+              <Search className="h-5 w-5" />
+            </Button>
+
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
@@ -142,7 +150,24 @@ export function AppLayout({ children, title }: AppLayoutProps) {
               <TooltipContent>View notifications ({unreadCount} unread)</TooltipContent>
             </Tooltip>
           </header>
-          <main className="flex-1 overflow-auto p-4 md:p-6" onClick={() => setSearchOpen(false)}>{children}</main>
+
+          {/* Mobile search bar */}
+          {mobileSearchOpen && isMobile && (
+            <div className="relative px-3 py-2 border-b bg-card">
+              <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search..."
+                value={search}
+                onChange={e => { setSearch(e.target.value); setSearchOpen(true); }}
+                onFocus={() => setSearchOpen(true)}
+                className="pl-9 h-9 bg-secondary border-none text-sm"
+                autoFocus
+              />
+              {searchDropdown}
+            </div>
+          )}
+
+          <main className="flex-1 overflow-auto p-3 md:p-6" onClick={() => { setSearchOpen(false); setMobileSearchOpen(false); }}>{children}</main>
         </div>
       </div>
     </SidebarProvider>
