@@ -44,7 +44,7 @@ const Memos = () => {
   const pinnedMemos = sentMemos.filter(m => m.pinned && !m.archived);
   const archivedMemos = sentMemos.filter(m => m.archived);
   const deletedMemos = filtered.filter(m => m.status === 'deleted' && (m as any).deletedBy === currentUser.id);
-  const starredMemos = sentMemos.filter(m => m.pinned); // Using pinned as starred for now
+  const starredMemos = sentMemos.filter(m => (m.starredBy || []).includes(currentUser.id) && !m.archived);
 
   const allNonArchived = sentMemos.filter(m => !m.archived).sort((a, b) => {
     if (a.pinned && !b.pinned) return -1;
