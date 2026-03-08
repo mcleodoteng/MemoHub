@@ -662,6 +662,22 @@ const Messages = () => {
           </div>
         </div>
       </div>
+
+      {/* Image Lightbox */}
+      <Dialog open={!!lightboxImage} onOpenChange={() => setLightboxImage(null)}>
+        <DialogContent className="max-w-3xl p-2">
+          <DialogHeader className="px-4 pt-2">
+            <DialogTitle className="text-sm truncate">{lightboxImage?.name}</DialogTitle>
+          </DialogHeader>
+          {lightboxImage && (
+            <img
+              src={lightboxImage.url}
+              alt={lightboxImage.name}
+              className="w-full max-h-[75vh] object-contain rounded-lg"
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 };
