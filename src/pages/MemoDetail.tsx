@@ -529,28 +529,50 @@ const MemoDetail = () => {
           <div className="widget-card">
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-display font-semibold">Comments ({memoComments.length})</h3>
-              {memoComments.length > 1 && (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm" className="h-7 text-xs gap-1.5">
-                      <ArrowUpDown className="h-3 w-3" />
-                      {commentSort === 'newest' ? 'Newest' : commentSort === 'reactions' ? 'Most reactions' : 'Oldest'}
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => setCommentSort('oldest')}>
-                      <ArrowUp className="h-3.5 w-3.5 mr-2" /> Oldest first
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setCommentSort('newest')}>
-                      <ArrowDown className="h-3.5 w-3.5 mr-2" /> Newest first
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setCommentSort('reactions')}>
-                      <Heart className="h-3.5 w-3.5 mr-2" /> Most reactions
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              )}
+              <div className="flex items-center gap-1">
+                {memoComments.length > 2 && (
+                  <div className="relative">
+                    <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+                    <input
+                      type="text"
+                      value={commentSearch}
+                      onChange={(e) => setCommentSearch(e.target.value)}
+                      placeholder="Search comments..."
+                      className="h-7 w-40 pl-7 pr-6 text-xs rounded-md border border-input bg-background focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    />
+                    {commentSearch && (
+                      <button onClick={() => setCommentSearch("")} className="absolute right-1.5 top-1/2 -translate-y-1/2">
+                        <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                      </button>
+                    )}
+                  </div>
+                )}
+                {memoComments.length > 1 && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="sm" className="h-7 text-xs gap-1.5">
+                        <ArrowUpDown className="h-3 w-3" />
+                        {commentSort === 'newest' ? 'Newest' : commentSort === 'reactions' ? 'Most reactions' : 'Oldest'}
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => setCommentSort('oldest')}>
+                        <ArrowUp className="h-3.5 w-3.5 mr-2" /> Oldest first
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setCommentSort('newest')}>
+                        <ArrowDown className="h-3.5 w-3.5 mr-2" /> Newest first
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setCommentSort('reactions')}>
+                        <Heart className="h-3.5 w-3.5 mr-2" /> Most reactions
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
+              </div>
             </div>
+            {commentSearch && topLevelComments.length === 0 && (
+              <p className="text-sm text-muted-foreground text-center py-4">No comments matching "{commentSearch}"</p>
+            )}
             <div className="space-y-4">
               {topLevelComments.map(comment => (
                 <CommentThread
