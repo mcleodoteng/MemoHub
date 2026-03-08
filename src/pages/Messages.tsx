@@ -43,8 +43,10 @@ const Messages = () => {
   const [tab, setTab] = useState<'direct' | 'channels' | 'starred'>('direct');
   const [mobileShowChat, setMobileShowChat] = useState(false);
   const [pendingAttachments, setPendingAttachments] = useState<Attachment[]>([]);
+  const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const dragCounter = useRef(0);
 
   const activeConv = conversations.find(c => c.id === selectedConv);
   const convMessages = getConversationMessages(selectedConv);
