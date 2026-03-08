@@ -17,6 +17,7 @@ import {
   Star, StarOff, Hash, MessageCircle,
 } from "lucide-react";
 import { useState, useRef, useEffect, useMemo } from "react";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { formatDistanceToNow, format, isToday, isYesterday, isSameDay } from "date-fns";
 import { useNavigate } from "react-router-dom";
 
