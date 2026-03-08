@@ -104,10 +104,7 @@ export function AppSidebar() {
             variant="ghost"
             size="icon"
             className="h-7 w-7 text-sidebar-muted hover:text-sidebar-foreground transition-colors"
-            onClick={() => {
-              const trigger = document.querySelector('[data-sidebar="trigger"]') as HTMLButtonElement;
-              trigger?.click();
-            }}
+            onClick={toggleSidebar}
           >
             {collapsed ? <PanelLeft className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
           </Button>
