@@ -6,15 +6,18 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useMemos } from "@/context/MemoContext";
-import { currentUser, getUserById } from "@/data/mock";
+import { currentUser, getUserById, users } from "@/data/mock";
 import {
   getActiveWorkflowMemos,
   getCurrentPendingApprovalStep,
   getWorkflowState,
   isPendingWorkflowApprovalForUser,
+  type WorkflowState,
 } from "@/lib/workflow";
-import { CheckCircle2, Clock, GitMerge, Search, XCircle } from "lucide-react";
+import { CheckCircle2, Clock, Filter, GitMerge, Search, XCircle } from "lucide-react";
 
 const WorkflowDashboard = () => {
   const navigate = useNavigate();
