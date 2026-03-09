@@ -23,6 +23,8 @@ const WorkflowDashboard = () => {
   const navigate = useNavigate();
   const { memos, approveWorkflowStep } = useMemos();
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [assigneeFilter, setAssigneeFilter] = useState<string>("all");
 
   const activeWorkflowMemos = useMemo(
     () =>
@@ -32,17 +34,47 @@ const WorkflowDashboard = () => {
     [memos],
   );
 
-  const filteredMemos = useMemo(() => {
-    if (!search.trim()) return activeWorkflowMemos;
-    const query = search.toLowerCase();
+  // Collect all approvers across active workflows for the assignee filter
+  const approverOptions = useMemo(() => {
+    const approverIds = new Set<string>();
+    activeWorkflowMemos.forEach((memo) => {
+      memo.workflow?.approvalChain.forEach((step) => approverIds.add(step.approverId));
+    });
+    return Array.from(approverIds)
+      .map((id) => getUserById(id))
+      .filter(Boolean) as { id: string; name: string }[];
+  }, [activeWorkflowMemos]);
 
-    return activeWorkflowMemos.filter(
-      (memo) =>
-        memo.title.toLowerCase().includes(query) ||
-        memo.body.toLowerCase().includes(query) ||
-        memo.tags.some((tag) => tag.toLowerCase().includes(query)),
-    );
-  }, [activeWorkflowMemos, search]);
+  const filteredMemos = useMemo(() => {
+    let result = activeWorkflowMemos;
+
+    // Status filter
+    if (statusFilter !== "all") {
+      result = result.filter((memo) => getWorkflowState(memo) === statusFilter);
+    }
+
+    // Assignee filter
+    if (assigneeFilter === "mine") {
+      result = result.filter((memo) => isPendingWorkflowApprovalForUser(memo, currentUser.id));
+    } else if (assigneeFilter !== "all") {
+      result = result.filter((memo) =>
+        memo.workflow?.approvalChain.some((step) => step.approverId === assigneeFilter),
+      );
+    }
+
+    // Text search
+    if (search.trim()) {
+      const query = search.toLowerCase();
+      result = result.filter(
+        (memo) =>
+          memo.title.toLowerCase().includes(query) ||
+          memo.body.toLowerCase().includes(query) ||
+          memo.tags.some((tag) => tag.toLowerCase().includes(query)),
+      );
+    }
+
+    return result;
+  }, [activeWorkflowMemos, search, statusFilter, assigneeFilter]);
 
   const summary = useMemo(() => {
     const inProgress = activeWorkflowMemos.filter((memo) => getWorkflowState(memo) === "pending").length;
