@@ -27,6 +27,8 @@ import Reminders from "./pages/Reminders";
 import WorkflowDashboard from "./pages/WorkflowDashboard";
 import Settings from "./pages/Settings";
 import Login from "./pages/Login";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 import { ReminderAlerts } from "@/components/reminder/ReminderAlerts";
 
