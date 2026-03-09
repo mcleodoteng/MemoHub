@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useAuth } from '@/context/AuthContext';
 import { useRoles, roleLabels, roleHierarchy, UserRole } from '@/context/RoleContext';
@@ -16,44 +16,151 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { toast } from 'sonner';
 import {
   User, Shield, Bell, Palette, Lock, Users, Settings2, Code,
-  Globe, Eye, EyeOff, Save, ChevronRight, AlertTriangle,
+  Save, ChevronRight, AlertTriangle,
 } from 'lucide-react';
 import { getUserInitials } from '@/data/mock';
 
+// ===== Persistence helpers =====
+const SETTINGS_KEY = 'memohub_settings';
+
+interface PersistedSettings {
+  profile: { name: string; email: string; department: string; status: string };
+  notifications: {
+    email: boolean; push: boolean; memo: boolean; mention: boolean; workflow: boolean;
+    digestFrequency: string;
+  };
+  appearance: { theme: string; compactMode: boolean; animations: boolean };
+  security: { twoFactor: boolean; sessionTimeout: string; currentPassword: string; newPassword: string };
+  system: {
+    allowPublicMemos: boolean; requireApproval: boolean;
+    maxAttachmentSize: string; auditRetention: string;
+  };
+  developer: { debugMode: boolean; rateLimit: string; maintenanceMode: boolean };
+}
+
+function loadSettings(userId: string): Partial<PersistedSettings> {
+  try {
+    const raw = localStorage.getItem(`${SETTINGS_KEY}_${userId}`);
+    return raw ? JSON.parse(raw) : {};
+  } catch { return {}; }
+}
+
+function saveSettingsSection(userId: string, section: string, data: any) {
+  const all = loadSettings(userId);
+  (all as any)[section] = data;
+  localStorage.setItem(`${SETTINGS_KEY}_${userId}`, JSON.stringify(all));
+}
+
+// ===== Component =====
 const Settings = () => {
   const { currentUser } = useAuth();
   const { permissions, currentRole, hasPermission } = useRoles();
+  const userId = currentUser?.id || '';
+
+  const saved = loadSettings(userId);
 
   // Profile state
-  const [profileName, setProfileName] = useState(currentUser?.name || '');
-  const [profileEmail, setProfileEmail] = useState(currentUser?.email || '');
-  const [profileDept, setProfileDept] = useState(currentUser?.department || '');
+  const [profileName, setProfileName] = useState(saved.profile?.name ?? currentUser?.name ?? '');
+  const [profileEmail, setProfileEmail] = useState(saved.profile?.email ?? currentUser?.email ?? '');
+  const [profileDept, setProfileDept] = useState(saved.profile?.department ?? currentUser?.department ?? '');
+  const [profileStatus, setProfileStatus] = useState(saved.profile?.status ?? currentUser?.status ?? 'online');
 
   // Notification prefs
-  const [emailNotifs, setEmailNotifs] = useState(true);
-  const [pushNotifs, setPushNotifs] = useState(true);
-  const [memoNotifs, setMemoNotifs] = useState(true);
-  const [mentionNotifs, setMentionNotifs] = useState(true);
-  const [workflowNotifs, setWorkflowNotifs] = useState(true);
-  const [digestFrequency, setDigestFrequency] = useState('daily');
+  const [emailNotifs, setEmailNotifs] = useState(saved.notifications?.email ?? true);
+  const [pushNotifs, setPushNotifs] = useState(saved.notifications?.push ?? true);
+  const [memoNotifs, setMemoNotifs] = useState(saved.notifications?.memo ?? true);
+  const [mentionNotifs, setMentionNotifs] = useState(saved.notifications?.mention ?? true);
+  const [workflowNotifs, setWorkflowNotifs] = useState(saved.notifications?.workflow ?? true);
+  const [digestFrequency, setDigestFrequency] = useState(saved.notifications?.digestFrequency ?? 'daily');
 
   // Appearance
-  const [theme, setTheme] = useState('system');
-  const [compactMode, setCompactMode] = useState(false);
-  const [animationsEnabled, setAnimationsEnabled] = useState(true);
+  const [theme, setTheme] = useState(saved.appearance?.theme ?? 'system');
+  const [compactMode, setCompactMode] = useState(saved.appearance?.compactMode ?? false);
+  const [animationsEnabled, setAnimationsEnabled] = useState(saved.appearance?.animations ?? true);
 
   // Security
-  const [twoFactor, setTwoFactor] = useState(false);
-  const [sessionTimeout, setSessionTimeout] = useState('30');
+  const [twoFactor, setTwoFactor] = useState(saved.security?.twoFactor ?? false);
+  const [sessionTimeout, setSessionTimeout] = useState(saved.security?.sessionTimeout ?? '30');
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
 
   // System (admin+)
-  const [allowPublicMemos, setAllowPublicMemos] = useState(true);
-  const [requireApproval, setRequireApproval] = useState(false);
-  const [maxAttachmentSize, setMaxAttachmentSize] = useState('10');
-  const [auditRetention, setAuditRetention] = useState('90');
+  const [allowPublicMemos, setAllowPublicMemos] = useState(saved.system?.allowPublicMemos ?? true);
+  const [requireApproval, setRequireApproval] = useState(saved.system?.requireApproval ?? false);
+  const [maxAttachmentSize, setMaxAttachmentSize] = useState(saved.system?.maxAttachmentSize ?? '10');
+  const [auditRetention, setAuditRetention] = useState(saved.system?.auditRetention ?? '90');
 
-  const handleSave = (section: string) => {
-    toast.success(`${section} settings saved`);
+  // Developer (super_admin)
+  const [debugMode, setDebugMode] = useState(saved.developer?.debugMode ?? false);
+  const [rateLimit, setRateLimit] = useState(saved.developer?.rateLimit ?? 'standard');
+  const [maintenanceMode, setMaintenanceMode] = useState(saved.developer?.maintenanceMode ?? false);
+
+  // Apply theme
+  useEffect(() => {
+    const root = document.documentElement;
+    root.classList.remove('dark', 'light');
+    if (theme === 'dark') root.classList.add('dark');
+    else if (theme === 'light') root.classList.remove('dark');
+    else {
+      // system
+      if (window.matchMedia('(prefers-color-scheme: dark)').matches) root.classList.add('dark');
+    }
+  }, [theme]);
+
+  // Apply compact mode
+  useEffect(() => {
+    document.documentElement.classList.toggle('compact-mode', compactMode);
+  }, [compactMode]);
+
+  // Apply animations
+  useEffect(() => {
+    document.documentElement.style.setProperty('--transition-speed', animationsEnabled ? '1' : '0');
+  }, [animationsEnabled]);
+
+  const handleSaveProfile = () => {
+    saveSettingsSection(userId, 'profile', { name: profileName, email: profileEmail, department: profileDept, status: profileStatus });
+    toast.success('Profile saved successfully');
+  };
+
+  const handleSaveNotifications = () => {
+    saveSettingsSection(userId, 'notifications', {
+      email: emailNotifs, push: pushNotifs, memo: memoNotifs,
+      mention: mentionNotifs, workflow: workflowNotifs, digestFrequency,
+    });
+    toast.success('Notification preferences saved');
+  };
+
+  const handleSaveAppearance = () => {
+    saveSettingsSection(userId, 'appearance', { theme, compactMode, animations: animationsEnabled });
+    toast.success('Appearance settings saved');
+  };
+
+  const handleSaveSecurity = () => {
+    if (currentPassword || newPassword) {
+      if (currentPassword !== 'password') {
+        toast.error('Current password is incorrect');
+        return;
+      }
+      if (newPassword.length < 6) {
+        toast.error('New password must be at least 6 characters');
+        return;
+      }
+      toast.success('Password updated successfully');
+      setCurrentPassword('');
+      setNewPassword('');
+    }
+    saveSettingsSection(userId, 'security', { twoFactor, sessionTimeout });
+    toast.success('Security settings saved');
+  };
+
+  const handleSaveSystem = () => {
+    saveSettingsSection(userId, 'system', { allowPublicMemos, requireApproval, maxAttachmentSize, auditRetention });
+    toast.success('System settings saved');
+  };
+
+  const handleSaveDeveloper = () => {
+    saveSettingsSection(userId, 'developer', { debugMode, rateLimit, maintenanceMode });
+    toast.success('Developer settings saved');
   };
 
   const settingsTabs = [
@@ -127,12 +234,12 @@ const Settings = () => {
                   <div className="flex items-center gap-4">
                     <Avatar className="h-16 w-16">
                       <AvatarFallback className="bg-primary text-primary-foreground text-lg font-bold">
-                        {getUserInitials(currentUser?.name || '')}
+                        {getUserInitials(profileName || currentUser?.name || '')}
                       </AvatarFallback>
                     </Avatar>
                     <div>
-                      <p className="font-medium">{currentUser?.name}</p>
-                      <p className="text-sm text-muted-foreground">{currentUser?.email}</p>
+                      <p className="font-medium">{profileName}</p>
+                      <p className="text-sm text-muted-foreground">{profileEmail}</p>
                       <Badge className={`mt-1 text-[10px] ${roleBadgeColor(currentRole)}`}>
                         {roleLabels[currentRole]}
                       </Badge>
@@ -156,7 +263,7 @@ const Settings = () => {
                     </div>
                     <div className="space-y-2">
                       <Label>Status</Label>
-                      <Select defaultValue={currentUser?.status || 'online'}>
+                      <Select value={profileStatus} onValueChange={setProfileStatus}>
                         <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="online">🟢 Online</SelectItem>
@@ -167,7 +274,7 @@ const Settings = () => {
                     </div>
                   </div>
 
-                  <Button onClick={() => handleSave('Profile')} className="gap-1.5">
+                  <Button onClick={handleSaveProfile} className="gap-1.5">
                     <Save className="h-3.5 w-3.5" /> Save Profile
                   </Button>
                 </CardContent>
@@ -215,7 +322,7 @@ const Settings = () => {
                     </Select>
                   </div>
 
-                  <Button onClick={() => handleSave('Notification')} className="gap-1.5">
+                  <Button onClick={handleSaveNotifications} className="gap-1.5">
                     <Save className="h-3.5 w-3.5" /> Save Preferences
                   </Button>
                 </CardContent>
@@ -258,7 +365,7 @@ const Settings = () => {
                     <Switch checked={animationsEnabled} onCheckedChange={setAnimationsEnabled} />
                   </div>
 
-                  <Button onClick={() => handleSave('Appearance')} className="gap-1.5">
+                  <Button onClick={handleSaveAppearance} className="gap-1.5">
                     <Save className="h-3.5 w-3.5" /> Save Appearance
                   </Button>
                 </CardContent>
@@ -276,10 +383,19 @@ const Settings = () => {
                   <div className="space-y-2">
                     <Label>Change Password</Label>
                     <div className="grid gap-2 sm:grid-cols-2">
-                      <Input type="password" placeholder="Current password" />
-                      <Input type="password" placeholder="New password" />
+                      <Input
+                        type="password"
+                        placeholder="Current password"
+                        value={currentPassword}
+                        onChange={e => setCurrentPassword(e.target.value)}
+                      />
+                      <Input
+                        type="password"
+                        placeholder="New password"
+                        value={newPassword}
+                        onChange={e => setNewPassword(e.target.value)}
+                      />
                     </div>
-                    <Button variant="outline" size="sm">Update Password</Button>
                   </div>
 
                   <Separator />
@@ -305,7 +421,7 @@ const Settings = () => {
                     </Select>
                   </div>
 
-                  <Button onClick={() => handleSave('Security')} className="gap-1.5">
+                  <Button onClick={handleSaveSecurity} className="gap-1.5">
                     <Save className="h-3.5 w-3.5" /> Save Security Settings
                   </Button>
                 </CardContent>
@@ -426,7 +542,7 @@ const Settings = () => {
                     </div>
                   </div>
 
-                  <Button onClick={() => handleSave('System')} className="gap-1.5">
+                  <Button onClick={handleSaveSystem} className="gap-1.5">
                     <Save className="h-3.5 w-3.5" /> Save System Settings
                   </Button>
                 </CardContent>
@@ -456,7 +572,7 @@ const Settings = () => {
                         <p className="text-sm font-medium">Debug Mode</p>
                         <p className="text-xs text-muted-foreground">Enable verbose logging and debug panels</p>
                       </div>
-                      <Switch />
+                      <Switch checked={debugMode} onCheckedChange={setDebugMode} />
                     </div>
 
                     <div className="flex items-center justify-between">
@@ -464,7 +580,7 @@ const Settings = () => {
                         <p className="text-sm font-medium">API Rate Limiting</p>
                         <p className="text-xs text-muted-foreground">Control request throttling</p>
                       </div>
-                      <Select defaultValue="standard">
+                      <Select value={rateLimit} onValueChange={setRateLimit}>
                         <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="none">None</SelectItem>
@@ -479,7 +595,7 @@ const Settings = () => {
                         <p className="text-sm font-medium">Maintenance Mode</p>
                         <p className="text-xs text-muted-foreground">Show maintenance page to non-admin users</p>
                       </div>
-                      <Switch />
+                      <Switch checked={maintenanceMode} onCheckedChange={setMaintenanceMode} />
                     </div>
                   </div>
 
@@ -497,7 +613,7 @@ const Settings = () => {
                     </div>
                   </div>
 
-                  <Button onClick={() => handleSave('Developer')} variant="destructive" className="gap-1.5">
+                  <Button onClick={handleSaveDeveloper} variant="destructive" className="gap-1.5">
                     <Save className="h-3.5 w-3.5" /> Save Developer Settings
                   </Button>
                 </CardContent>

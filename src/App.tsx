@@ -27,6 +27,8 @@ import Reminders from "./pages/Reminders";
 import WorkflowDashboard from "./pages/WorkflowDashboard";
 import Settings from "./pages/Settings";
 import Login from "./pages/Login";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 import { ReminderAlerts } from "@/components/reminder/ReminderAlerts";
 
@@ -40,6 +42,8 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
 const router = createBrowserRouter([
   { path: "/login", element: <Login />, errorElement: <RouteErrorBoundary /> },
+  { path: "/forgot-password", element: <ForgotPassword />, errorElement: <RouteErrorBoundary /> },
+  { path: "/reset-password", element: <ResetPassword />, errorElement: <RouteErrorBoundary /> },
   { path: "/", element: <ProtectedRoute><Index /></ProtectedRoute>, errorElement: <RouteErrorBoundary /> },
   { path: "/memos", element: <ProtectedRoute><Memos /></ProtectedRoute>, errorElement: <RouteErrorBoundary /> },
   { path: "/memos/:id", element: <ProtectedRoute><MemoDetail /></ProtectedRoute>, errorElement: <RouteErrorBoundary /> },
