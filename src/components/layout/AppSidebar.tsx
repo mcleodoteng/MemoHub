@@ -18,6 +18,7 @@ import { currentUser, getUserInitials, tags as allTags } from "@/data/mock";
 import { useMemos } from "@/context/MemoContext";
 import { useMessages } from "@/context/MessageContext";
 import { useGroups } from "@/context/GroupContext";
+import { getWorkflowPendingCountForUser } from "@/lib/workflow";
 import { useState } from "react";
 
 export function AppSidebar() {
@@ -35,15 +36,8 @@ export function AppSidebar() {
     m.recipientStatuses.some(s => s.userId === currentUser.id && s.opened && !s.approved)
   ).length;
   const draftCount = memos.filter(m => m.status === 'draft' && m.creatorId === currentUser.id).length;
-  
-  const pendingWorkflowApprovals = memos.filter(m => {
-    if (m.status !== 'sent' || !m.workflow?.enabled) return false;
-    const currentStep = m.workflow.approvalChain.find(s => s.status === 'pending');
-    if (!currentStep) return false;
-    const priorSteps = m.workflow.approvalChain.filter(s => s.order < currentStep.order);
-    if (priorSteps.some(s => s.status !== 'approved')) return false;
-    return currentStep.approverId === currentUser.id;
-  }).length;
+
+  const pendingWorkflowApprovals = getWorkflowPendingCountForUser(memos, currentUser.id);
 
   const unreadMessages = conversations.filter(c =>
     c.lastMessage && !c.lastMessage.readBy.includes(currentUser.id)
@@ -206,8 +200,8 @@ export function AppSidebar() {
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                   <SidebarMenuItem>
-                    <SidebarMenuButton asChild tooltip="Workflow">
-                      <button onClick={() => navigate("/memos?tab=workflow")} className={`nav-item text-sidebar-foreground w-full flex items-center gap-2 ${location.pathname === '/memos' && location.search.includes('tab=workflow') ? 'nav-item-active' : ''}`}>
+                    <SidebarMenuButton asChild isActive={location.pathname === "/workflow"} tooltip="Workflow Dashboard">
+                      <NavLink to="/workflow" className="nav-item text-sidebar-foreground" activeClassName="nav-item-active">
                         <div className="relative">
                           <GitMerge className="h-4 w-4 shrink-0" />
                           {pendingWorkflowApprovals > 0 && (
@@ -226,7 +220,7 @@ export function AppSidebar() {
                             )}
                           </span>
                         )}
-                      </button>
+                      </NavLink>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                   <SidebarMenuItem>

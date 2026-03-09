@@ -206,7 +206,7 @@ export interface Reminder {
 }
 
 // ===== NOTIFICATION =====
-export type NotificationType = 'memo_received' | 'memo_approved' | 'comment_added' | 'reaction_added' | 'message_received' | 'mention' | 'group_invite' | 'reminder' | 'starred_activity';
+export type NotificationType = 'memo_received' | 'memo_approved' | 'comment_added' | 'reaction_added' | 'message_received' | 'mention' | 'group_invite' | 'reminder' | 'starred_activity' | 'workflow_pending_approval';
 
 export interface Notification {
   id: string;
