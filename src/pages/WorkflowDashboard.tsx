@@ -6,20 +6,25 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useMemos } from "@/context/MemoContext";
-import { currentUser, getUserById } from "@/data/mock";
+import { currentUser, getUserById, users } from "@/data/mock";
 import {
   getActiveWorkflowMemos,
   getCurrentPendingApprovalStep,
   getWorkflowState,
   isPendingWorkflowApprovalForUser,
+  type WorkflowState,
 } from "@/lib/workflow";
-import { CheckCircle2, Clock, GitMerge, Search, XCircle } from "lucide-react";
+import { CheckCircle2, Clock, Filter, GitMerge, Search, XCircle } from "lucide-react";
 
 const WorkflowDashboard = () => {
   const navigate = useNavigate();
   const { memos, approveWorkflowStep } = useMemos();
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [assigneeFilter, setAssigneeFilter] = useState<string>("all");
 
   const activeWorkflowMemos = useMemo(
     () =>
@@ -29,17 +34,47 @@ const WorkflowDashboard = () => {
     [memos],
   );
 
-  const filteredMemos = useMemo(() => {
-    if (!search.trim()) return activeWorkflowMemos;
-    const query = search.toLowerCase();
+  // Collect all approvers across active workflows for the assignee filter
+  const approverOptions = useMemo(() => {
+    const approverIds = new Set<string>();
+    activeWorkflowMemos.forEach((memo) => {
+      memo.workflow?.approvalChain.forEach((step) => approverIds.add(step.approverId));
+    });
+    return Array.from(approverIds)
+      .map((id) => getUserById(id))
+      .filter(Boolean) as { id: string; name: string }[];
+  }, [activeWorkflowMemos]);
 
-    return activeWorkflowMemos.filter(
-      (memo) =>
-        memo.title.toLowerCase().includes(query) ||
-        memo.body.toLowerCase().includes(query) ||
-        memo.tags.some((tag) => tag.toLowerCase().includes(query)),
-    );
-  }, [activeWorkflowMemos, search]);
+  const filteredMemos = useMemo(() => {
+    let result = activeWorkflowMemos;
+
+    // Status filter
+    if (statusFilter !== "all") {
+      result = result.filter((memo) => getWorkflowState(memo) === statusFilter);
+    }
+
+    // Assignee filter
+    if (assigneeFilter === "mine") {
+      result = result.filter((memo) => isPendingWorkflowApprovalForUser(memo, currentUser.id));
+    } else if (assigneeFilter !== "all") {
+      result = result.filter((memo) =>
+        memo.workflow?.approvalChain.some((step) => step.approverId === assigneeFilter),
+      );
+    }
+
+    // Text search
+    if (search.trim()) {
+      const query = search.toLowerCase();
+      result = result.filter(
+        (memo) =>
+          memo.title.toLowerCase().includes(query) ||
+          memo.body.toLowerCase().includes(query) ||
+          memo.tags.some((tag) => tag.toLowerCase().includes(query)),
+      );
+    }
+
+    return result;
+  }, [activeWorkflowMemos, search, statusFilter, assigneeFilter]);
 
   const summary = useMemo(() => {
     const inProgress = activeWorkflowMemos.filter((memo) => getWorkflowState(memo) === "pending").length;
@@ -111,14 +146,51 @@ const WorkflowDashboard = () => {
           </Card>
         </div>
 
-        <div className="relative">
-          <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search workflows by title, content, or tags..."
-            className="bg-secondary pl-9"
-          />
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <div className="relative flex-1">
+            <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Search workflows..."
+              className="bg-secondary pl-9"
+            />
+          </div>
+
+          <ToggleGroup
+            type="single"
+            value={statusFilter}
+            onValueChange={(val) => val && setStatusFilter(val)}
+            variant="outline"
+            size="sm"
+          >
+            <ToggleGroupItem value="all">All</ToggleGroupItem>
+            <ToggleGroupItem value="pending" className="gap-1">
+              <Clock className="h-3 w-3" /> In Progress
+            </ToggleGroupItem>
+            <ToggleGroupItem value="approved" className="gap-1">
+              <CheckCircle2 className="h-3 w-3" /> Approved
+            </ToggleGroupItem>
+            <ToggleGroupItem value="rejected" className="gap-1">
+              <XCircle className="h-3 w-3" /> Rejected
+            </ToggleGroupItem>
+          </ToggleGroup>
+
+          <Select value={assigneeFilter} onValueChange={setAssigneeFilter}>
+            <SelectTrigger className="w-[180px] bg-secondary">
+              <Filter className="mr-1.5 h-3.5 w-3.5 text-muted-foreground" />
+              <SelectValue placeholder="Assignee" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All assignees</SelectItem>
+              <SelectItem value="mine">Awaiting mine</SelectItem>
+              {approverOptions.map((user) => (
+                <SelectItem key={user.id} value={user.id}>
+                  {user.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         {filteredMemos.length === 0 ? (
