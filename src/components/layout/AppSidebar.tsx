@@ -37,18 +37,18 @@ export function AppSidebar() {
   const userId = currentUser?.id || '';
 
   const pendingApprovals = memos.filter(m =>
-    m.recipientStatuses.some(s => s.userId === currentUser.id && s.opened && !s.approved)
+    m.recipientStatuses.some(s => s.userId === userId && s.opened && !s.approved)
   ).length;
-  const draftCount = memos.filter(m => m.status === 'draft' && m.creatorId === currentUser.id).length;
+  const draftCount = memos.filter(m => m.status === 'draft' && m.creatorId === userId).length;
 
-  const pendingWorkflowApprovals = getWorkflowPendingCountForUser(memos, currentUser.id);
+  const pendingWorkflowApprovals = getWorkflowPendingCountForUser(memos, userId);
 
   const unreadMessages = conversations.filter(c =>
-    c.lastMessage && !c.lastMessage.readBy.includes(currentUser.id)
+    c.lastMessage && !c.lastMessage.readBy.includes(userId)
   ).length;
   const unreadNotifications = pendingApprovals + unreadMessages + pendingWorkflowApprovals;
 
-  const myGroups = groups.filter(g => g.memberIds.includes(currentUser.id));
+  const myGroups = groups.filter(g => g.memberIds.includes(userId));
 
   // Collect all used tags from memos
   const usedTags = Array.from(new Set(memos.flatMap(m => m.tags)));
