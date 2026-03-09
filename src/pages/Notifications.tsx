@@ -62,7 +62,7 @@ const Notifications = () => {
   const navigate = useNavigate();
   const { reminders } = useReminders();
   const { groups } = useGroups();
-  const { memos } = useMemos();
+  const { memos, approveWorkflowStep } = useMemos();
   const { notifications: contextNotifs, markRead, markAllRead } = useNotifications();
 
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
