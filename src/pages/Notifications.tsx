@@ -2,22 +2,26 @@ import { useState, useMemo } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { useNotifications } from "@/context/NotificationContext";
 import { useMemos } from "@/context/MemoContext";
+import { useAuth } from "@/context/AuthContext";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   FileText, MessageCircle, Heart, Mail, AtSign, Users,
-  CheckCircle2, CheckCheck, Bell, Clock, Star, Filter, X, GitMerge,
+  CheckCircle2, CheckCheck, Bell, Clock, Star, Filter, X, GitMerge, XCircle,
+  ChevronDown, ChevronRight,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { useReminders } from "@/context/ReminderContext";
 import { useGroups } from "@/context/GroupContext";
-import { currentUser } from "@/data/mock";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { getActiveWorkflowMemos, getCurrentPendingApprovalStep } from "@/lib/workflow";
 import { toast } from "sonner";
+import { Notification } from "@/types";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { getMemoById } from "@/data/mock";
 
 const typeIcons: Record<string, typeof FileText> = {
   memo_received: Mail,
@@ -58,8 +62,16 @@ const typeColors: Record<string, string> = {
   workflow_pending_approval: "bg-warning/10 text-warning",
 };
 
+interface WorkflowGroup {
+  memoId: string;
+  memoTitle: string;
+  notifications: Notification[];
+  meta: Record<string, { memoId: string; stepId: string }>;
+}
+
 const Notifications = () => {
   const navigate = useNavigate();
+  const { currentUser } = useAuth();
   const { reminders } = useReminders();
   const { groups } = useGroups();
   const { memos, approveWorkflowStep } = useMemos();
@@ -68,20 +80,22 @@ const Notifications = () => {
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const [tab, setTab] = useState<"all" | "unread">("all");
   const [dismissedWorkflowNotifIds, setDismissedWorkflowNotifIds] = useState<string[]>([]);
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
 
-  // Merge in dynamic notifications from groups/reminders/workflow approvals
-  // workflowMeta maps notification id -> { memoId, stepId } for inline approve
+  const userId = currentUser?.id || '';
+
+  // Merge in dynamic notifications
   const { allNotifs, workflowMeta } = useMemo(() => {
     const extras: typeof contextNotifs = [];
     const meta: Record<string, { memoId: string; stepId: string }> = {};
 
     groups.forEach(g => {
       g.pendingInvites
-        .filter(i => i.userId === currentUser.id && i.status === "pending")
+        .filter(i => i.userId === userId && i.status === "pending")
         .forEach(i => {
           extras.push({
             id: `ginv-${g.id}-${i.userId}`,
-            userId: currentUser.id,
+            userId,
             type: "group_invite",
             title: "Group Invitation",
             body: `You've been invited to join "${g.name}"`,
@@ -97,7 +111,7 @@ const Notifications = () => {
       .forEach(r => {
         extras.push({
           id: `rem-${r.id}`,
-          userId: currentUser.id,
+          userId,
           type: "reminder",
           title: "Reminder Due",
           body: r.title + (r.description ? `: ${r.description}` : ""),
@@ -108,16 +122,16 @@ const Notifications = () => {
       });
 
     getActiveWorkflowMemos(memos).forEach(memo => {
-      if (memo.archived || (memo.hiddenBy || []).includes(currentUser.id)) return;
+      if (memo.archived || (memo.hiddenBy || []).includes(userId)) return;
 
       const pendingStep = getCurrentPendingApprovalStep(memo);
-      if (!pendingStep || pendingStep.approverId !== currentUser.id) return;
+      if (!pendingStep || pendingStep.approverId !== userId) return;
 
       const workflowNotificationId = `wf-${memo.id}-${pendingStep.id}`;
       meta[workflowNotificationId] = { memoId: memo.id, stepId: pendingStep.id };
       extras.push({
         id: workflowNotificationId,
-        userId: currentUser.id,
+        userId,
         type: "workflow_pending_approval",
         title: "Approval Needed",
         body: `"${memo.title}" is awaiting your approval (step ${pendingStep.order}/${memo.workflow?.approvalChain.length || 0}).`,
@@ -131,7 +145,36 @@ const Notifications = () => {
       new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
     );
     return { allNotifs: sorted, workflowMeta: meta };
-  }, [contextNotifs, groups, reminders, memos, dismissedWorkflowNotifIds]);
+  }, [contextNotifs, groups, reminders, memos, dismissedWorkflowNotifIds, userId]);
+
+  // Group workflow notifications by memo for email-style summaries
+  const workflowGroups = useMemo(() => {
+    const wfNotifs = allNotifs.filter(n => n.type === 'workflow_pending_approval');
+    const groupMap = new Map<string, WorkflowGroup>();
+
+    wfNotifs.forEach(n => {
+      const m = workflowMeta[n.id];
+      if (!m) return;
+      if (!groupMap.has(m.memoId)) {
+        const memo = memos.find(mm => mm.id === m.memoId);
+        groupMap.set(m.memoId, {
+          memoId: m.memoId,
+          memoTitle: memo?.title || 'Unknown Memo',
+          notifications: [],
+          meta: {},
+        });
+      }
+      const g = groupMap.get(m.memoId)!;
+      g.notifications.push(n);
+      g.meta[n.id] = m;
+    });
+
+    return Array.from(groupMap.values());
+  }, [allNotifs, workflowMeta, memos]);
+
+  const nonWorkflowNotifs = useMemo(() =>
+    allNotifs.filter(n => n.type !== 'workflow_pending_approval'),
+  [allNotifs]);
 
   const filtered = useMemo(() => {
     let items = allNotifs;
@@ -140,18 +183,118 @@ const Notifications = () => {
     return items;
   }, [allNotifs, tab, activeFilter]);
 
+  const filteredNonWorkflow = useMemo(() => {
+    let items = nonWorkflowNotifs;
+    if (tab === "unread") items = items.filter(n => !n.read);
+    if (activeFilter && activeFilter !== 'workflow_pending_approval') items = items.filter(n => n.type === activeFilter);
+    return items;
+  }, [nonWorkflowNotifs, tab, activeFilter]);
+
+  const filteredWorkflowGroups = useMemo(() => {
+    if (activeFilter && activeFilter !== 'workflow_pending_approval') return [];
+    return workflowGroups.filter(g => {
+      if (tab === 'unread') return g.notifications.some(n => !n.read);
+      return true;
+    });
+  }, [workflowGroups, tab, activeFilter]);
+
   const totalUnread = allNotifs.filter(n => !n.read).length;
   const filterTypes = [...new Set(allNotifs.map(n => n.type))];
 
   const handleMarkAllRead = () => {
     markAllRead();
-
     const workflowIds = allNotifs
       .filter(notif => notif.type === "workflow_pending_approval")
       .map(notif => notif.id);
-
     setDismissedWorkflowNotifIds(prev => Array.from(new Set([...prev, ...workflowIds])));
   };
+
+  const toggleGroup = (memoId: string) => {
+    setExpandedGroups(prev => {
+      const next = new Set(prev);
+      if (next.has(memoId)) next.delete(memoId);
+      else next.add(memoId);
+      return next;
+    });
+  };
+
+  const renderNotifItem = (notif: Notification, showWorkflowActions = true) => {
+    const Icon = typeIcons[notif.type] || FileText;
+    return (
+      <div
+        key={notif.id}
+        className={`flex items-start gap-3 p-3 rounded-lg cursor-pointer transition-all ${
+          notif.read
+            ? "opacity-60 hover:bg-secondary/50 hover:opacity-80"
+            : "bg-secondary/30 hover:bg-secondary/60"
+        }`}
+        onClick={() => {
+          if (notif.type === "workflow_pending_approval") {
+            setDismissedWorkflowNotifIds(prev => Array.from(new Set([...prev, notif.id])));
+          }
+          markRead(notif.id);
+          if (notif.actionUrl) navigate(notif.actionUrl);
+        }}
+      >
+        <div className={`p-2 rounded-lg shrink-0 ${typeColors[notif.type] || "bg-muted"}`}>
+          <Icon className="h-4 w-4" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <p className={`text-sm ${notif.read ? "" : "font-semibold"}`}>{notif.title}</p>
+            <Badge variant="outline" className="text-[9px] px-1 py-0 border-transparent">
+              {typeLabels[notif.type] || notif.type}
+            </Badge>
+          </div>
+          <p className="text-xs text-muted-foreground mt-0.5">{notif.body}</p>
+          <div className="flex items-center gap-2 mt-1">
+            <p className="text-[10px] text-muted-foreground">
+              {formatDistanceToNow(new Date(notif.createdAt), { addSuffix: true })}
+            </p>
+            {showWorkflowActions && notif.type === "workflow_pending_approval" && !notif.read && workflowMeta[notif.id] && (
+              <>
+                <Button
+                  size="sm"
+                  variant="default"
+                  className="h-6 text-[10px] px-2 gap-1"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const { memoId, stepId } = workflowMeta[notif.id];
+                    approveWorkflowStep(memoId, stepId, userId, true);
+                    markRead(notif.id);
+                    setDismissedWorkflowNotifIds(prev => Array.from(new Set([...prev, notif.id])));
+                    toast.success("Workflow step approved");
+                  }}
+                >
+                  <CheckCircle2 className="h-3 w-3" />
+                  Approve
+                </Button>
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  className="h-6 text-[10px] px-2 gap-1"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const { memoId, stepId } = workflowMeta[notif.id];
+                    approveWorkflowStep(memoId, stepId, userId, false, "Rejected from Notification Center");
+                    markRead(notif.id);
+                    setDismissedWorkflowNotifIds(prev => Array.from(new Set([...prev, notif.id])));
+                    toast.error("Workflow step rejected");
+                  }}
+                >
+                  <XCircle className="h-3 w-3" />
+                  Reject
+                </Button>
+              </>
+            )}
+          </div>
+        </div>
+        {!notif.read && <span className="h-2 w-2 rounded-full bg-primary mt-2 shrink-0 animate-pulse" />}
+      </div>
+    );
+  };
+
+  const showGrouped = !activeFilter || activeFilter === 'workflow_pending_approval';
 
   return (
     <AppLayout title="Notifications">
@@ -238,63 +381,52 @@ const Notifications = () => {
               </div>
             ) : (
               <div className="space-y-1">
-                {filtered.map(notif => {
-                  const Icon = typeIcons[notif.type] || FileText;
-                  return (
-                    <div
-                      key={notif.id}
-                      className={`flex items-start gap-3 p-3 rounded-lg cursor-pointer transition-all ${
-                        notif.read
-                          ? "opacity-60 hover:bg-secondary/50 hover:opacity-80"
-                          : "bg-secondary/30 hover:bg-secondary/60"
-                      }`}
-                      onClick={() => {
-                        if (notif.type === "workflow_pending_approval") {
-                          setDismissedWorkflowNotifIds(prev => Array.from(new Set([...prev, notif.id])));
-                        }
-                        markRead(notif.id);
-                        if (notif.actionUrl) navigate(notif.actionUrl);
-                      }}
-                    >
-                      <div className={`p-2 rounded-lg shrink-0 ${typeColors[notif.type] || "bg-muted"}`}>
-                        <Icon className="h-4 w-4" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <p className={`text-sm ${notif.read ? "" : "font-semibold"}`}>{notif.title}</p>
-                          <Badge variant="outline" className="text-[9px] px-1 py-0 border-transparent">
-                            {typeLabels[notif.type] || notif.type}
-                          </Badge>
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-0.5">{notif.body}</p>
-                        <div className="flex items-center gap-2 mt-1">
-                          <p className="text-[10px] text-muted-foreground">
-                            {formatDistanceToNow(new Date(notif.createdAt), { addSuffix: true })}
-                          </p>
-                          {notif.type === "workflow_pending_approval" && !notif.read && workflowMeta[notif.id] && (
-                            <Button
-                              size="sm"
-                              variant="default"
-                              className="h-6 text-[10px] px-2 gap-1"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                const { memoId, stepId } = workflowMeta[notif.id];
-                                approveWorkflowStep(memoId, stepId, currentUser.id, true);
-                                markRead(notif.id);
-                                setDismissedWorkflowNotifIds(prev => Array.from(new Set([...prev, notif.id])));
-                                toast.success("Workflow step approved");
-                              }}
-                            >
-                              <CheckCircle2 className="h-3 w-3" />
-                              Approve
-                            </Button>
+                {/* Grouped Workflow Summaries */}
+                {showGrouped && filteredWorkflowGroups.length > 0 && (
+                  <div className="space-y-2 mb-3">
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold px-1">Workflow Approvals</p>
+                    {filteredWorkflowGroups.map(group => {
+                      const unreadCount = group.notifications.filter(n => !n.read).length;
+                      const isExpanded = expandedGroups.has(group.memoId);
+                      return (
+                        <div key={group.memoId} className="rounded-lg border border-border/50 overflow-hidden">
+                          <button
+                            className="w-full flex items-center gap-3 p-3 hover:bg-secondary/30 transition-colors text-left"
+                            onClick={() => toggleGroup(group.memoId)}
+                          >
+                            <div className="p-2 rounded-lg shrink-0 bg-warning/10 text-warning">
+                              <GitMerge className="h-4 w-4" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <p className="text-sm font-semibold truncate">{group.memoTitle}</p>
+                                {unreadCount > 0 && (
+                                  <Badge className="text-[9px] px-1.5 py-0">{unreadCount} pending</Badge>
+                                )}
+                              </div>
+                              <p className="text-xs text-muted-foreground">
+                                {group.notifications.length} approval step{group.notifications.length !== 1 ? 's' : ''}
+                              </p>
+                            </div>
+                            {isExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+                          </button>
+                          {isExpanded && (
+                            <div className="border-t border-border/50 px-2 py-1 space-y-0.5">
+                              {group.notifications.map(n => renderNotifItem(n, true))}
+                            </div>
                           )}
                         </div>
-                      </div>
-                      {!notif.read && <span className="h-2 w-2 rounded-full bg-primary mt-2 shrink-0 animate-pulse" />}
-                    </div>
-                  );
-                })}
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Other Notifications */}
+                {showGrouped && filteredWorkflowGroups.length > 0 && filteredNonWorkflow.length > 0 && (
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold px-1 pt-2">Other Notifications</p>
+                )}
+
+                {(showGrouped ? filteredNonWorkflow : filtered).map(notif => renderNotifItem(notif, !showGrouped))}
               </div>
             )}
           </TabsContent>

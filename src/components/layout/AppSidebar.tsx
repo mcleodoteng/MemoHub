@@ -1,9 +1,10 @@
 import {
   LayoutDashboard, FileText, MessageSquare, Users,
   Bell, PenSquare, ChevronDown, FileEdit, Tag, ChevronRight,
-  Clock, Trash2, Star, PanelLeftClose, PanelLeft, GitMerge,
+  Clock, Trash2, Star, PanelLeftClose, PanelLeft, GitMerge, Settings, LogOut,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
+import { useAuth } from "@/context/AuthContext";
 import { useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import {
@@ -14,7 +15,7 @@ import {
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { currentUser, getUserInitials, tags as allTags } from "@/data/mock";
+import { getUserInitials, tags as allTags } from "@/data/mock";
 import { useMemos } from "@/context/MemoContext";
 import { useMessages } from "@/context/MessageContext";
 import { useGroups } from "@/context/GroupContext";
@@ -27,24 +28,27 @@ export function AppSidebar() {
   const collapsed = state === "collapsed";
   const location = useLocation();
   const navigate = useNavigate();
+  const { currentUser, logout } = useAuth();
   const { memos } = useMemos();
   const { conversations } = useMessages();
   const { groups } = useGroups();
   const [showAllTags, setShowAllTags] = useState(false);
 
-  const pendingApprovals = memos.filter(m =>
-    m.recipientStatuses.some(s => s.userId === currentUser.id && s.opened && !s.approved)
-  ).length;
-  const draftCount = memos.filter(m => m.status === 'draft' && m.creatorId === currentUser.id).length;
+  const userId = currentUser?.id || '';
 
-  const pendingWorkflowApprovals = getWorkflowPendingCountForUser(memos, currentUser.id);
+  const pendingApprovals = memos.filter(m =>
+    m.recipientStatuses.some(s => s.userId === userId && s.opened && !s.approved)
+  ).length;
+  const draftCount = memos.filter(m => m.status === 'draft' && m.creatorId === userId).length;
+
+  const pendingWorkflowApprovals = getWorkflowPendingCountForUser(memos, userId);
 
   const unreadMessages = conversations.filter(c =>
-    c.lastMessage && !c.lastMessage.readBy.includes(currentUser.id)
+    c.lastMessage && !c.lastMessage.readBy.includes(userId)
   ).length;
   const unreadNotifications = pendingApprovals + unreadMessages + pendingWorkflowApprovals;
 
-  const myGroups = groups.filter(g => g.memberIds.includes(currentUser.id));
+  const myGroups = groups.filter(g => g.memberIds.includes(userId));
 
   // Collect all used tags from memos
   const usedTags = Array.from(new Set(memos.flatMap(m => m.tags)));
@@ -92,7 +96,7 @@ export function AppSidebar() {
     </SidebarMenuItem>
   );
 
-  const deletedCount = memos.filter(m => m.status === 'deleted' && (m as any).deletedBy === currentUser.id).length;
+  const deletedCount = memos.filter(m => m.status === 'deleted' && (m as any).deletedBy === userId).length;
 
   return (
     <Sidebar collapsible="icon">
@@ -345,20 +349,36 @@ export function AppSidebar() {
       <SidebarFooter className="p-3">
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild tooltip={currentUser.name}>
+            <SidebarMenuButton asChild isActive={isActive("/settings")} tooltip="Settings">
+              <NavLink to="/settings" className="nav-item text-sidebar-foreground" activeClassName="nav-item-active">
+                <Settings className="h-4 w-4 shrink-0" />
+                {!collapsed && <span>Settings</span>}
+              </NavLink>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild tooltip={currentUser?.name || 'Profile'}>
               <NavLink to="/profile" className="nav-item text-sidebar-foreground" activeClassName="nav-item-active">
                 <Avatar className="h-7 w-7 shrink-0">
                   <AvatarFallback className="bg-sidebar-primary text-sidebar-primary-foreground text-xs font-semibold">
-                    {getUserInitials(currentUser.name)}
+                    {getUserInitials(currentUser?.name || '')}
                   </AvatarFallback>
                 </Avatar>
                 {!collapsed && (
                   <div className="flex flex-col min-w-0">
-                    <span className="text-sm font-medium text-sidebar-accent-foreground truncate">{currentUser.name}</span>
-                    <span className="text-xs text-sidebar-muted truncate">{currentUser.department} · <span className="capitalize">{currentUser.role}</span></span>
+                    <span className="text-sm font-medium text-sidebar-accent-foreground truncate">{currentUser?.name}</span>
+                    <span className="text-xs text-sidebar-muted truncate">{currentUser?.department} · <span className="capitalize">{currentUser?.role?.replace('_', ' ')}</span></span>
                   </div>
                 )}
               </NavLink>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton tooltip="Logout">
+              <button onClick={logout} className="nav-item text-sidebar-foreground w-full flex items-center gap-2">
+                <LogOut className="h-4 w-4 shrink-0" />
+                {!collapsed && <span>Logout</span>}
+              </button>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
