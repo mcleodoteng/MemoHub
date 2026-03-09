@@ -349,20 +349,36 @@ export function AppSidebar() {
       <SidebarFooter className="p-3">
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild tooltip={currentUser.name}>
+            <SidebarMenuButton asChild isActive={isActive("/settings")} tooltip="Settings">
+              <NavLink to="/settings" className="nav-item text-sidebar-foreground" activeClassName="nav-item-active">
+                <Settings className="h-4 w-4 shrink-0" />
+                {!collapsed && <span>Settings</span>}
+              </NavLink>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild tooltip={currentUser?.name || 'Profile'}>
               <NavLink to="/profile" className="nav-item text-sidebar-foreground" activeClassName="nav-item-active">
                 <Avatar className="h-7 w-7 shrink-0">
                   <AvatarFallback className="bg-sidebar-primary text-sidebar-primary-foreground text-xs font-semibold">
-                    {getUserInitials(currentUser.name)}
+                    {getUserInitials(currentUser?.name || '')}
                   </AvatarFallback>
                 </Avatar>
                 {!collapsed && (
                   <div className="flex flex-col min-w-0">
-                    <span className="text-sm font-medium text-sidebar-accent-foreground truncate">{currentUser.name}</span>
-                    <span className="text-xs text-sidebar-muted truncate">{currentUser.department} · <span className="capitalize">{currentUser.role}</span></span>
+                    <span className="text-sm font-medium text-sidebar-accent-foreground truncate">{currentUser?.name}</span>
+                    <span className="text-xs text-sidebar-muted truncate">{currentUser?.department} · <span className="capitalize">{currentUser?.role?.replace('_', ' ')}</span></span>
                   </div>
                 )}
               </NavLink>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton tooltip="Logout">
+              <button onClick={logout} className="nav-item text-sidebar-foreground w-full flex items-center gap-2">
+                <LogOut className="h-4 w-4 shrink-0" />
+                {!collapsed && <span>Logout</span>}
+              </button>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
