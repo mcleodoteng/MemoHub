@@ -17,6 +17,7 @@ import { useGroups } from "@/context/GroupContext";
 import { currentUser } from "@/data/mock";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { getActiveWorkflowMemos, getCurrentPendingApprovalStep } from "@/lib/workflow";
+import { toast } from "sonner";
 
 const typeIcons: Record<string, typeof FileText> = {
   memo_received: Mail,
@@ -61,7 +62,7 @@ const Notifications = () => {
   const navigate = useNavigate();
   const { reminders } = useReminders();
   const { groups } = useGroups();
-  const { memos } = useMemos();
+  const { memos, approveWorkflowStep } = useMemos();
   const { notifications: contextNotifs, markRead, markAllRead } = useNotifications();
 
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
@@ -69,8 +70,10 @@ const Notifications = () => {
   const [dismissedWorkflowNotifIds, setDismissedWorkflowNotifIds] = useState<string[]>([]);
 
   // Merge in dynamic notifications from groups/reminders/workflow approvals
-  const allNotifs = useMemo(() => {
+  // workflowMeta maps notification id -> { memoId, stepId } for inline approve
+  const { allNotifs, workflowMeta } = useMemo(() => {
     const extras: typeof contextNotifs = [];
+    const meta: Record<string, { memoId: string; stepId: string }> = {};
 
     groups.forEach(g => {
       g.pendingInvites
@@ -111,6 +114,7 @@ const Notifications = () => {
       if (!pendingStep || pendingStep.approverId !== currentUser.id) return;
 
       const workflowNotificationId = `wf-${memo.id}-${pendingStep.id}`;
+      meta[workflowNotificationId] = { memoId: memo.id, stepId: pendingStep.id };
       extras.push({
         id: workflowNotificationId,
         userId: currentUser.id,
@@ -123,9 +127,10 @@ const Notifications = () => {
       });
     });
 
-    return [...contextNotifs, ...extras].sort((a, b) =>
+    const sorted = [...contextNotifs, ...extras].sort((a, b) =>
       new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
     );
+    return { allNotifs: sorted, workflowMeta: meta };
   }, [contextNotifs, groups, reminders, memos, dismissedWorkflowNotifIds]);
 
   const filtered = useMemo(() => {
@@ -262,9 +267,29 @@ const Notifications = () => {
                           </Badge>
                         </div>
                         <p className="text-xs text-muted-foreground mt-0.5">{notif.body}</p>
-                        <p className="text-[10px] text-muted-foreground mt-1">
-                          {formatDistanceToNow(new Date(notif.createdAt), { addSuffix: true })}
-                        </p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <p className="text-[10px] text-muted-foreground">
+                            {formatDistanceToNow(new Date(notif.createdAt), { addSuffix: true })}
+                          </p>
+                          {notif.type === "workflow_pending_approval" && !notif.read && workflowMeta[notif.id] && (
+                            <Button
+                              size="sm"
+                              variant="default"
+                              className="h-6 text-[10px] px-2 gap-1"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const { memoId, stepId } = workflowMeta[notif.id];
+                                approveWorkflowStep(memoId, stepId, currentUser.id, true);
+                                markRead(notif.id);
+                                setDismissedWorkflowNotifIds(prev => Array.from(new Set([...prev, notif.id])));
+                                toast.success("Workflow step approved");
+                              }}
+                            >
+                              <CheckCircle2 className="h-3 w-3" />
+                              Approve
+                            </Button>
+                          )}
+                        </div>
                       </div>
                       {!notif.read && <span className="h-2 w-2 rounded-full bg-primary mt-2 shrink-0 animate-pulse" />}
                     </div>
