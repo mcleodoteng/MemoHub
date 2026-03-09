@@ -1,7 +1,7 @@
 import type { User, Memo, Comment, Group, Conversation, Message, Notification, Tag, TagCategory } from '@/types';
 
 // ===== USERS =====
-export const currentUser: User = {
+const defaultUser: User = {
   id: 'u1',
   name: 'Alex Johnson',
   email: 'alex@memohub.com',
@@ -12,8 +12,8 @@ export const currentUser: User = {
   createdAt: '2024-01-15T08:00:00Z',
 };
 
-export const users: User[] = [
-  currentUser,
+export const allUsers: User[] = [
+  defaultUser,
   { id: 'u2', name: 'Sarah Chen', email: 'sarah@memohub.com', avatar: '', role: 'admin', department: 'Design', status: 'online', createdAt: '2024-02-01T08:00:00Z' },
   { id: 'u3', name: 'Marcus Williams', email: 'marcus@memohub.com', avatar: '', role: 'group_leader', department: 'Engineering', status: 'away', createdAt: '2024-02-10T08:00:00Z' },
   { id: 'u4', name: 'Priya Patel', email: 'priya@memohub.com', avatar: '', role: 'manager', department: 'Marketing', status: 'online', createdAt: '2024-03-01T08:00:00Z' },
@@ -22,6 +22,26 @@ export const users: User[] = [
   { id: 'u7', name: 'David Kim', email: 'david@memohub.com', avatar: '', role: 'member', department: 'Finance', status: 'away', createdAt: '2024-04-10T08:00:00Z' },
   { id: 'u8', name: 'Olivia Brown', email: 'olivia@memohub.com', avatar: '', role: 'member', department: 'Design', status: 'online', createdAt: '2024-05-01T08:00:00Z' },
 ];
+
+// Dynamic currentUser based on session - falls back to default
+export function getCurrentUser(): User {
+  const savedId = typeof window !== 'undefined' ? sessionStorage.getItem('memohub_user_id') : null;
+  if (savedId) {
+    const found = allUsers.find(u => u.id === savedId);
+    if (found) return found;
+  }
+  return defaultUser;
+}
+
+// Keep backward compatibility - components can import currentUser or users
+export const currentUser = new Proxy(defaultUser, {
+  get(target, prop) {
+    const user = getCurrentUser();
+    return (user as any)[prop as string];
+  }
+}) as User;
+
+export const users = allUsers;
 
 export const getUserById = (id: string) => users.find(u => u.id === id);
 export const getUserInitials = (name: string) => name.split(' ').map(n => n[0]).join('').toUpperCase();
