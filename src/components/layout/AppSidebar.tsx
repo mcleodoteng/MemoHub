@@ -28,10 +28,13 @@ export function AppSidebar() {
   const collapsed = state === "collapsed";
   const location = useLocation();
   const navigate = useNavigate();
+  const { currentUser, logout } = useAuth();
   const { memos } = useMemos();
   const { conversations } = useMessages();
   const { groups } = useGroups();
   const [showAllTags, setShowAllTags] = useState(false);
+
+  const userId = currentUser?.id || '';
 
   const pendingApprovals = memos.filter(m =>
     m.recipientStatuses.some(s => s.userId === currentUser.id && s.opened && !s.approved)
