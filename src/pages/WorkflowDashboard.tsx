@@ -146,14 +146,51 @@ const WorkflowDashboard = () => {
           </Card>
         </div>
 
-        <div className="relative">
-          <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search workflows by title, content, or tags..."
-            className="bg-secondary pl-9"
-          />
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <div className="relative flex-1">
+            <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Search workflows..."
+              className="bg-secondary pl-9"
+            />
+          </div>
+
+          <ToggleGroup
+            type="single"
+            value={statusFilter}
+            onValueChange={(val) => val && setStatusFilter(val)}
+            variant="outline"
+            size="sm"
+          >
+            <ToggleGroupItem value="all">All</ToggleGroupItem>
+            <ToggleGroupItem value="pending" className="gap-1">
+              <Clock className="h-3 w-3" /> In Progress
+            </ToggleGroupItem>
+            <ToggleGroupItem value="approved" className="gap-1">
+              <CheckCircle2 className="h-3 w-3" /> Approved
+            </ToggleGroupItem>
+            <ToggleGroupItem value="rejected" className="gap-1">
+              <XCircle className="h-3 w-3" /> Rejected
+            </ToggleGroupItem>
+          </ToggleGroup>
+
+          <Select value={assigneeFilter} onValueChange={setAssigneeFilter}>
+            <SelectTrigger className="w-[180px] bg-secondary">
+              <Filter className="mr-1.5 h-3.5 w-3.5 text-muted-foreground" />
+              <SelectValue placeholder="Assignee" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All assignees</SelectItem>
+              <SelectItem value="mine">Awaiting mine</SelectItem>
+              {approverOptions.map((user) => (
+                <SelectItem key={user.id} value={user.id}>
+                  {user.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         {filteredMemos.length === 0 ? (
