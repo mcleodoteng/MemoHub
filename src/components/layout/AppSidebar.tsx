@@ -1,9 +1,10 @@
 import {
   LayoutDashboard, FileText, MessageSquare, Users,
   Bell, PenSquare, ChevronDown, FileEdit, Tag, ChevronRight,
-  Clock, Trash2, Star, PanelLeftClose, PanelLeft, GitMerge,
+  Clock, Trash2, Star, PanelLeftClose, PanelLeft, GitMerge, Settings, LogOut,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
+import { useAuth } from "@/context/AuthContext";
 import { useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import {
