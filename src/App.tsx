@@ -31,6 +31,7 @@ import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 import { ReminderAlerts } from "@/components/reminder/ReminderAlerts";
+import { OfflineBanner } from "@/components/OfflineBanner";
 
 const queryClient = new QueryClient();
 
@@ -73,6 +74,7 @@ const App = () => (
                 <MessageProvider>
                   <ReminderProvider>
                     <NotificationProvider>
+                      <OfflineBanner />
                       <Toaster />
                       <Sonner />
                       <ReminderAlerts />

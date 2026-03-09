@@ -1,27 +1,39 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { getUserById, getUserInitials, currentUser, groups } from "@/data/mock";
+import { getUserById, getUserInitials, groups } from "@/data/mock";
+import { useAuth } from "@/context/AuthContext";
 import { useMemos } from "@/context/MemoContext";
 import { useMessages } from "@/context/MessageContext";
+import { useOnlineStatuses } from "@/hooks/useOnlineStatus";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { MemoCard } from "@/components/memo/MemoCard";
-import { FileText, Users, Mail, Building, ArrowLeft, Clock, Star, MessageCircle } from "lucide-react";
+import { FileText, Users, Mail, Building, ArrowLeft, Clock, MessageCircle } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { useState } from "react";
+import { Star } from "lucide-react";
 import { toast } from "sonner";
+
+const statusColors: Record<string, string> = {
+  online: "bg-emerald-500",
+  away: "bg-amber-500",
+  offline: "bg-muted-foreground/40",
+};
 
 const UserProfile = () => {
   const { userId } = useParams<{ userId: string }>();
   const navigate = useNavigate();
+  const { currentUser } = useAuth();
   const { memos } = useMemos();
-  const { conversations, sendMessage, createConversation } = useMessages();
+  const { conversations, createConversation } = useMessages();
+  const { getUserStatus } = useOnlineStatuses();
   const [starredUsers, setStarredUsers] = useState<string[]>([]);
 
   const user = getUserById(userId || "");
-  const isOwnProfile = user?.id === currentUser.id;
+  const isOwnProfile = user?.id === currentUser?.id;
 
   useEffect(() => {
     if (isOwnProfile) {
@@ -43,8 +55,12 @@ const UserProfile = () => {
     return null;
   }
 
+  const status = getUserStatus(user.id);
   const userMemos = memos.filter(m => m.creatorId === user.id && m.status !== 'draft' && m.visibility === 'public');
   const userGroups = groups.filter(g => g.memberIds.includes(user.id));
+  const sharedGroups = currentUser
+    ? groups.filter(g => g.memberIds.includes(user.id) && g.memberIds.includes(currentUser.id))
+    : [];
   const isStarred = starredUsers.includes(user.id);
 
   const toggleStarUser = () => {
@@ -55,6 +71,7 @@ const UserProfile = () => {
   };
 
   const handleMessage = () => {
+    if (!currentUser) return;
     const existing = conversations.find(c =>
       c.type === 'direct' && c.participantIds.includes(user.id) && c.participantIds.includes(currentUser.id)
     );
@@ -79,11 +96,14 @@ const UserProfile = () => {
         </Tooltip>
 
         <div className="widget-card flex flex-col sm:flex-row items-center sm:items-start gap-5">
-          <Avatar className="h-20 w-20 avatar-ring">
-            <AvatarFallback className="bg-primary text-primary-foreground text-2xl font-display font-bold">
-              {getUserInitials(user.name)}
-            </AvatarFallback>
-          </Avatar>
+          <div className="relative">
+            <Avatar className="h-20 w-20 avatar-ring">
+              <AvatarFallback className="bg-primary text-primary-foreground text-2xl font-display font-bold">
+                {getUserInitials(user.name)}
+              </AvatarFallback>
+            </Avatar>
+            <span className={`absolute -bottom-0.5 -right-0.5 h-4 w-4 rounded-full border-2 border-card ${statusColors[status]}`} />
+          </div>
           <div className="text-center sm:text-left flex-1">
             <h2 className="font-display text-xl font-bold">{user.name}</h2>
             <div className="flex items-center gap-3 mt-2 text-sm text-muted-foreground flex-wrap justify-center sm:justify-start">
@@ -94,8 +114,8 @@ const UserProfile = () => {
             <div className="flex gap-2 mt-3 justify-center sm:justify-start">
               <Badge>{user.role}</Badge>
               <Badge variant="outline" className="capitalize">
-                <span className={`h-1.5 w-1.5 rounded-full mr-1.5 ${user.status === 'online' ? 'bg-emerald-500' : user.status === 'away' ? 'bg-amber-500' : 'bg-muted-foreground'}`} />
-                {user.status}
+                <span className={`h-1.5 w-1.5 rounded-full mr-1.5 ${statusColors[status]}`} />
+                {status}
               </Badge>
             </div>
           </div>
@@ -107,11 +127,11 @@ const UserProfile = () => {
                   {isStarred ? "Starred" : "Star"}
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>{isStarred ? "Unstar this user to stop priority notifications" : "Star this user for priority notifications"}</TooltipContent>
+              <TooltipContent>{isStarred ? "Unstar this user" : "Star for priority notifications"}</TooltipContent>
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-1.5" onClick={handleMessage}>
+                <Button size="sm" className="gap-1.5" onClick={handleMessage}>
                   <MessageCircle className="h-4 w-4" /> Message
                 </Button>
               </TooltipTrigger>
@@ -137,12 +157,27 @@ const UserProfile = () => {
           </div>
         </div>
 
+        {/* Shared groups */}
+        {sharedGroups.length > 0 && (
+          <div>
+            <h3 className="font-display font-semibold mb-3">Groups you share</h3>
+            <div className="flex flex-wrap gap-2">
+              {sharedGroups.map(g => (
+                <Badge key={g.id} variant="secondary" className="cursor-pointer" onClick={() => navigate(`/groups/${g.id}`)}>
+                  <Users className="h-3 w-3 mr-1" /> {g.name}
+                </Badge>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* All user groups */}
         {userGroups.length > 0 && (
           <div>
-            <h3 className="font-display font-semibold mb-3">Groups</h3>
+            <h3 className="font-display font-semibold mb-3">All Groups</h3>
             <div className="flex flex-wrap gap-2">
               {userGroups.map(g => (
-                <Badge key={g.id} variant="secondary" className="cursor-pointer" onClick={() => navigate(`/groups/${g.id}`)}>
+                <Badge key={g.id} variant="outline" className="cursor-pointer" onClick={() => navigate(`/groups/${g.id}`)}>
                   <Users className="h-3 w-3 mr-1" /> {g.name}
                 </Badge>
               ))}

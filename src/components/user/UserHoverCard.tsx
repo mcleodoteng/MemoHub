@@ -3,8 +3,13 @@ import { getUserInitials } from "@/data/mock";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { Badge } from "@/components/ui/badge";
-import { Mail, Building2, Clock } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Mail, Building2, Clock, MessageCircle } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { useUserStatus } from "@/hooks/useOnlineStatus";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/context/AuthContext";
+import { useMessages } from "@/context/MessageContext";
 
 interface UserHoverCardProps {
   user: User;
@@ -19,6 +24,26 @@ const statusColors: Record<string, string> = {
 };
 
 export function UserHoverCard({ user, children, side = "top" }: UserHoverCardProps) {
+  const status = useUserStatus(user.id);
+  const navigate = useNavigate();
+  const { currentUser } = useAuth();
+  const { conversations, createConversation } = useMessages();
+
+  const handleMessage = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!currentUser || currentUser.id === user.id) {
+      navigate('/profile');
+      return;
+    }
+    const existing = conversations.find(c =>
+      c.type === 'direct' && c.participantIds.includes(user.id) && c.participantIds.includes(currentUser.id)
+    );
+    if (!existing) {
+      createConversation([currentUser.id, user.id]);
+    }
+    navigate('/messages');
+  };
+
   return (
     <HoverCard openDelay={200} closeDelay={100}>
       <HoverCardTrigger asChild>{children}</HoverCardTrigger>
@@ -31,7 +56,7 @@ export function UserHoverCard({ user, children, side = "top" }: UserHoverCardPro
               </AvatarFallback>
             </Avatar>
             <span
-              className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-popover ${statusColors[user.status]}`}
+              className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-popover ${statusColors[status]}`}
             />
           </div>
           <div className="flex-1 min-w-0 space-y-1">
@@ -53,6 +78,11 @@ export function UserHoverCard({ user, children, side = "top" }: UserHoverCardPro
               <Clock className="h-3 w-3 shrink-0" />
               <span>Joined {formatDistanceToNow(new Date(user.createdAt), { addSuffix: true })}</span>
             </div>
+            {currentUser && currentUser.id !== user.id && (
+              <Button size="sm" variant="outline" className="mt-2 w-full gap-1.5 h-7 text-xs" onClick={handleMessage}>
+                <MessageCircle className="h-3 w-3" /> Message
+              </Button>
+            )}
           </div>
         </div>
       </HoverCardContent>
