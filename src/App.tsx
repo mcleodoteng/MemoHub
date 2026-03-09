@@ -74,6 +74,7 @@ const App = () => (
                 <MessageProvider>
                   <ReminderProvider>
                     <NotificationProvider>
+                      <OfflineBanner />
                       <Toaster />
                       <Sonner />
                       <ReminderAlerts />
