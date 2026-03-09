@@ -70,8 +70,10 @@ const Notifications = () => {
   const [dismissedWorkflowNotifIds, setDismissedWorkflowNotifIds] = useState<string[]>([]);
 
   // Merge in dynamic notifications from groups/reminders/workflow approvals
-  const allNotifs = useMemo(() => {
+  // workflowMeta maps notification id -> { memoId, stepId } for inline approve
+  const { allNotifs, workflowMeta } = useMemo(() => {
     const extras: typeof contextNotifs = [];
+    const meta: Record<string, { memoId: string; stepId: string }> = {};
 
     groups.forEach(g => {
       g.pendingInvites
@@ -112,6 +114,7 @@ const Notifications = () => {
       if (!pendingStep || pendingStep.approverId !== currentUser.id) return;
 
       const workflowNotificationId = `wf-${memo.id}-${pendingStep.id}`;
+      meta[workflowNotificationId] = { memoId: memo.id, stepId: pendingStep.id };
       extras.push({
         id: workflowNotificationId,
         userId: currentUser.id,
@@ -124,9 +127,10 @@ const Notifications = () => {
       });
     });
 
-    return [...contextNotifs, ...extras].sort((a, b) =>
+    const sorted = [...contextNotifs, ...extras].sort((a, b) =>
       new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
     );
+    return { allNotifs: sorted, workflowMeta: meta };
   }, [contextNotifs, groups, reminders, memos, dismissedWorkflowNotifIds]);
 
   const filtered = useMemo(() => {
