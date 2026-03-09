@@ -15,7 +15,8 @@ import {
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { currentUser, getUserInitials, tags as allTags } from "@/data/mock";
+import { getUserInitials, tags as allTags } from "@/data/mock";
+import { useAuth } from "@/context/AuthContext";
 import { useMemos } from "@/context/MemoContext";
 import { useMessages } from "@/context/MessageContext";
 import { useGroups } from "@/context/GroupContext";

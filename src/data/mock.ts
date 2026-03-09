@@ -6,7 +6,7 @@ export const currentUser: User = {
   name: 'Alex Johnson',
   email: 'alex@memohub.com',
   avatar: '',
-  role: 'admin',
+  role: 'super_admin',
   department: 'Engineering',
   status: 'online',
   createdAt: '2024-01-15T08:00:00Z',
@@ -14,8 +14,8 @@ export const currentUser: User = {
 
 export const users: User[] = [
   currentUser,
-  { id: 'u2', name: 'Sarah Chen', email: 'sarah@memohub.com', avatar: '', role: 'manager', department: 'Design', status: 'online', createdAt: '2024-02-01T08:00:00Z' },
-  { id: 'u3', name: 'Marcus Williams', email: 'marcus@memohub.com', avatar: '', role: 'member', department: 'Engineering', status: 'away', createdAt: '2024-02-10T08:00:00Z' },
+  { id: 'u2', name: 'Sarah Chen', email: 'sarah@memohub.com', avatar: '', role: 'admin', department: 'Design', status: 'online', createdAt: '2024-02-01T08:00:00Z' },
+  { id: 'u3', name: 'Marcus Williams', email: 'marcus@memohub.com', avatar: '', role: 'group_leader', department: 'Engineering', status: 'away', createdAt: '2024-02-10T08:00:00Z' },
   { id: 'u4', name: 'Priya Patel', email: 'priya@memohub.com', avatar: '', role: 'manager', department: 'Marketing', status: 'online', createdAt: '2024-03-01T08:00:00Z' },
   { id: 'u5', name: 'James Lee', email: 'james@memohub.com', avatar: '', role: 'member', department: 'Engineering', status: 'offline', createdAt: '2024-03-15T08:00:00Z' },
   { id: 'u6', name: 'Emily Torres', email: 'emily@memohub.com', avatar: '', role: 'member', department: 'HR', status: 'online', createdAt: '2024-04-01T08:00:00Z' },
