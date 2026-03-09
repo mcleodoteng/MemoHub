@@ -96,7 +96,7 @@ export function AppSidebar() {
     </SidebarMenuItem>
   );
 
-  const deletedCount = memos.filter(m => m.status === 'deleted' && (m as any).deletedBy === currentUser.id).length;
+  const deletedCount = memos.filter(m => m.status === 'deleted' && (m as any).deletedBy === userId).length;
 
   return (
     <Sidebar collapsible="icon">
