@@ -267,9 +267,29 @@ const Notifications = () => {
                           </Badge>
                         </div>
                         <p className="text-xs text-muted-foreground mt-0.5">{notif.body}</p>
-                        <p className="text-[10px] text-muted-foreground mt-1">
-                          {formatDistanceToNow(new Date(notif.createdAt), { addSuffix: true })}
-                        </p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <p className="text-[10px] text-muted-foreground">
+                            {formatDistanceToNow(new Date(notif.createdAt), { addSuffix: true })}
+                          </p>
+                          {notif.type === "workflow_pending_approval" && !notif.read && workflowMeta[notif.id] && (
+                            <Button
+                              size="sm"
+                              variant="default"
+                              className="h-6 text-[10px] px-2 gap-1"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const { memoId, stepId } = workflowMeta[notif.id];
+                                approveWorkflowStep(memoId, stepId, currentUser.id, true);
+                                markRead(notif.id);
+                                setDismissedWorkflowNotifIds(prev => Array.from(new Set([...prev, notif.id])));
+                                toast.success("Workflow step approved");
+                              }}
+                            >
+                              <CheckCircle2 className="h-3 w-3" />
+                              Approve
+                            </Button>
+                          )}
+                        </div>
                       </div>
                       {!notif.read && <span className="h-2 w-2 rounded-full bg-primary mt-2 shrink-0 animate-pulse" />}
                     </div>
