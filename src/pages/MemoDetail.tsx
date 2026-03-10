@@ -867,7 +867,17 @@ function SingleComment({
         )}
         {isReplying && (
           <div className="mt-2 space-y-2 pl-2 border-l-2 border-primary/30">
-            <MentionInput value={threadReplyText} onChange={setThreadReplyText} placeholder={`Reply to ${author?.name || 'comment'}...`} rows={1} />
+            <p className="text-xs text-muted-foreground">Replying to <span className="font-semibold text-foreground">{author?.name || 'Unknown'}</span></p>
+            <MentionInput
+              value={threadReplyText}
+              onChange={setThreadReplyText}
+              onSubmit={() => {
+                const replyTargetId = isReply && parentComment ? parentComment.id : comment.id;
+                handleThreadReply(replyTargetId);
+              }}
+              placeholder="Write your reply..."
+              rows={1}
+            />
             <AttachmentUploader
               attachments={threadAttachments}
               onAdd={(atts) => setThreadAttachments(prev => [...prev, ...atts])}
@@ -879,7 +889,10 @@ function SingleComment({
                 <X className="h-3 w-3" /> Cancel
               </Button>
               <Button size="sm" className="h-7 text-xs gap-1" disabled={!threadReplyText.trim() && threadAttachments.length === 0}
-                onClick={() => handleThreadReply(comment.id)}>
+                onClick={() => {
+                  const replyTargetId = isReply && parentComment ? parentComment.id : comment.id;
+                  handleThreadReply(replyTargetId);
+                }}>
                 <Reply className="h-3 w-3" /> Reply
               </Button>
             </div>
