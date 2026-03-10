@@ -696,6 +696,7 @@ function CommentThread(props: CommentThreadProps) {
 /* ── Single Comment Component ── */
 interface SingleCommentProps extends Omit<CommentThreadProps, 'replies'> {
   isReply?: boolean;
+  parentComment?: import('@/types').Comment;
 }
 
 function SingleComment({
