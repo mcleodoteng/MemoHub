@@ -76,10 +76,10 @@ const UserProfile = () => {
       c.type === 'direct' && c.participantIds.includes(user.id) && c.participantIds.includes(currentUser.id)
     );
     if (existing) {
-      navigate('/messages');
+      navigate(`/messages?conv=${existing.id}`);
     } else {
-      createConversation([currentUser.id, user.id]);
-      navigate('/messages');
+      const newConv = createConversation([currentUser.id, user.id]);
+      navigate(`/messages?conv=${newConv.id}`);
     }
   };
 

@@ -643,6 +643,7 @@ const Messages = () => {
                   <MentionInput
                     value={newMessage}
                     onChange={setNewMessage}
+                    onSubmit={handleSend}
                     placeholder="Type a message... (@ to mention)"
                     className="flex-1"
                     rows={1}
