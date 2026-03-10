@@ -11,6 +11,7 @@ interface MentionInputProps {
   className?: string;
   rows?: number;
   onMention?: (userId: string) => void;
+  onSubmit?: () => void;
 }
 
 export function MentionInput({
@@ -20,6 +21,7 @@ export function MentionInput({
   className,
   rows = 3,
   onMention,
+  onSubmit,
 }: MentionInputProps) {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [mentionQuery, setMentionQuery] = useState('');
@@ -53,6 +55,13 @@ export function MentionInput({
     setShowSuggestions(false);
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey && !showSuggestions) {
+      e.preventDefault();
+      onSubmit?.();
+    }
+  };
+
   const selectMention = (user: typeof users[0]) => {
     if (mentionStart < 0) return;
     const before = value.slice(0, mentionStart);
@@ -77,6 +86,7 @@ export function MentionInput({
         ref={textareaRef}
         value={value}
         onChange={handleChange}
+        onKeyDown={handleKeyDown}
         placeholder={placeholder}
         rows={rows}
         className={cn(
