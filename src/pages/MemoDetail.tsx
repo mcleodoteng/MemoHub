@@ -624,7 +624,7 @@ const MemoDetail = () => {
                 </div>
               )}
               <div className="space-y-2 pt-2 border-t">
-                <MentionInput value={replyText} onChange={setReplyText} placeholder="Write a comment... (type @ to mention)" rows={2} />
+                <MentionInput value={replyText} onChange={setReplyText} onSubmit={handleReply} placeholder="Write a comment... (type @ to mention)" rows={2} />
                 <AttachmentUploader
                   attachments={commentAttachments}
                   onAdd={(atts) => setCommentAttachments(prev => [...prev, ...atts])}
@@ -678,13 +678,14 @@ interface CommentThreadProps {
 
 function CommentThread(props: CommentThreadProps) {
   const { comment, replies, ...rest } = props;
+  const allComments = rest.replyingToCommentId ? [] : []; // just for type
   return (
     <div className="space-y-2">
       <SingleComment comment={comment} {...rest} />
       {replies.length > 0 && (
         <div className="ml-8 pl-3 border-l-2 border-border space-y-2">
           {replies.map(reply => (
-            <SingleComment key={reply.id} comment={reply} {...rest} isReply />
+            <SingleComment key={reply.id} comment={reply} {...rest} isReply parentComment={comment} />
           ))}
         </div>
       )}
@@ -695,6 +696,7 @@ function CommentThread(props: CommentThreadProps) {
 /* ── Single Comment Component ── */
 interface SingleCommentProps extends Omit<CommentThreadProps, 'replies'> {
   isReply?: boolean;
+  parentComment?: import('@/types').Comment;
 }
 
 function SingleComment({
@@ -703,7 +705,7 @@ function SingleComment({
   replyingToCommentId, setReplyingToCommentId, threadReplyText, setThreadReplyText,
   threadAttachments, setThreadAttachments, handleThreadReply,
   editComment, deleteComment, addCommentReaction, toggleCommentPin, isMemoCreator,
-  quickEmojis, processMentionsInHtml, isReply,
+  quickEmojis, processMentionsInHtml, isReply, parentComment,
 }: SingleCommentProps) {
   const author = getUserById(comment.authorId);
   const isCommentAuthor = comment.authorId === currentUser.id;
@@ -751,20 +753,20 @@ function SingleComment({
           </span>
           {wasEdited && <span className="text-xs text-muted-foreground italic">(edited)</span>}
           <div className="ml-auto flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-            {!isReply && (
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => {
-                    setReplyingToCommentId(isReplying ? null : comment.id);
+                    // For replies, reply to the parent comment to keep the thread flat under the top-level comment
+                    const replyTargetId = isReply && parentComment ? parentComment.id : comment.id;
+                    setReplyingToCommentId(replyingToCommentId === replyTargetId ? null : replyTargetId);
                     setThreadReplyText("");
                     setThreadAttachments([]);
                   }}>
                     <Reply className="h-3.5 w-3.5" />
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>Reply</TooltipContent>
+                <TooltipContent>Reply to {author?.name?.split(' ')[0] || 'this comment'}</TooltipContent>
               </Tooltip>
-            )}
             <Popover>
               <PopoverTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-6 w-6">
@@ -865,7 +867,17 @@ function SingleComment({
         )}
         {isReplying && (
           <div className="mt-2 space-y-2 pl-2 border-l-2 border-primary/30">
-            <MentionInput value={threadReplyText} onChange={setThreadReplyText} placeholder={`Reply to ${author?.name || 'comment'}...`} rows={1} />
+            <p className="text-xs text-muted-foreground">Replying to <span className="font-semibold text-foreground">{author?.name || 'Unknown'}</span></p>
+            <MentionInput
+              value={threadReplyText}
+              onChange={setThreadReplyText}
+              onSubmit={() => {
+                const replyTargetId = isReply && parentComment ? parentComment.id : comment.id;
+                handleThreadReply(replyTargetId);
+              }}
+              placeholder="Write your reply..."
+              rows={1}
+            />
             <AttachmentUploader
               attachments={threadAttachments}
               onAdd={(atts) => setThreadAttachments(prev => [...prev, ...atts])}
@@ -877,7 +889,10 @@ function SingleComment({
                 <X className="h-3 w-3" /> Cancel
               </Button>
               <Button size="sm" className="h-7 text-xs gap-1" disabled={!threadReplyText.trim() && threadAttachments.length === 0}
-                onClick={() => handleThreadReply(comment.id)}>
+                onClick={() => {
+                  const replyTargetId = isReply && parentComment ? parentComment.id : comment.id;
+                  handleThreadReply(replyTargetId);
+                }}>
                 <Reply className="h-3 w-3" /> Reply
               </Button>
             </div>

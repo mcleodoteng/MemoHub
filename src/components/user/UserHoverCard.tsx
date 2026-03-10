@@ -38,10 +38,12 @@ export function UserHoverCard({ user, children, side = "top" }: UserHoverCardPro
     const existing = conversations.find(c =>
       c.type === 'direct' && c.participantIds.includes(user.id) && c.participantIds.includes(currentUser.id)
     );
-    if (!existing) {
-      createConversation([currentUser.id, user.id]);
+    if (existing) {
+      navigate(`/messages?conv=${existing.id}`);
+    } else {
+      const newConv = createConversation([currentUser.id, user.id]);
+      navigate(`/messages?conv=${newConv.id}`);
     }
-    navigate('/messages');
   };
 
   return (

@@ -133,26 +133,28 @@ const Memos = () => {
         </div>
 
         <Tabs value={activeTab} onValueChange={(val) => setSearchParams({ tab: val })}>
-          <div className="overflow-x-auto -mx-3 px-3 md:mx-0 md:px-0">
-            <TabsList className="inline-flex w-auto min-w-max">
-              <TabsTrigger value="all">All ({sentMemos.filter(m => !m.archived).length})</TabsTrigger>
-              <TabsTrigger value="drafts">Drafts ({draftMemos.length})</TabsTrigger>
-              <TabsTrigger value="public">Public ({publicMemos.length})</TabsTrigger>
-              <TabsTrigger value="private">Private ({privateMemos.length})</TabsTrigger>
-              <TabsTrigger value="protected">Protected ({protectedMemos.length})</TabsTrigger>
-              <TabsTrigger value="pinned">Pinned ({pinnedMemos.length})</TabsTrigger>
-              <TabsTrigger value="archived">Archived ({archivedMemos.length})</TabsTrigger>
-              <TabsTrigger value="starred">Starred ({starredMemos.length})</TabsTrigger>
-              <TabsTrigger value="workflow" className="relative pr-6">
-                Workflow ({workflowMemos.length})
-                {pendingWorkflowApprovals > 0 && (
-                  <span className="absolute right-1 top-1.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-destructive text-[9px] font-bold text-destructive-foreground">
-                    {pendingWorkflowApprovals}
-                  </span>
-                )}
-              </TabsTrigger>
-              <TabsTrigger value="deleted">Trash ({deletedMemos.length})</TabsTrigger>
-            </TabsList>
+          <div className="relative -mx-3 px-3 md:mx-0 md:px-0">
+            <div className="overflow-x-auto scrollbar-none scroll-smooth snap-x snap-mandatory" style={{ WebkitOverflowScrolling: 'touch' }}>
+              <TabsList className="inline-flex w-auto min-w-max gap-1 bg-transparent p-0.5">
+                <TabsTrigger value="all" className="snap-start rounded-full px-4 py-1.5 text-xs font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm transition-all duration-200">All ({sentMemos.filter(m => !m.archived).length})</TabsTrigger>
+                <TabsTrigger value="drafts" className="snap-start rounded-full px-4 py-1.5 text-xs font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm transition-all duration-200">Drafts ({draftMemos.length})</TabsTrigger>
+                <TabsTrigger value="public" className="snap-start rounded-full px-4 py-1.5 text-xs font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm transition-all duration-200">Public ({publicMemos.length})</TabsTrigger>
+                <TabsTrigger value="private" className="snap-start rounded-full px-4 py-1.5 text-xs font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm transition-all duration-200">Private ({privateMemos.length})</TabsTrigger>
+                <TabsTrigger value="protected" className="snap-start rounded-full px-4 py-1.5 text-xs font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm transition-all duration-200">Protected ({protectedMemos.length})</TabsTrigger>
+                <TabsTrigger value="pinned" className="snap-start rounded-full px-4 py-1.5 text-xs font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm transition-all duration-200">Pinned ({pinnedMemos.length})</TabsTrigger>
+                <TabsTrigger value="archived" className="snap-start rounded-full px-4 py-1.5 text-xs font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm transition-all duration-200">Archived ({archivedMemos.length})</TabsTrigger>
+                <TabsTrigger value="starred" className="snap-start rounded-full px-4 py-1.5 text-xs font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm transition-all duration-200">Starred ({starredMemos.length})</TabsTrigger>
+                <TabsTrigger value="workflow" className="snap-start rounded-full px-4 py-1.5 text-xs font-medium relative pr-6 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm transition-all duration-200">
+                  Workflow ({workflowMemos.length})
+                  {pendingWorkflowApprovals > 0 && (
+                    <span className="absolute right-1 top-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-destructive text-[9px] font-bold text-destructive-foreground">
+                      {pendingWorkflowApprovals}
+                    </span>
+                  )}
+                </TabsTrigger>
+                <TabsTrigger value="deleted" className="snap-start rounded-full px-4 py-1.5 text-xs font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm transition-all duration-200">Trash ({deletedMemos.length})</TabsTrigger>
+              </TabsList>
+            </div>
           </div>
 
           <TabsContent value="all" className="mt-4"><MemoList items={allNonArchived} /></TabsContent>
