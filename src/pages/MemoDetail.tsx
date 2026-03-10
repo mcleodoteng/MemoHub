@@ -753,20 +753,20 @@ function SingleComment({
           </span>
           {wasEdited && <span className="text-xs text-muted-foreground italic">(edited)</span>}
           <div className="ml-auto flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-            {!isReply && (
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => {
-                    setReplyingToCommentId(isReplying ? null : comment.id);
+                    // For replies, reply to the parent comment to keep the thread flat under the top-level comment
+                    const replyTargetId = isReply && parentComment ? parentComment.id : comment.id;
+                    setReplyingToCommentId(replyingToCommentId === replyTargetId ? null : replyTargetId);
                     setThreadReplyText("");
                     setThreadAttachments([]);
                   }}>
                     <Reply className="h-3.5 w-3.5" />
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>Reply</TooltipContent>
+                <TooltipContent>Reply to {author?.name?.split(' ')[0] || 'this comment'}</TooltipContent>
               </Tooltip>
-            )}
             <Popover>
               <PopoverTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-6 w-6">
