@@ -678,13 +678,14 @@ interface CommentThreadProps {
 
 function CommentThread(props: CommentThreadProps) {
   const { comment, replies, ...rest } = props;
+  const allComments = rest.replyingToCommentId ? [] : []; // just for type
   return (
     <div className="space-y-2">
       <SingleComment comment={comment} {...rest} />
       {replies.length > 0 && (
         <div className="ml-8 pl-3 border-l-2 border-border space-y-2">
           {replies.map(reply => (
-            <SingleComment key={reply.id} comment={reply} {...rest} isReply />
+            <SingleComment key={reply.id} comment={reply} {...rest} isReply parentComment={comment} />
           ))}
         </div>
       )}
