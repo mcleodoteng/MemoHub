@@ -37,7 +37,10 @@ const Messages = () => {
   const { memos } = useMemos();
   const { groups } = useGroups();
 
-  const [selectedConv, setSelectedConv] = useState(conversations[0]?.id || "");
+  const [selectedConv, setSelectedConv] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('conv') || conversations[0]?.id || "";
+  });
   const [newMessage, setNewMessage] = useState("");
   const [shareOpen, setShareOpen] = useState(false);
   const [convSearch, setConvSearch] = useState("");
