@@ -624,7 +624,7 @@ const MemoDetail = () => {
                 </div>
               )}
               <div className="space-y-2 pt-2 border-t">
-                <MentionInput value={replyText} onChange={setReplyText} placeholder="Write a comment... (type @ to mention)" rows={2} />
+                <MentionInput value={replyText} onChange={setReplyText} onSubmit={handleReply} placeholder="Write a comment... (type @ to mention)" rows={2} />
                 <AttachmentUploader
                   attachments={commentAttachments}
                   onAdd={(atts) => setCommentAttachments(prev => [...prev, ...atts])}
