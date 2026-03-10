@@ -705,7 +705,7 @@ function SingleComment({
   replyingToCommentId, setReplyingToCommentId, threadReplyText, setThreadReplyText,
   threadAttachments, setThreadAttachments, handleThreadReply,
   editComment, deleteComment, addCommentReaction, toggleCommentPin, isMemoCreator,
-  quickEmojis, processMentionsInHtml, isReply,
+  quickEmojis, processMentionsInHtml, isReply, parentComment,
 }: SingleCommentProps) {
   const author = getUserById(comment.authorId);
   const isCommentAuthor = comment.authorId === currentUser.id;
