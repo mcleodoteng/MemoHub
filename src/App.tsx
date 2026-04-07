@@ -26,6 +26,7 @@ import Drafts from "./pages/Drafts";
 import Reminders from "./pages/Reminders";
 import WorkflowDashboard from "./pages/WorkflowDashboard";
 import Settings from "./pages/Settings";
+import Reports from "./pages/Reports";
 import Login from "./pages/Login";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
@@ -60,6 +61,7 @@ const router = createBrowserRouter([
   { path: "/reminders", element: <ProtectedRoute><Reminders /></ProtectedRoute>, errorElement: <RouteErrorBoundary /> },
   { path: "/workflow", element: <ProtectedRoute><WorkflowDashboard /></ProtectedRoute>, errorElement: <RouteErrorBoundary /> },
   { path: "/settings", element: <ProtectedRoute><Settings /></ProtectedRoute>, errorElement: <RouteErrorBoundary /> },
+  { path: "/reports", element: <ProtectedRoute><Reports /></ProtectedRoute>, errorElement: <RouteErrorBoundary /> },
   { path: "*", element: <NotFound /> },
 ]);
 

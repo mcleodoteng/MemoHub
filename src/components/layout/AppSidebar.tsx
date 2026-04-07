@@ -1,7 +1,7 @@
 import {
   LayoutDashboard, FileText, MessageSquare, Users,
   Bell, PenSquare, ChevronDown, FileEdit, Tag, ChevronRight,
-  Clock, Trash2, Star, PanelLeftClose, PanelLeft, GitMerge, Settings, LogOut,
+  Clock, Trash2, Star, PanelLeftClose, PanelLeft, GitMerge, Settings, LogOut, FileBarChart,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/context/AuthContext";
@@ -62,6 +62,7 @@ export function AppSidebar() {
     { title: "Messages", url: "/messages", icon: MessageSquare, badge: unreadMessages },
     { title: "Reminders", url: "/reminders", icon: Clock, badge: 0 },
     { title: "Notifications", url: "/notifications", icon: Bell, badge: unreadNotifications },
+    { title: "Reports", url: "/reports", icon: FileBarChart, badge: 0 },
   ];
 
   const renderNavItem = (item: typeof mainNav[0]) => (
