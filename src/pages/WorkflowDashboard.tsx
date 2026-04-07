@@ -6,10 +6,19 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useMemos } from "@/context/MemoContext";
-import { currentUser, getUserById, users } from "@/data/mock";
+import { useAuth } from "@/context/AuthContext";
+import { useUsers } from "@/context/UserContext";
+import { useOnlineStatuses } from "@/hooks/useOnlineStatus";
+import { memoPath } from "@/lib/memo-url";
 import {
   getActiveWorkflowMemos,
   getCurrentPendingApprovalStep,
@@ -17,10 +26,20 @@ import {
   isPendingWorkflowApprovalForUser,
   type WorkflowState,
 } from "@/lib/workflow";
-import { CheckCircle2, Clock, Filter, GitMerge, Search, XCircle } from "lucide-react";
+import {
+  CheckCircle2,
+  Clock,
+  Filter,
+  GitMerge,
+  Search,
+  XCircle,
+} from "lucide-react";
 
 const WorkflowDashboard = () => {
   const navigate = useNavigate();
+  const { currentUser } = useAuth();
+  const { getUserById } = useUsers();
+  const { getUserStatus } = useOnlineStatuses();
   const { memos, approveWorkflowStep } = useMemos();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -29,16 +48,25 @@ const WorkflowDashboard = () => {
   const activeWorkflowMemos = useMemo(
     () =>
       getActiveWorkflowMemos(memos)
-        .filter((memo) => !memo.archived && !(memo.hiddenBy || []).includes(currentUser.id))
-        .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()),
-    [memos],
+        .filter(
+          (memo) =>
+            !memo.archived &&
+            !(memo.hiddenBy || []).includes(currentUser?.id || ""),
+        )
+        .sort(
+          (a, b) =>
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+        ),
+    [memos, currentUser?.id],
   );
 
   // Collect all approvers across active workflows for the assignee filter
   const approverOptions = useMemo(() => {
     const approverIds = new Set<string>();
     activeWorkflowMemos.forEach((memo) => {
-      memo.workflow?.approvalChain.forEach((step) => approverIds.add(step.approverId));
+      memo.workflow?.approvalChain.forEach((step) =>
+        approverIds.add(step.approverId),
+      );
     });
     return Array.from(approverIds)
       .map((id) => getUserById(id))
@@ -55,10 +83,14 @@ const WorkflowDashboard = () => {
 
     // Assignee filter
     if (assigneeFilter === "mine") {
-      result = result.filter((memo) => isPendingWorkflowApprovalForUser(memo, currentUser.id));
+      result = result.filter((memo) =>
+        isPendingWorkflowApprovalForUser(memo, currentUser.id),
+      );
     } else if (assigneeFilter !== "all") {
       result = result.filter((memo) =>
-        memo.workflow?.approvalChain.some((step) => step.approverId === assigneeFilter),
+        memo.workflow?.approvalChain.some(
+          (step) => step.approverId === assigneeFilter,
+        ),
       );
     }
 
@@ -77,10 +109,18 @@ const WorkflowDashboard = () => {
   }, [activeWorkflowMemos, search, statusFilter, assigneeFilter]);
 
   const summary = useMemo(() => {
-    const inProgress = activeWorkflowMemos.filter((memo) => getWorkflowState(memo) === "pending").length;
-    const approved = activeWorkflowMemos.filter((memo) => getWorkflowState(memo) === "approved").length;
-    const rejected = activeWorkflowMemos.filter((memo) => getWorkflowState(memo) === "rejected").length;
-    const awaitingMine = activeWorkflowMemos.filter((memo) => isPendingWorkflowApprovalForUser(memo, currentUser.id)).length;
+    const inProgress = activeWorkflowMemos.filter(
+      (memo) => getWorkflowState(memo) === "pending",
+    ).length;
+    const approved = activeWorkflowMemos.filter(
+      (memo) => getWorkflowState(memo) === "approved",
+    ).length;
+    const rejected = activeWorkflowMemos.filter(
+      (memo) => getWorkflowState(memo) === "rejected",
+    ).length;
+    const awaitingMine = activeWorkflowMemos.filter((memo) =>
+      isPendingWorkflowApprovalForUser(memo, currentUser.id),
+    ).length;
 
     return {
       total: activeWorkflowMemos.length,
@@ -96,9 +136,16 @@ const WorkflowDashboard = () => {
       <div className="mx-auto max-w-5xl space-y-4">
         <div className="flex flex-col gap-3 rounded-xl border bg-card p-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">Approval Chains</p>
-            <h2 className="font-display text-lg font-semibold">Track active memo workflows in one place</h2>
-            <p className="text-xs text-muted-foreground">Monitor each step, spot blockers, and approve pending items instantly.</p>
+            <p className="text-xs uppercase tracking-wide text-muted-foreground">
+              Approval Chains
+            </p>
+            <h2 className="font-display text-lg font-semibold">
+              Track active memo workflows in one place
+            </h2>
+            <p className="text-xs text-muted-foreground">
+              Monitor each step, spot blockers, and approve pending items
+              instantly.
+            </p>
           </div>
           {summary.awaitingMine > 0 && (
             <Badge className="gap-1.5 self-start bg-warning/15 text-warning border-warning/30 sm:self-center">
@@ -122,7 +169,9 @@ const WorkflowDashboard = () => {
               <CardTitle className="text-sm">In Progress</CardTitle>
             </CardHeader>
             <CardContent className="flex items-center justify-between">
-              <p className="text-2xl font-display font-bold">{summary.inProgress}</p>
+              <p className="text-2xl font-display font-bold">
+                {summary.inProgress}
+              </p>
               <Clock className="h-4 w-4 text-warning" />
             </CardContent>
           </Card>
@@ -131,7 +180,9 @@ const WorkflowDashboard = () => {
               <CardTitle className="text-sm">Approved</CardTitle>
             </CardHeader>
             <CardContent className="flex items-center justify-between">
-              <p className="text-2xl font-display font-bold">{summary.approved}</p>
+              <p className="text-2xl font-display font-bold">
+                {summary.approved}
+              </p>
               <CheckCircle2 className="h-4 w-4 text-success" />
             </CardContent>
           </Card>
@@ -140,7 +191,9 @@ const WorkflowDashboard = () => {
               <CardTitle className="text-sm">Rejected</CardTitle>
             </CardHeader>
             <CardContent className="flex items-center justify-between">
-              <p className="text-2xl font-display font-bold">{summary.rejected}</p>
+              <p className="text-2xl font-display font-bold">
+                {summary.rejected}
+              </p>
               <XCircle className="h-4 w-4 text-destructive" />
             </CardContent>
           </Card>
@@ -198,7 +251,9 @@ const WorkflowDashboard = () => {
             <CardContent className="py-12 text-center">
               <GitMerge className="mx-auto mb-3 h-10 w-10 text-muted-foreground/40" />
               <p className="font-medium">No active workflows found</p>
-              <p className="text-sm text-muted-foreground">Try changing your search or send a memo with approvals enabled.</p>
+              <p className="text-sm text-muted-foreground">
+                Try changing your search or send a memo with approvals enabled.
+              </p>
             </CardContent>
           </Card>
         ) : (
@@ -207,8 +262,17 @@ const WorkflowDashboard = () => {
               const state = getWorkflowState(memo);
               const currentStep = getCurrentPendingApprovalStep(memo);
               const totalSteps = memo.workflow?.approvalChain.length || 0;
-              const completedSteps = memo.workflow?.approvalChain.filter((step) => step.status !== "pending").length || 0;
-              const currentApprover = currentStep ? getUserById(currentStep.approverId) : undefined;
+              const completedSteps =
+                memo.workflow?.approvalChain.filter(
+                  (step) => step.status !== "pending",
+                ).length || 0;
+              const currentApprover = currentStep
+                ? getUserById(currentStep.approverId)
+                : undefined;
+              const currentApproverStatus = currentApprover
+                ? getUserStatus(currentApprover.id)
+                : null;
+              const creatorStatus = getUserStatus(memo.creatorId);
 
               return (
                 <Card key={memo.id}>
@@ -225,21 +289,42 @@ const WorkflowDashboard = () => {
                               : "border-warning/30 bg-warning/10 text-warning"
                         }
                       >
-                        {state === "approved" ? "Approved" : state === "rejected" ? "Rejected" : "In Progress"}
+                        {state === "approved"
+                          ? "Approved"
+                          : state === "rejected"
+                            ? "Rejected"
+                            : "In Progress"}
                       </Badge>
                       <Badge variant="secondary" className="text-[11px]">
                         {completedSteps}/{totalSteps} steps decided
                       </Badge>
                     </div>
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                      <span>Created by {getUserById(memo.creatorId)?.name || "Unknown"}</span>
+                      <span className="flex items-center gap-1.5">
+                        <span
+                          className={`h-1.5 w-1.5 rounded-full ${creatorStatus === "online" ? "bg-success" : creatorStatus === "away" ? "bg-warning" : "bg-muted-foreground/40"}`}
+                        />
+                        Created by{" "}
+                        {getUserById(memo.creatorId)?.name || "Unknown"}
+                      </span>
                       {currentApprover && state === "pending" && (
-                        <span>Current approver: {currentApprover.name}</span>
+                        <span className="flex items-center gap-1.5">
+                          <span
+                            className={`h-1.5 w-1.5 rounded-full ${currentApproverStatus === "online" ? "bg-success" : currentApproverStatus === "away" ? "bg-warning" : "bg-muted-foreground/40"}`}
+                          />
+                          Current approver: {currentApprover.name}
+                        </span>
                       )}
-                      <span>Updated {new Date(memo.updatedAt).toLocaleString()}</span>
+                      <span>
+                        Updated {new Date(memo.updatedAt).toLocaleString()}
+                      </span>
                     </div>
                     <div>
-                      <Button variant="outline" size="sm" onClick={() => navigate(`/memos/${memo.id}`)}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => navigate(memoPath(memo))}
+                      >
                         Open memo
                       </Button>
                     </div>
@@ -249,7 +334,13 @@ const WorkflowDashboard = () => {
                       memo={memo}
                       currentUserId={currentUser.id}
                       onApprove={(stepId, approved, comment) =>
-                        approveWorkflowStep(memo.id, stepId, currentUser.id, approved, comment)
+                        approveWorkflowStep(
+                          memo.id,
+                          stepId,
+                          currentUser.id,
+                          approved,
+                          comment,
+                        )
                       }
                     />
                   </CardContent>

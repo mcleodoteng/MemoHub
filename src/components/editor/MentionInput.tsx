@@ -1,37 +1,42 @@
-import React, { useState, useRef } from 'react';
-import { users, currentUser } from '@/data/mock';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { getUserInitials } from '@/data/mock';
-import { cn } from '@/lib/utils';
+import React, { useState, useRef } from "react";
+import { useAuth } from "@/context/AuthContext";
+import { useUsers } from "@/context/UserContext";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { getUserInitials } from "@/lib/user-utils";
+import { cn } from "@/lib/utils";
 
 interface MentionInputProps {
   value: string;
   onChange: (value: string) => void;
+  onKeyDown?: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
   placeholder?: string;
   className?: string;
   rows?: number;
+  maxLength?: number;
   onMention?: (userId: string) => void;
-  onSubmit?: () => void;
 }
 
 export function MentionInput({
   value,
   onChange,
-  placeholder = 'Type @ to mention someone...',
+  onKeyDown,
+  placeholder = "Type @ to mention someone...",
   className,
   rows = 3,
+  maxLength,
   onMention,
-  onSubmit,
 }: MentionInputProps) {
+  const { currentUser } = useAuth();
+  const { users: allUsers } = useUsers();
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [mentionQuery, setMentionQuery] = useState('');
+  const [mentionQuery, setMentionQuery] = useState("");
   const [cursorPosition, setCursorPosition] = useState(0);
   const [mentionStart, setMentionStart] = useState(-1);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const otherUsers = users.filter(u => u.id !== currentUser.id);
-  const filteredUsers = otherUsers.filter(u =>
-    u.name.toLowerCase().includes(mentionQuery.toLowerCase())
+  const otherUsers = allUsers.filter((u) => u.id !== currentUser?.id);
+  const filteredUsers = otherUsers.filter((u) =>
+    u.name.toLowerCase().includes(mentionQuery.toLowerCase()),
   );
 
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -41,11 +46,11 @@ export function MentionInput({
     setCursorPosition(pos);
 
     const textBefore = newValue.slice(0, pos);
-    const lastAtIndex = textBefore.lastIndexOf('@');
+    const lastAtIndex = textBefore.lastIndexOf("@");
 
     if (lastAtIndex >= 0) {
       const textAfterAt = textBefore.slice(lastAtIndex + 1);
-      if (!textAfterAt.includes(' ') || textAfterAt.split(' ').length <= 2) {
+      if (!textAfterAt.includes(" ") || textAfterAt.split(" ").length <= 2) {
         setMentionQuery(textAfterAt);
         setMentionStart(lastAtIndex);
         setShowSuggestions(true);
@@ -56,13 +61,15 @@ export function MentionInput({
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey && !showSuggestions) {
+    onKeyDown?.(e);
+    if (e.defaultPrevented) return;
+    if (e.key === "Enter" && !e.shiftKey && !showSuggestions) {
       e.preventDefault();
       onSubmit?.();
     }
   };
 
-  const selectMention = (user: typeof users[0]) => {
+  const selectMention = (user: (typeof users)[0]) => {
     if (mentionStart < 0) return;
     const before = value.slice(0, mentionStart);
     const after = value.slice(cursorPosition);
@@ -89,15 +96,16 @@ export function MentionInput({
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
         rows={rows}
+        maxLength={maxLength}
         className={cn(
-          'flex w-full rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-none',
-          className
+          "flex w-full rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-none",
+          className,
         )}
       />
 
       {showSuggestions && filteredUsers.length > 0 && (
         <div className="absolute z-50 bottom-full mb-1 left-0 w-64 max-h-48 overflow-auto rounded-lg border bg-popover shadow-lg">
-          {filteredUsers.slice(0, 6).map(user => (
+          {filteredUsers.slice(0, 6).map((user) => (
             <button
               key={user.id}
               className="flex items-center gap-2 w-full px-3 py-2 text-sm hover:bg-secondary/60 transition-colors text-left"
@@ -111,7 +119,9 @@ export function MentionInput({
               </Avatar>
               <div className="min-w-0">
                 <p className="font-medium truncate">{user.name}</p>
-                <p className="text-xs text-muted-foreground">{user.department}</p>
+                <p className="text-xs text-muted-foreground">
+                  {user.department}
+                </p>
               </div>
             </button>
           ))}

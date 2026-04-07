@@ -1,25 +1,89 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { FileText, ArrowLeft, Mail, CheckCircle } from 'lucide-react';
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  FileText,
+  ArrowLeft,
+  Mail,
+  CheckCircle,
+  AlertCircle,
+} from "lucide-react";
+import { apiRequest } from "@/lib/api";
+import { toast } from "sonner";
+
+interface ForgotPasswordResponse {
+  success: boolean;
+  message: string;
+}
 
 const ForgotPassword = () => {
   const navigate = useNavigate();
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+
+    const interval = window.setInterval(() => {
+      setResendCooldown((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+
+    return () => window.clearInterval(interval);
+  }, [resendCooldown]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError("");
     setLoading(true);
-    // Mock: simulate sending reset email
-    setTimeout(() => {
-      setLoading(false);
+
+    try {
+      await apiRequest<ForgotPasswordResponse>("/auth/forgot-password", {
+        method: "POST",
+        body: JSON.stringify({ email }),
+      });
+
       setSent(true);
-    }, 800);
+      setResendCooldown(180);
+      toast.success("Reset link sent! Check your email");
+    } catch (err: any) {
+      const message =
+        err.message || "Failed to send reset link. Please try again.";
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResend = async () => {
+    if (!email || resendCooldown > 0) return;
+
+    setError("");
+    setResendLoading(true);
+    try {
+      await apiRequest<ForgotPasswordResponse>("/auth/forgot-password", {
+        method: "POST",
+        body: JSON.stringify({ email }),
+      });
+      setResendCooldown(180);
+      toast.success("A new reset link has been sent.");
+    } catch (err: any) {
+      setError(err.message || "Could not resend reset link. Please try again.");
+    } finally {
+      setResendLoading(false);
+    }
   };
 
   return (
@@ -29,18 +93,20 @@ const ForgotPassword = () => {
           <div className="inline-flex items-center justify-center h-14 w-14 rounded-2xl bg-primary mx-auto">
             <FileText className="h-7 w-7 text-primary-foreground" />
           </div>
-          <h1 className="font-display text-3xl font-bold text-foreground">MemoHub</h1>
+          <h1 className="font-display text-3xl font-bold text-foreground">
+            MemoHub
+          </h1>
         </div>
 
         <Card className="border-border/50 shadow-lg">
           <CardHeader className="pb-4">
             <CardTitle className="text-lg font-display">
-              {sent ? 'Check Your Email' : 'Reset Password'}
+              {sent ? "Check Your Email" : "Reset Password"}
             </CardTitle>
             <CardDescription>
               {sent
-                ? 'We sent a password reset link to your email'
-                : 'Enter your email and we\'ll send you a reset link'}
+                ? "We sent a password reset link to your email"
+                : "Enter your email and we'll send you a reset link"}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -52,18 +118,45 @@ const ForgotPassword = () => {
                   </div>
                 </div>
                 <p className="text-sm text-center text-muted-foreground">
-                  A reset link has been sent to <span className="font-medium text-foreground">{email}</span>.
-                  Check your inbox and follow the instructions.
+                  A reset link has been sent to{" "}
+                  <span className="font-medium text-foreground">{email}</span>.
+                  Check your inbox and follow the instructions to reset your
+                  password.
                 </p>
-                <p className="text-xs text-center text-muted-foreground">
-                  (Mock: Use <button onClick={() => navigate('/reset-password?email=' + encodeURIComponent(email))} className="text-primary underline">this link</button> to reset)
-                </p>
-                <Button variant="outline" className="w-full" onClick={() => navigate('/login')}>
+                <div className="space-y-2">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="w-full"
+                    disabled={resendCooldown > 0 || resendLoading}
+                    onClick={handleResend}
+                  >
+                    {resendLoading
+                      ? "Resending..."
+                      : resendCooldown > 0
+                        ? `Resend link in ${resendCooldown}s`
+                        : "Resend reset link"}
+                  </Button>
+                  <p className="text-center text-xs text-muted-foreground">
+                    You can request a new link after 3 minutes.
+                  </p>
+                </div>
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => navigate("/login")}
+                >
                   <ArrowLeft className="h-4 w-4 mr-2" /> Back to Login
                 </Button>
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-4">
+                {error && (
+                  <div className="flex items-center gap-2 p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
+                    <AlertCircle className="h-4 w-4 shrink-0" />
+                    {error}
+                  </div>
+                )}
                 <div className="space-y-2">
                   <Label htmlFor="email">Email Address</Label>
                   <div className="relative">
@@ -73,16 +166,25 @@ const ForgotPassword = () => {
                       type="email"
                       placeholder="you@memohub.com"
                       value={email}
-                      onChange={e => setEmail(e.target.value)}
+                      onChange={(e) => setEmail(e.target.value)}
                       className="pl-10"
                       required
                     />
                   </div>
                 </div>
-                <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? 'Sending...' : 'Send Reset Link'}
+                <Button
+                  type="submit"
+                  className="w-full"
+                  disabled={loading || !email}
+                >
+                  {loading ? "Sending..." : "Send Reset Link"}
                 </Button>
-                <Button variant="ghost" className="w-full" type="button" onClick={() => navigate('/login')}>
+                <Button
+                  variant="ghost"
+                  className="w-full"
+                  type="button"
+                  onClick={() => navigate("/login")}
+                >
                   <ArrowLeft className="h-4 w-4 mr-2" /> Back to Login
                 </Button>
               </form>

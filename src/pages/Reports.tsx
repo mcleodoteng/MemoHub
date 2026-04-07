@@ -2,7 +2,8 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { useMemos } from "@/context/MemoContext";
 import { useAuth } from "@/context/AuthContext";
 import { useGroups } from "@/context/GroupContext";
-import { allUsers, getUserById, getUserInitials } from "@/data/mock";
+import { useUsers } from "@/context/UserContext";
+import { getUserInitials } from "@/lib/user-utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -94,9 +95,14 @@ function printContent(title: string, html: string) {
   setTimeout(() => win.print(), 300);
 }
 
-export function printMemo(memo: Memo) {
-  const creator = getUserById(memo.creatorId);
-  const recipients = memo.recipientIds.map(id => getUserById(id)?.name || "Unknown").join(", ");
+export function printMemo(
+  memo: Memo,
+  resolveUserById?: (userId: string) => { name?: string } | undefined,
+) {
+  const creator = resolveUserById?.(memo.creatorId);
+  const recipients = memo.recipientIds
+    .map((id) => resolveUserById?.(id)?.name || "Unknown")
+    .join(", ");
   const openedCount = memo.recipientStatuses.filter(s => s.opened).length;
   const ackCount = memo.recipientStatuses.filter(s => s.acknowledged).length;
   const approvedCount = memo.recipientStatuses.filter(s => s.approved).length;
@@ -126,7 +132,7 @@ export function printMemo(memo: Memo) {
       <thead><tr><th>Recipient</th><th>Opened</th><th>Acknowledged</th><th>Approved</th><th>Replied</th></tr></thead>
       <tbody>
         ${memo.recipientStatuses.map(s => {
-          const u = getUserById(s.userId);
+          const u = resolveUserById?.(s.userId);
           return `<tr><td>${u?.name || s.userId}</td><td>${s.opened ? "✓" : "—"}</td><td>${s.acknowledged ? "✓" : "—"}</td><td>${s.approved ? "✓" : "—"}</td><td>${s.replied ? "✓" : "—"}</td></tr>`;
         }).join("")}
       </tbody>
@@ -139,6 +145,7 @@ const Reports = () => {
   const { currentUser } = useAuth();
   const { memos } = useMemos();
   const { groups } = useGroups();
+  const { users: allUsers, getUserById } = useUsers();
   const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'super_admin';
 
   const [selectedReport, setSelectedReport] = useState<ReportType>("memo_summary");

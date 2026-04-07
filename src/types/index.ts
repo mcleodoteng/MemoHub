@@ -3,16 +3,23 @@ export interface User {
   id: string;
   name: string;
   email: string;
+  bio?: string;
   avatar: string;
-  role: 'super_admin' | 'admin' | 'manager' | 'group_leader' | 'member';
+  role: "super_admin" | "admin" | "manager" | "group_leader" | "member";
+  assignedRoleKey?: string;
+  assignedRoleName?: string;
+  baseRole?: "super_admin" | "admin" | "manager" | "group_leader" | "member";
   department: string;
-  status: 'online' | 'away' | 'offline';
+  status: "online" | "away" | "offline";
+  isBlocked?: boolean;
   createdAt: string;
+  twoFactorEnabled?: boolean;
+  sessionTimeoutMinutes?: number;
 }
 
 // ===== MEMO =====
-export type MemoVisibility = 'public' | 'private' | 'protected';
-export type MemoStatus = 'draft' | 'sent' | 'pinned' | 'archived' | 'deleted';
+export type MemoVisibility = "public" | "private" | "protected";
+export type MemoStatus = "draft" | "sent" | "pinned" | "archived" | "deleted";
 
 export interface MemoRecipientStatus {
   userId: string;
@@ -54,7 +61,17 @@ export interface MemoEditEntry {
 export interface MemoActivityEntry {
   id: string;
   userId: string;
-  action: 'opened' | 'acknowledged' | 'unacknowledged' | 'approved' | 'unapproved' | 'commented' | 'reacted';
+  action:
+    | "opened"
+    | "acknowledged"
+    | "unacknowledged"
+    | "approved"
+    | "unapproved"
+    | "commented"
+    | "replied"
+    | "edited_comment"
+    | "deleted_comment"
+    | "reacted";
   timestamp: string;
   detail?: string;
 }
@@ -64,7 +81,7 @@ export interface ApprovalStep {
   id: string;
   approverId: string;
   order: number; // 1-based step order
-  status: 'pending' | 'approved' | 'rejected';
+  status: "pending" | "approved" | "rejected";
   decidedAt?: string;
   comment?: string;
 }
@@ -85,6 +102,7 @@ export interface WorkflowConfig {
 
 export interface Memo {
   id: string;
+  slug?: string;
   title: string;
   body: string;
   creatorId: string;
@@ -104,6 +122,7 @@ export interface Memo {
   hiddenBy?: string[];
   starredBy?: string[];
   workflow?: WorkflowConfig;
+  previousStatus?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -126,8 +145,9 @@ export interface Comment {
 
 // ===== GROUP =====
 export interface GroupInvite {
+  id?: string;
   userId: string;
-  status: 'pending' | 'accepted' | 'declined';
+  status: "pending" | "accepted" | "declined";
   invitedAt: string;
   respondedAt?: string;
 }
@@ -140,14 +160,14 @@ export interface GroupFile {
   url: string;
   uploadedBy: string;
   uploadedAt: string;
-  source: 'memo' | 'chat' | 'upload';
+  source: "memo" | "chat" | "upload";
 }
 
 export interface Group {
   id: string;
   name: string;
   description: string;
-  type: 'department' | 'project' | 'custom';
+  type: "department" | "project" | "custom";
   memberIds: string[];
   adminIds: string[];
   pendingInvites: GroupInvite[];
@@ -177,6 +197,11 @@ export interface Message {
   sharedMemo?: SharedMemo;
   readBy: string[];
   isSystem?: boolean; // system notifications like "user joined"
+  isEdited?: boolean;
+  editedAt?: string;
+  isDeleted?: boolean;
+  deletedAt?: string;
+  clientOnly?: boolean;
   starred?: boolean;
   starredBy?: string[];
   createdAt: string;
@@ -184,10 +209,11 @@ export interface Message {
 
 export interface Conversation {
   id: string;
-  type: 'direct' | 'group';
+  type: "direct" | "group";
   participantIds: string[];
   name?: string;
   groupId?: string; // link to a group
+  messageCount?: number;
   lastMessage?: Message;
   typingUsers?: string[];
   updatedAt: string;
@@ -199,14 +225,31 @@ export interface Reminder {
   title: string;
   description?: string;
   userId: string;
+  creatorName?: string;
   groupId?: string; // if set, this is a group reminder
+  groupName?: string;
+  groupType?: string;
+  visibility?: "personal" | "group" | "public";
   dueAt: string;
   fired: boolean;
+  firedAt?: string;
   createdAt: string;
 }
 
 // ===== NOTIFICATION =====
-export type NotificationType = 'memo_received' | 'memo_approved' | 'comment_added' | 'reaction_added' | 'message_received' | 'mention' | 'group_invite' | 'reminder' | 'starred_activity' | 'workflow_pending_approval';
+export type NotificationType =
+  | "memo_received"
+  | "memo_approved"
+  | "memo_rejected"
+  | "comment_added"
+  | "reaction_added"
+  | "message_received"
+  | "mention"
+  | "group_invite"
+  | "group_activity"
+  | "reminder"
+  | "starred_activity"
+  | "workflow_pending_approval";
 
 export interface Notification {
   id: string;

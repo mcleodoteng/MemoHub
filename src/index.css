@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap");
 
 @tailwind base;
 @tailwind components;
@@ -6,8 +6,8 @@
 
 @layer base {
   :root {
-    --font-display: 'Space Grotesk', sans-serif;
-    --font-body: 'Inter', sans-serif;
+    --font-display: "Space Grotesk", sans-serif;
+    --font-body: "Inter", sans-serif;
 
     --background: 220 20% 97%;
     --foreground: 224 30% 12%;
@@ -117,7 +117,12 @@
     @apply bg-background text-foreground font-body antialiased;
   }
 
-  h1, h2, h3, h4, h5, h6 {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     font-family: var(--font-display);
   }
 }
@@ -270,4 +275,73 @@
 
 .tiptap .mention:hover {
   text-decoration-color: hsl(var(--primary));
+}
+
+/* ============================
+   COMPACT MODE
+   Applied via .compact-mode on <html>.
+   Reduces spacing for denser layouts.
+   ============================ */
+
+/* Sidebar navigation items */
+.compact-mode .nav-item,
+.compact-mode .nav-item-active {
+  padding-top: 0.25rem !important;
+  padding-bottom: 0.25rem !important;
+}
+
+/* Dashboard / page widget cards */
+.compact-mode .widget-card {
+  padding: 0.75rem !important;
+}
+
+/* Memo list cards — reduce inner content padding */
+.compact-mode .memo-card > div:first-child {
+  padding: 0.5rem 0.75rem !important;
+}
+
+/* App top navigation header bar */
+.compact-mode header {
+  height: 2.75rem !important;
+  min-height: 2.75rem !important;
+}
+
+/* Main scrollable page content area */
+.compact-mode .flex-1.overflow-auto {
+  padding: 0.625rem !important;
+}
+
+/* Sidebar group labels — remove extra vertical padding */
+.compact-mode [data-sidebar="group-label"] {
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+/* Sidebar groups — tighten between-section gaps */
+.compact-mode [data-sidebar="group"] {
+  padding-top: 0.125rem !important;
+  padding-bottom: 0.125rem !important;
+}
+
+/* Common grid/flex gaps — reduce across the board */
+.compact-mode .gap-6 {
+  gap: 0.75rem !important;
+}
+.compact-mode .gap-5 {
+  gap: 0.625rem !important;
+}
+.compact-mode .gap-4 {
+  gap: 0.5rem !important;
+}
+
+/* space-y utilities reduction */
+.compact-mode .space-y-6 > :not([hidden]) ~ :not([hidden]) {
+  --tw-space-y-reverse: 0;
+  margin-top: calc(0.75rem * calc(1 - var(--tw-space-y-reverse))) !important;
+  margin-bottom: calc(0.75rem * var(--tw-space-y-reverse)) !important;
+}
+.compact-mode .space-y-4 > :not([hidden]) ~ :not([hidden]) {
+  --tw-space-y-reverse: 0;
+  margin-top: calc(0.5rem * calc(1 - var(--tw-space-y-reverse))) !important;
+  margin-bottom: calc(0.5rem * var(--tw-space-y-reverse)) !important;
 }

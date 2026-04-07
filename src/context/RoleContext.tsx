@@ -1,7 +1,21 @@
-import React, { createContext, useContext, useCallback } from 'react';
-import { useAuth } from '@/context/AuthContext';
+import React, {
+  createContext,
+  useContext,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+import { useAuth } from "@/context/AuthContext";
+import { useSocket } from "@/context/SocketContext";
+import { apiRequest, type ApiEnvelope } from "@/lib/api";
 
-export type UserRole = 'super_admin' | 'admin' | 'manager' | 'group_leader' | 'member';
+export type UserRole =
+  | "super_admin"
+  | "admin"
+  | "manager"
+  | "group_leader"
+  | "member";
 
 export interface RolePermissions {
   // Memo permissions
@@ -41,7 +55,7 @@ export interface RolePermissions {
   canManageNotificationPolicies: boolean;
 }
 
-const rolePermissions: Record<UserRole, RolePermissions> = {
+export const defaultRolePermissions: Record<UserRole, RolePermissions> = {
   super_admin: {
     canCreateMemo: true,
     canDeleteAnyMemo: true,
@@ -108,11 +122,11 @@ const rolePermissions: Record<UserRole, RolePermissions> = {
     canDeleteGroups: false,
     canManageGroups: true,
     canAssignGroupLeaders: false,
-    canManageUsers: false,
+    canManageUsers: true,
     canAssignRoles: false,
     canViewAllUsers: true,
     canDeactivateUsers: false,
-    canAccessSystemSettings: false,
+    canAccessSystemSettings: true,
     canManageSecuritySettings: false,
     canViewAuditLogs: true,
     canManageIntegrations: false,
@@ -175,14 +189,20 @@ const rolePermissions: Record<UserRole, RolePermissions> = {
 };
 
 export const roleLabels: Record<UserRole, string> = {
-  super_admin: 'Super Admin',
-  admin: 'Admin',
-  manager: 'Manager',
-  group_leader: 'Group Leader',
-  member: 'Member',
+  super_admin: "Super Admin",
+  admin: "Admin",
+  manager: "Manager",
+  group_leader: "Group Leader",
+  member: "Member",
 };
 
-export const roleHierarchy: UserRole[] = ['super_admin', 'admin', 'manager', 'group_leader', 'member'];
+export const roleHierarchy: UserRole[] = [
+  "super_admin",
+  "admin",
+  "manager",
+  "group_leader",
+  "member",
+];
 
 interface RoleContextType {
   currentRole: UserRole;
@@ -197,27 +217,115 @@ const RoleContext = createContext<RoleContextType | undefined>(undefined);
 
 export function RoleProvider({ children }: { children: React.ReactNode }) {
   const { currentUser } = useAuth();
-  const currentRole = (currentUser?.role as UserRole) || 'member';
-  const permissions = rolePermissions[currentRole];
+  const { onEvent, offEvent } = useSocket();
+  const currentRole = (currentUser?.role as UserRole) || "member";
+  const [remotePermissions, setRemotePermissions] =
+    useState<RolePermissions | null>(null);
 
-  const hasPermission = useCallback((permission: keyof RolePermissions) => {
-    return permissions[permission];
-  }, [permissions]);
+  const loadPermissions = useCallback(async () => {
+    if (!currentUser) {
+      setRemotePermissions(null);
+      return;
+    }
 
-  const canEditMemo = useCallback((creatorId: string) => {
-    return currentUser?.id === creatorId || permissions.canEditAnyMemo;
-  }, [permissions, currentUser]);
+    try {
+      const response = await apiRequest<
+        | ApiEnvelope<{ permissions: RolePermissions }>
+        | { permissions: RolePermissions }
+      >("/users/me/permissions");
+      const payload = "data" in response ? response.data : response;
+      setRemotePermissions(payload.permissions || null);
+    } catch {
+      setRemotePermissions(null);
+    }
+  }, [currentUser]);
 
-  const canDeleteMemo = useCallback((creatorId: string) => {
-    return currentUser?.id === creatorId || permissions.canDeleteAnyMemo;
-  }, [permissions, currentUser]);
+  const permissions = useMemo(
+    () => remotePermissions || defaultRolePermissions[currentRole],
+    [remotePermissions, currentRole],
+  );
 
-  const isAtLeast = useCallback((role: UserRole) => {
-    return roleHierarchy.indexOf(currentRole) <= roleHierarchy.indexOf(role);
-  }, [currentRole]);
+  useEffect(() => {
+    void loadPermissions();
+
+    const interval = window.setInterval(() => {
+      void loadPermissions();
+    }, 30000);
+
+    const handleFocus = () => {
+      void loadPermissions();
+    };
+
+    const handleRbacUpdated = () => {
+      void loadPermissions();
+    };
+
+    window.addEventListener("focus", handleFocus);
+    window.addEventListener("rbac-updated", handleRbacUpdated as EventListener);
+
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener("focus", handleFocus);
+      window.removeEventListener(
+        "rbac-updated",
+        handleRbacUpdated as EventListener,
+      );
+    };
+  }, [currentUser?.id, currentUser?.assignedRoleKey, loadPermissions]);
+
+  useEffect(() => {
+    if (!currentUser?.id) return;
+
+    const handleRbacUpdated = () => {
+      void loadPermissions();
+    };
+
+    onEvent("rbac:updated", handleRbacUpdated);
+
+    return () => {
+      offEvent("rbac:updated", handleRbacUpdated);
+    };
+  }, [currentUser?.id, loadPermissions, offEvent, onEvent]);
+
+  const hasPermission = useCallback(
+    (permission: keyof RolePermissions) => {
+      return permissions[permission];
+    },
+    [permissions],
+  );
+
+  const canEditMemo = useCallback(
+    (creatorId: string) => {
+      return currentUser?.id === creatorId || permissions.canEditAnyMemo;
+    },
+    [permissions, currentUser],
+  );
+
+  const canDeleteMemo = useCallback(
+    (creatorId: string) => {
+      return currentUser?.id === creatorId || permissions.canDeleteAnyMemo;
+    },
+    [permissions, currentUser],
+  );
+
+  const isAtLeast = useCallback(
+    (role: UserRole) => {
+      return roleHierarchy.indexOf(currentRole) <= roleHierarchy.indexOf(role);
+    },
+    [currentRole],
+  );
 
   return (
-    <RoleContext.Provider value={{ currentRole, permissions, hasPermission, canEditMemo, canDeleteMemo, isAtLeast }}>
+    <RoleContext.Provider
+      value={{
+        currentRole,
+        permissions,
+        hasPermission,
+        canEditMemo,
+        canDeleteMemo,
+        isAtLeast,
+      }}
+    >
       {children}
     </RoleContext.Provider>
   );
@@ -225,6 +333,6 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
 
 export function useRoles() {
   const context = useContext(RoleContext);
-  if (!context) throw new Error('useRoles must be used within RoleProvider');
+  if (!context) throw new Error("useRoles must be used within RoleProvider");
   return context;
 }

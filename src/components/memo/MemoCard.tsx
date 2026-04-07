@@ -1,32 +1,71 @@
 import { Memo } from "@/types";
-import { getUserById, getUserInitials, currentUser, users } from "@/data/mock";
+import { getUserInitials } from "@/lib/user-utils";
 import { UserHoverCard } from "@/components/user/UserHoverCard";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { useMemos } from "@/context/MemoContext";
-import { useRoles } from "@/context/RoleContext";
 import {
-  Globe, Lock, Shield, Pin, Paperclip, MessageCircle,
-  Eye, CheckCircle2, ThumbsUp,
-  Archive, EyeOff, Smile, Trash2, Play, Image as ImageIcon, Star, Printer,
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { useMemos } from "@/context/MemoContext";
+import { useGroups } from "@/context/GroupContext";
+import { useRoles } from "@/context/RoleContext";
+import { useAuth } from "@/context/AuthContext";
+import { useUsers } from "@/context/UserContext";
+import {
+  Globe,
+  Lock,
+  Shield,
+  Pin,
+  Paperclip,
+  MessageCircle,
+  Eye,
+  CheckCircle2,
+  ThumbsUp,
+  Archive,
+  EyeOff,
+  Smile,
+  Trash2,
+  Play,
+  Image as ImageIcon,
+  Star,
+  Users,
 } from "lucide-react";
-import { printMemo } from "@/pages/Reports";
 import { formatDistanceToNow, format } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { MentionText } from "@/components/shared/MentionText";
+import { memoPath } from "@/lib/memo-url";
 import { toast } from "sonner";
 
 const visibilityConfig = {
   public: { icon: Globe, label: "Public", className: "visibility-public" },
   private: { icon: Lock, label: "Private", className: "visibility-private" },
-  protected: { icon: Shield, label: "Protected", className: "visibility-protected" },
+  protected: {
+    icon: Shield,
+    label: "Protected",
+    className: "visibility-protected",
+  },
 };
 
-const QUICK_EMOJIS = ['👍', '❤️', '🎉', '🚀', '👏', '😊', '🔥', '💯'];
+const QUICK_EMOJIS = ["👍", "❤️", "🎉", "🚀", "👏", "😊", "🔥", "💯"];
 
 function stripHtml(html: string): string {
   const doc = new DOMParser().parseFromString(html, "text/html");
@@ -38,24 +77,43 @@ interface MemoCardProps {
 }
 
 export function MemoCard({ memo }: MemoCardProps) {
+  const { currentUser } = useAuth();
+  const { getUserById } = useUsers();
+  const { getGroupById } = useGroups();
+  if (!currentUser) return null;
+
   const creator = getUserById(memo.creatorId);
+  const sourceGroup = memo.groupId ? getGroupById(memo.groupId) : undefined;
   const vis = visibilityConfig[memo.visibility];
   const VisIcon = vis.icon;
   const navigate = useNavigate();
-  const { togglePin, toggleArchive, hideMemo, addReaction, deleteMemo, toggleStar } = useMemos();
+  const {
+    togglePin,
+    toggleArchive,
+    hideMemo,
+    addReaction,
+    deleteMemo,
+    toggleStar,
+  } = useMemos();
   const { hasPermission, canDeleteMemo } = useRoles();
 
   const isCreator = memo.creatorId === currentUser.id;
   const isStarred = (memo.starredBy || []).includes(currentUser.id);
-  const showPinArchive = isCreator || hasPermission('canPinMemos');
+  const showPin = isCreator || hasPermission("canPinMemos");
+  const showArchive = isCreator || hasPermission("canArchiveMemos");
   const showDelete = canDeleteMemo(memo.creatorId);
 
   const openedCount = memo.recipientStatuses.filter((s) => s.opened).length;
-  const acknowledgedCount = memo.recipientStatuses.filter((s) => s.acknowledged).length;
+  const acknowledgedCount = memo.recipientStatuses.filter(
+    (s) => s.acknowledged,
+  ).length;
   const approvedCount = memo.recipientStatuses.filter((s) => s.approved).length;
   const repliedCount = memo.recipientStatuses.filter((s) => s.replied).length;
   const totalRecipients = memo.recipientStatuses.length;
-  const totalReactions = memo.reactions.reduce((sum, r) => sum + r.users.length, 0);
+  const totalReactions = memo.reactions.reduce(
+    (sum, r) => sum + r.users.length,
+    0,
+  );
 
   const recipientUsers = memo.recipientIds
     .map((id) => getUserById(id))
@@ -63,24 +121,38 @@ export function MemoCard({ memo }: MemoCardProps) {
     .slice(0, 4);
   const remainingRecipients = memo.recipientIds.length - 4;
 
-  const previewText = memo.body.startsWith("<") ? stripHtml(memo.body) : memo.body;
+  const previewText = memo.body.startsWith("<")
+    ? stripHtml(memo.body)
+    : memo.body;
 
-  const imageAttachments = memo.attachments.filter((a) => a.type.startsWith("image/"));
-  const videoAttachments = memo.attachments.filter((a) => a.type.startsWith("video/"));
-  const otherAttachments = memo.attachments.filter((a) => !a.type.startsWith("image/") && !a.type.startsWith("video/"));
+  const imageAttachments = memo.attachments.filter((a) =>
+    a.type.startsWith("image/"),
+  );
+  const videoAttachments = memo.attachments.filter((a) =>
+    a.type.startsWith("video/"),
+  );
+  const otherAttachments = memo.attachments.filter(
+    (a) => !a.type.startsWith("image/") && !a.type.startsWith("video/"),
+  );
 
-  const stopProp = (fn: () => void) => (e: React.MouseEvent) => { e.stopPropagation(); fn(); };
+  const stopProp = (fn: () => void) => (e: React.MouseEvent) => {
+    e.stopPropagation();
+    fn();
+  };
 
   return (
     <div
       className="group/card bg-card rounded-xl border shadow-sm transition-all duration-200 hover:shadow-md hover:border-primary/20 cursor-pointer overflow-hidden"
-      onClick={() => navigate(`/memos/${memo.id}`)}
+      onClick={() => navigate(memoPath(memo))}
     >
       <div className="p-4">
         <div className="flex items-start gap-3">
           {creator ? (
             <UserHoverCard user={creator}>
-              <Avatar className="h-10 w-10 shrink-0 ring-2 ring-background shadow-sm" onClick={stopProp(() => navigate(`/profile/${creator.id}`))}>
+              <Avatar
+                className="h-10 w-10 shrink-0 ring-2 ring-background shadow-sm"
+                onClick={stopProp(() => navigate(`/profile/${creator.id}`))}
+              >
                 <AvatarFallback className="bg-primary/10 text-primary text-xs font-bold">
                   {getUserInitials(creator.name)}
                 </AvatarFallback>
@@ -88,7 +160,9 @@ export function MemoCard({ memo }: MemoCardProps) {
             </UserHoverCard>
           ) : (
             <Avatar className="h-10 w-10 shrink-0">
-              <AvatarFallback className="bg-primary/10 text-primary text-xs font-bold">?</AvatarFallback>
+              <AvatarFallback className="bg-primary/10 text-primary text-xs font-bold">
+                ?
+              </AvatarFallback>
             </Avatar>
           )}
 
@@ -96,52 +170,102 @@ export function MemoCard({ memo }: MemoCardProps) {
             <div className="flex items-center gap-2 flex-wrap">
               {creator ? (
                 <UserHoverCard user={creator}>
-                  <span className="text-sm font-semibold truncate cursor-pointer hover:text-primary transition-colors"
-                    onClick={stopProp(() => navigate(`/profile/${creator.id}`))}>
+                  <span
+                    className="text-sm font-semibold truncate cursor-pointer hover:text-primary transition-colors"
+                    onClick={stopProp(() => navigate(`/profile/${creator.id}`))}
+                  >
                     {creator.name}
                   </span>
                 </UserHoverCard>
               ) : (
                 <span className="text-sm font-semibold truncate">Unknown</span>
               )}
-              <span className="text-[11px] text-muted-foreground" title={format(new Date(memo.createdAt), "EEEE, MMM d, yyyy 'at' h:mm a")}>
+              <span
+                className="text-[11px] text-muted-foreground"
+                title={format(
+                  new Date(memo.createdAt),
+                  "EEEE, MMM d, yyyy 'at' h:mm a",
+                )}
+              >
                 {format(new Date(memo.createdAt), "MMM d, h:mm a")}
               </span>
-              <Badge variant="outline" className={`text-[10px] px-1.5 py-0 gap-1 border-transparent ${vis.className}`}>
+              <Badge
+                variant="outline"
+                className={`text-[10px] px-1.5 py-0 gap-1 border-transparent ${vis.className}`}
+              >
                 <VisIcon className="h-2.5 w-2.5" />
                 {vis.label}
               </Badge>
               {memo.pinned && (
-                <Badge variant="outline" className="text-[10px] px-1.5 py-0 gap-1 border-warning/30 text-warning bg-warning/10">
+                <Badge
+                  variant="outline"
+                  className="text-[10px] px-1.5 py-0 gap-1 border-warning/30 text-warning bg-warning/10"
+                >
                   <Pin className="h-2.5 w-2.5" /> Pinned
                 </Badge>
               )}
               {memo.status === "draft" && (
-                <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-warning/30 text-warning bg-warning/10">Draft</Badge>
+                <Badge
+                  variant="outline"
+                  className="text-[10px] px-1.5 py-0 border-warning/30 text-warning bg-warning/10"
+                >
+                  Draft
+                </Badge>
+              )}
+              {sourceGroup && (
+                <Badge
+                  variant="outline"
+                  className="text-[10px] px-1.5 py-0 gap-1 border-primary/30 text-primary bg-primary/10"
+                >
+                  <Users className="h-2.5 w-2.5" />
+                  {sourceGroup.name}
+                </Badge>
               )}
             </div>
 
-            <h3 className="font-display font-bold mt-1.5 text-[15px] leading-snug line-clamp-1">{memo.title}</h3>
-            <p className="text-sm text-muted-foreground mt-1 line-clamp-2 leading-relaxed"><MentionText text={previewText} /></p>
+            <h3 className="font-display font-bold mt-1.5 text-[15px] leading-snug line-clamp-1">
+              {memo.title}
+            </h3>
+            <p className="text-sm text-muted-foreground mt-1 line-clamp-2 leading-relaxed">
+              <MentionText text={previewText} />
+            </p>
 
             {memo.tags.length > 0 && (
               <div className="flex gap-1.5 mt-2.5 flex-wrap">
                 {memo.tags.slice(0, 4).map((tag) => (
-                  <Badge key={tag} variant="secondary" className="text-[10px] px-2 py-0.5 font-medium rounded-full">{tag}</Badge>
+                  <Badge
+                    key={tag}
+                    variant="secondary"
+                    className="text-[10px] px-2 py-0.5 font-medium rounded-full"
+                  >
+                    {tag}
+                  </Badge>
                 ))}
                 {memo.tags.length > 4 && (
-                  <Badge variant="secondary" className="text-[10px] px-2 py-0.5 font-medium rounded-full">+{memo.tags.length - 4}</Badge>
+                  <Badge
+                    variant="secondary"
+                    className="text-[10px] px-2 py-0.5 font-medium rounded-full"
+                  >
+                    +{memo.tags.length - 4}
+                  </Badge>
                 )}
               </div>
             )}
 
             {recipientUsers.length > 0 && (
               <div className="flex items-center gap-1.5 mt-2.5">
-                <span className="text-[10px] text-muted-foreground font-medium">To:</span>
+                <span className="text-[10px] text-muted-foreground font-medium">
+                  To:
+                </span>
                 <div className="flex -space-x-1.5">
                   {recipientUsers.map((user) => (
                     <UserHoverCard key={user!.id} user={user!}>
-                      <Avatar className="h-6 w-6 border-2 border-background shadow-sm" onClick={stopProp(() => navigate(`/profile/${user!.id}`))}>
+                      <Avatar
+                        className="h-6 w-6 border-2 border-background shadow-sm"
+                        onClick={stopProp(() =>
+                          navigate(`/profile/${user!.id}`),
+                        )}
+                      >
                         <AvatarFallback className="text-[8px] bg-secondary text-secondary-foreground font-bold">
                           {getUserInitials(user!.name)}
                         </AvatarFallback>
@@ -150,7 +274,9 @@ export function MemoCard({ memo }: MemoCardProps) {
                   ))}
                 </div>
                 {remainingRecipients > 0 && (
-                  <span className="text-[10px] text-muted-foreground">+{remainingRecipients} more</span>
+                  <span className="text-[10px] text-muted-foreground">
+                    +{remainingRecipients} more
+                  </span>
                 )}
               </div>
             )}
@@ -159,25 +285,39 @@ export function MemoCard({ memo }: MemoCardProps) {
             {(imageAttachments.length > 0 || videoAttachments.length > 0) && (
               <div className="flex gap-1.5 mt-2.5 flex-wrap">
                 {imageAttachments.slice(0, 4).map((att) => (
-                  <div key={att.id} className="relative h-14 w-14 rounded-lg overflow-hidden border bg-secondary/50 shrink-0">
+                  <div
+                    key={att.id}
+                    className="relative h-14 w-14 rounded-lg overflow-hidden border bg-secondary/50 shrink-0"
+                  >
                     <img
-                      src={att.url !== '#' ? att.url : `https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=100&h=100&fit=crop`}
+                      src={
+                        att.url !== "#"
+                          ? att.url
+                          : `https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=100&h=100&fit=crop`
+                      }
                       alt={att.name}
                       className="w-full h-full object-cover"
                     />
                   </div>
                 ))}
                 {videoAttachments.slice(0, 2).map((att) => (
-                  <div key={att.id} className="relative h-14 w-14 rounded-lg overflow-hidden border bg-secondary/50 shrink-0 flex items-center justify-center">
+                  <div
+                    key={att.id}
+                    className="relative h-14 w-14 rounded-lg overflow-hidden border bg-secondary/50 shrink-0 flex items-center justify-center"
+                  >
                     <div className="h-6 w-6 rounded-full bg-background/80 backdrop-blur flex items-center justify-center">
                       <Play className="h-3 w-3 text-foreground ml-0.5" />
                     </div>
-                    <span className="absolute bottom-0.5 left-0.5 right-0.5 text-[7px] text-muted-foreground truncate text-center">{att.name}</span>
+                    <span className="absolute bottom-0.5 left-0.5 right-0.5 text-[7px] text-muted-foreground truncate text-center">
+                      {att.name}
+                    </span>
                   </div>
                 ))}
                 {imageAttachments.length + videoAttachments.length > 4 && (
                   <div className="h-14 w-14 rounded-lg border bg-secondary flex items-center justify-center shrink-0">
-                    <span className="text-[10px] font-medium text-muted-foreground">+{imageAttachments.length + videoAttachments.length - 4}</span>
+                    <span className="text-[10px] font-medium text-muted-foreground">
+                      +{imageAttachments.length + videoAttachments.length - 4}
+                    </span>
                   </div>
                 )}
               </div>
@@ -187,7 +327,10 @@ export function MemoCard({ memo }: MemoCardProps) {
             {otherAttachments.length > 0 && (
               <div className="flex items-center gap-1.5 mt-2 flex-wrap">
                 {otherAttachments.map((att) => (
-                  <span key={att.id} className="inline-flex items-center gap-1 text-[11px] text-muted-foreground bg-secondary/80 px-2 py-1 rounded-lg max-w-[160px]">
+                  <span
+                    key={att.id}
+                    className="inline-flex items-center gap-1 text-[11px] text-muted-foreground bg-secondary/80 px-2 py-1 rounded-lg max-w-[160px]"
+                  >
                     <Paperclip className="h-3 w-3 shrink-0" />
                     <span className="truncate">{att.name}</span>
                   </span>
@@ -205,14 +348,20 @@ export function MemoCard({ memo }: MemoCardProps) {
                       <TooltipTrigger asChild>
                         <button
                           className={`text-xs px-2 py-0.5 rounded-full border transition-all ${
-                            isActive ? 'bg-primary/10 border-primary/30 shadow-sm' : 'bg-secondary/60 border-transparent hover:border-border'
+                            isActive
+                              ? "bg-primary/10 border-primary/30 shadow-sm"
+                              : "bg-secondary/60 border-transparent hover:border-border"
                           }`}
-                          onClick={stopProp(() => addReaction(memo.id, r.emoji, currentUser.id))}
+                          onClick={stopProp(() =>
+                            addReaction(memo.id, r.emoji, currentUser.id),
+                          )}
                         >
                           {r.emoji} {r.users.length}
                         </button>
                       </TooltipTrigger>
-                      <TooltipContent>{isActive ? "Remove reaction" : "Add reaction"}</TooltipContent>
+                      <TooltipContent>
+                        {isActive ? "Remove reaction" : "Add reaction"}
+                      </TooltipContent>
                     </Tooltip>
                   );
                 })}
@@ -221,39 +370,51 @@ export function MemoCard({ memo }: MemoCardProps) {
 
             {/* Status badges + inline actions */}
             <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border/50 flex-wrap">
-              {memo.status !== 'draft' && totalRecipients > 0 && (
+              {memo.status !== "draft" && totalRecipients > 0 && (
                 <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground flex-wrap">
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <span className="inline-flex items-center gap-0.5 bg-info/10 text-info px-1.5 py-0.5 rounded-md">
-                        <Eye className="h-3 w-3" />{openedCount}/{totalRecipients}
+                        <Eye className="h-3 w-3" />
+                        {openedCount}/{totalRecipients}
                       </span>
                     </TooltipTrigger>
-                    <TooltipContent>Opened by {openedCount} of {totalRecipients} recipients</TooltipContent>
+                    <TooltipContent>
+                      Opened by {openedCount} of {totalRecipients} recipients
+                    </TooltipContent>
                   </Tooltip>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <span className="inline-flex items-center gap-0.5 bg-warning/10 text-warning px-1.5 py-0.5 rounded-md">
-                        <CheckCircle2 className="h-3 w-3" />{acknowledgedCount}/{totalRecipients}
+                        <CheckCircle2 className="h-3 w-3" />
+                        {acknowledgedCount}/{totalRecipients}
                       </span>
                     </TooltipTrigger>
-                    <TooltipContent>Acknowledged by {acknowledgedCount} of {totalRecipients}</TooltipContent>
+                    <TooltipContent>
+                      Acknowledged by {acknowledgedCount} of {totalRecipients}
+                    </TooltipContent>
                   </Tooltip>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <span className="inline-flex items-center gap-0.5 bg-success/10 text-success px-1.5 py-0.5 rounded-md">
-                        <ThumbsUp className="h-3 w-3" />{approvedCount}/{totalRecipients}
+                        <ThumbsUp className="h-3 w-3" />
+                        {approvedCount}/{totalRecipients}
                       </span>
                     </TooltipTrigger>
-                    <TooltipContent>Approved by {approvedCount} of {totalRecipients}</TooltipContent>
+                    <TooltipContent>
+                      Approved by {approvedCount} of {totalRecipients}
+                    </TooltipContent>
                   </Tooltip>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <span className="inline-flex items-center gap-0.5 bg-primary/10 text-primary px-1.5 py-0.5 rounded-md">
-                        <MessageCircle className="h-3 w-3" />{repliedCount}/{totalRecipients}
+                        <MessageCircle className="h-3 w-3" />
+                        {repliedCount}/{totalRecipients}
                       </span>
                     </TooltipTrigger>
-                    <TooltipContent>Replied by {repliedCount} of {totalRecipients}</TooltipContent>
+                    <TooltipContent>
+                      Replied by {repliedCount} of {totalRecipients}
+                    </TooltipContent>
                   </Tooltip>
                 </div>
               )}
@@ -261,53 +422,90 @@ export function MemoCard({ memo }: MemoCardProps) {
               <div className="flex items-center gap-0.5 ml-auto opacity-0 group-hover/card:opacity-100 transition-opacity">
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon" className={`h-7 w-7 ${isStarred ? 'text-yellow-500' : 'text-muted-foreground'}`}
-                      onClick={stopProp(() => { toggleStar(memo.id, currentUser.id); toast.success(isStarred ? 'Unstarred' : 'Starred!'); })}>
-                      <Star className={`h-3.5 w-3.5 ${isStarred ? 'fill-yellow-500' : ''}`} />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className={`h-7 w-7 ${isStarred ? "text-yellow-500" : "text-muted-foreground"}`}
+                      onClick={stopProp(() => {
+                        toggleStar(memo.id, currentUser.id);
+                      })}
+                    >
+                      <Star
+                        className={`h-3.5 w-3.5 ${isStarred ? "fill-yellow-500" : ""}`}
+                      />
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent>{isStarred ? "Unstar memo" : "Star memo"}</TooltipContent>
+                  <TooltipContent>
+                    {isStarred ? "Unstar memo" : "Star memo"}
+                  </TooltipContent>
                 </Tooltip>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon" className={`h-7 w-7 ${memo.pinned ? 'text-warning' : 'text-muted-foreground'}`}
-                      onClick={stopProp(() => { togglePin(memo.id); toast.success(memo.pinned ? 'Unpinned' : 'Pinned!'); })}
-                      disabled={!showPinArchive}>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className={`h-7 w-7 ${memo.pinned ? "text-warning" : "text-muted-foreground"}`}
+                      onClick={stopProp(async () => {
+                        try {
+                          await togglePin(memo.id);
+                        } catch {
+                          // error handled in context
+                        }
+                      })}
+                      disabled={!showPin}
+                    >
                       <Pin className="h-3.5 w-3.5" />
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent>{showPinArchive ? (memo.pinned ? "Unpin memo" : "Pin memo to top") : "Insufficient permissions"}</TooltipContent>
+                  <TooltipContent>
+                    {showPin
+                      ? memo.pinned
+                        ? "Unpin memo"
+                        : "Pin memo to top"
+                      : "Insufficient permissions"}
+                  </TooltipContent>
                 </Tooltip>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon" className={`h-7 w-7 ${memo.archived ? 'text-primary' : 'text-muted-foreground'}`}
-                      onClick={stopProp(() => { toggleArchive(memo.id); toast.success(memo.archived ? 'Unarchived' : 'Archived!'); })}
-                      disabled={!showPinArchive}>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className={`h-7 w-7 ${memo.archived ? "text-primary" : "text-muted-foreground"}`}
+                      onClick={stopProp(async () => {
+                        try {
+                          await toggleArchive(memo.id);
+                        } catch {
+                          // error handled in context
+                        }
+                      })}
+                      disabled={!showArchive}
+                    >
                       <Archive className="h-3.5 w-3.5" />
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent>{showPinArchive ? (memo.archived ? "Unarchive memo" : "Archive memo") : "Insufficient permissions"}</TooltipContent>
+                  <TooltipContent>
+                    {showArchive
+                      ? memo.archived
+                        ? "Unarchive memo"
+                        : "Archive memo"
+                      : "Insufficient permissions"}
+                  </TooltipContent>
                 </Tooltip>
                 {!isCreator && (
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground"
-                        onClick={stopProp(() => { hideMemo(memo.id, currentUser.id); toast.success('Memo hidden from feed'); })}>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-muted-foreground"
+                        onClick={stopProp(() => {
+                          hideMemo(memo.id, currentUser.id);
+                        })}
+                      >
                         <EyeOff className="h-3.5 w-3.5" />
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>Hide memo from your feed</TooltipContent>
-                  </Tooltip>
-                )}
-                {memo.status !== 'draft' && (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground"
-                        onClick={stopProp(() => { printMemo(memo); toast.success('Preparing print...'); })}>
-                        <Printer className="h-3.5 w-3.5" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Print memo</TooltipContent>
                   </Tooltip>
                 )}
                 {showDelete && (
@@ -315,25 +513,34 @@ export function MemoCard({ memo }: MemoCardProps) {
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <AlertDialogTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                            onClick={e => e.stopPropagation()}>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                            onClick={(e) => e.stopPropagation()}
+                          >
                             <Trash2 className="h-3.5 w-3.5" />
                           </Button>
                         </AlertDialogTrigger>
                       </TooltipTrigger>
                       <TooltipContent>Delete memo</TooltipContent>
                     </Tooltip>
-                    <AlertDialogContent onClick={e => e.stopPropagation()}>
+                    <AlertDialogContent onClick={(e) => e.stopPropagation()}>
                       <AlertDialogHeader>
                         <AlertDialogTitle>Delete this memo?</AlertDialogTitle>
                         <AlertDialogDescription>
-                          This memo will be moved to the Trash. You can restore it later from the Deleted tab.
+                          This memo will be moved to the Trash. You can restore
+                          it later from the Deleted tab.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                          onClick={() => { deleteMemo(memo.id); toast.success('Memo moved to trash'); }}>
+                        <AlertDialogAction
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          onClick={() => {
+                            deleteMemo(memo.id);
+                          }}
+                        >
                           Delete
                         </AlertDialogAction>
                       </AlertDialogFooter>
@@ -344,18 +551,32 @@ export function MemoCard({ memo }: MemoCardProps) {
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <PopoverTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground" onClick={e => e.stopPropagation()}>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-muted-foreground"
+                          onClick={(e) => e.stopPropagation()}
+                        >
                           <Smile className="h-3.5 w-3.5" />
                         </Button>
                       </PopoverTrigger>
                     </TooltipTrigger>
                     <TooltipContent>Add reaction</TooltipContent>
                   </Tooltip>
-                  <PopoverContent className="w-auto p-2" align="end" onClick={e => e.stopPropagation()}>
+                  <PopoverContent
+                    className="w-auto p-2"
+                    align="end"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <div className="flex gap-1">
-                      {QUICK_EMOJIS.map(emoji => (
-                        <button key={emoji} className="h-7 w-7 flex items-center justify-center rounded hover:bg-secondary text-sm"
-                          onClick={() => addReaction(memo.id, emoji, currentUser.id)}>
+                      {QUICK_EMOJIS.map((emoji) => (
+                        <button
+                          key={emoji}
+                          className="h-7 w-7 flex items-center justify-center rounded hover:bg-secondary text-sm"
+                          onClick={() =>
+                            addReaction(memo.id, emoji, currentUser.id)
+                          }
+                        >
                           {emoji}
                         </button>
                       ))}

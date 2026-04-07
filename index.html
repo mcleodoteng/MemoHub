@@ -5,38 +5,55 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
     <!-- Content Security Policy -->
-    <meta http-equiv="Content-Security-Policy" content="
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="
       default-src 'self';
       script-src 'self';
       style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
       font-src 'self' https://fonts.gstatic.com;
       img-src 'self' blob: data: https:;
-      connect-src 'self' https:;
+      connect-src 'self' blob: https: ws: wss:;
       object-src 'none';
       base-uri 'self';
       form-action 'self';
-      frame-ancestors 'none';
-    " />
+    "
+    />
 
     <!-- Security headers via meta -->
-    <!-- X-Frame-Options and X-Content-Type-Options must be set as HTTP headers on your hosting provider -->
+    <!-- frame-ancestors and X-Frame-Options must be set as HTTP headers on your hosting provider/server -->
     <meta name="referrer" content="strict-origin-when-cross-origin" />
     <meta name="referrer" content="strict-origin-when-cross-origin" />
 
+    <!-- Restore saved theme before React renders to prevent flash -->
+    <script src="/theme-init.js"></script>
     <link rel="icon" href="/favicon.png" type="image/png" />
+
     <title>MemoHub</title>
-    <meta name="description" content="Secure internal memo and messaging platform for teams" />
+    <meta
+      name="description"
+      content="Secure internal memo and messaging platform for teams"
+    />
     <meta name="author" content="MemoHub" />
 
     <!-- TODO: Update og:title to match your application name -->
     <meta property="og:title" content="MemoHub" />
-    <meta property="og:description" content="Secure internal memo and messaging platform for teams" />
+    <meta
+      property="og:description"
+      content="Secure internal memo and messaging platform for teams"
+    />
     <meta property="og:type" content="website" />
-    <meta property="og:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+    <meta
+      property="og:image"
+      content="https://lovable.dev/opengraph-image-p98pqg.png"
+    />
 
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@Lovable" />
-    <meta name="twitter:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+    <meta
+      name="twitter:image"
+      content="https://lovable.dev/opengraph-image-p98pqg.png"
+    />
   </head>
 
   <body>

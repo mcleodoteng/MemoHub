@@ -1,8 +1,13 @@
 import { User } from "@/types";
-import { getUserInitials } from "@/data/mock";
+import { getUserInitials } from "@/lib/user-utils";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "@/components/ui/hover-card";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Mail, Building2, Clock, MessageCircle } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
@@ -23,27 +28,41 @@ const statusColors: Record<string, string> = {
   offline: "bg-muted-foreground/40",
 };
 
-export function UserHoverCard({ user, children, side = "top" }: UserHoverCardProps) {
+export function UserHoverCard({
+  user,
+  children,
+  side = "top",
+}: UserHoverCardProps) {
   const status = useUserStatus(user.id);
   const navigate = useNavigate();
   const { currentUser } = useAuth();
   const { conversations, createConversation } = useMessages();
 
-  const handleMessage = (e: React.MouseEvent) => {
+  const handleMessage = async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!currentUser || currentUser.id === user.id) {
-      navigate('/profile');
+      navigate("/profile");
       return;
     }
-    const existing = conversations.find(c =>
-      c.type === 'direct' && c.participantIds.includes(user.id) && c.participantIds.includes(currentUser.id)
+    const existing = conversations.find(
+      (c) =>
+        c.type === "direct" &&
+        c.participantIds.includes(user.id) &&
+        c.participantIds.includes(currentUser.id),
     );
-    if (existing) {
-      navigate(`/messages?conv=${existing.id}`);
-    } else {
-      const newConv = createConversation([currentUser.id, user.id]);
-      navigate(`/messages?conv=${newConv.id}`);
+    if (!existing) {
+      try {
+        await createConversation([currentUser.id, user.id]);
+      } catch (error) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : "Failed to start conversation";
+        toast.error(message);
+        return;
+      }
     }
+    navigate("/messages");
   };
 
   return (
@@ -64,7 +83,10 @@ export function UserHoverCard({ user, children, side = "top" }: UserHoverCardPro
           <div className="flex-1 min-w-0 space-y-1">
             <div className="flex items-center gap-2">
               <p className="text-sm font-semibold truncate">{user.name}</p>
-              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 capitalize shrink-0">
+              <Badge
+                variant="secondary"
+                className="text-[10px] px-1.5 py-0 capitalize shrink-0"
+              >
                 {user.role}
               </Badge>
             </div>
@@ -78,10 +100,20 @@ export function UserHoverCard({ user, children, side = "top" }: UserHoverCardPro
             </div>
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <Clock className="h-3 w-3 shrink-0" />
-              <span>Joined {formatDistanceToNow(new Date(user.createdAt), { addSuffix: true })}</span>
+              <span>
+                Joined{" "}
+                {formatDistanceToNow(new Date(user.createdAt), {
+                  addSuffix: true,
+                })}
+              </span>
             </div>
             {currentUser && currentUser.id !== user.id && (
-              <Button size="sm" variant="outline" className="mt-2 w-full gap-1.5 h-7 text-xs" onClick={handleMessage}>
+              <Button
+                size="sm"
+                variant="outline"
+                className="mt-2 w-full gap-1.5 h-7 text-xs"
+                onClick={handleMessage}
+              >
                 <MessageCircle className="h-3 w-3" /> Message
               </Button>
             )}

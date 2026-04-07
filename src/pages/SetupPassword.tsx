@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useMemo, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,106 +12,76 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { FileText, Eye, EyeOff, CheckCircle, AlertCircle } from "lucide-react";
-import { apiRequest } from "@/lib/api";
 import { toast } from "sonner";
 
-const ResetPassword = () => {
+type SetupPasswordLocationState = {
+  setupToken?: string;
+  email?: string;
+  rememberMe?: boolean;
+};
+
+const PASSWORD_POLICY = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
+
+const SetupPassword = () => {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const initialToken = searchParams.get("token") || "";
-  const email = searchParams.get("email") || "";
-  const [token, setToken] = useState("");
+  const location = useLocation();
+  const { completePasswordSetup } = useAuth();
+  const state = (location.state || {}) as SetupPasswordLocationState;
+
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [isPreparingToken, setIsPreparingToken] = useState(true);
 
-  useEffect(() => {
-    if (!initialToken) {
-      setError("This reset link is invalid or missing.");
-      setIsPreparingToken(false);
-      return;
-    }
+  const setupToken = state.setupToken || "";
+  const email = state.email || "your account";
+  const rememberMe = state.rememberMe === true;
 
-    let active = true;
-
-    const prepareToken = async () => {
-      try {
-        const response = await apiRequest<{ valid: boolean; token?: string }>(
-          `/auth/validate-reset-token?token=${encodeURIComponent(initialToken)}`,
-        );
-
-        if (!active) return;
-
-        if (!response.valid || !response.token) {
-          setError(
-            "This reset link has expired or has already been used. Please request a new one.",
-          );
-          setToken("");
-          return;
-        }
-
-        // Use the rotated one-time token returned by the server.
-        setToken(response.token);
-      } catch {
-        if (!active) return;
-        setError(
-          "This reset link has expired or has already been used. Please request a new one.",
-        );
-        setToken("");
-      } finally {
-        if (active) {
-          setIsPreparingToken(false);
-        }
-      }
-    };
-
-    void prepareToken();
-
-    return () => {
-      active = false;
-    };
-  }, [initialToken]);
+  const policyHint = useMemo(
+    () =>
+      "Use at least 8 characters with one uppercase letter, one lowercase letter, and one number.",
+    [],
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
 
-    if (!token) {
-      setError(
-        "This reset link has expired or has already been used. Please request a new one.",
-      );
+    if (!setupToken) {
+      setError("Password setup session expired. Please sign in again.");
       return;
     }
 
-    if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/.test(password)) {
-      setError(
-        "Password must be at least 8 characters and include an uppercase letter, a lowercase letter, and a number",
-      );
+    if (!PASSWORD_POLICY.test(password)) {
+      setError(policyHint);
       return;
     }
+
     if (password !== confirmPassword) {
       setError("Passwords do not match");
       return;
     }
 
     setLoading(true);
-    try {
-      await apiRequest("/auth/reset-password", {
-        method: "POST",
-        body: JSON.stringify({ token, password }),
-      });
-      setSuccess(true);
-      toast.success("Password reset successfully!");
-    } catch (err: any) {
-      setError(err.message || "Failed to reset password");
-      toast.error("Failed to reset password");
-    } finally {
-      setLoading(false);
+    const result = await completePasswordSetup(
+      setupToken,
+      password,
+      rememberMe,
+    );
+    setLoading(false);
+
+    if (!result.success) {
+      setError(result.error || "Unable to set new password");
+      return;
     }
+
+    setSuccess(true);
+    toast.success("Password updated. You are now signed in.");
+    setTimeout(() => {
+      navigate("/", { replace: true });
+    }, 600);
   };
 
   return (
@@ -128,12 +99,12 @@ const ResetPassword = () => {
         <Card className="border-border/50 shadow-lg">
           <CardHeader className="pb-4">
             <CardTitle className="text-lg font-display">
-              {success ? "Password Updated" : "Set New Password"}
+              {success ? "Password Updated" : "Set Your New Password"}
             </CardTitle>
             <CardDescription>
               {success
-                ? "Your password has been reset successfully"
-                : `Reset password for ${email || "your account"}`}
+                ? "Your password has been updated successfully"
+                : `Signed in as ${email}. Set a new password to continue.`}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -145,16 +116,7 @@ const ResetPassword = () => {
                   </div>
                 </div>
                 <p className="text-sm text-center text-muted-foreground">
-                  You can now log in with your new password.
-                </p>
-                <Button className="w-full" onClick={() => navigate("/login")}>
-                  Go to Login
-                </Button>
-              </div>
-            ) : isPreparingToken ? (
-              <div className="space-y-3 py-4 text-center">
-                <p className="text-sm text-muted-foreground">
-                  Verifying your reset link...
+                  Redirecting you to your dashboard...
                 </p>
               </div>
             ) : (
@@ -165,6 +127,7 @@ const ResetPassword = () => {
                     {error}
                   </div>
                 )}
+
                 <div className="space-y-2">
                   <Label htmlFor="password">New Password</Label>
                   <div className="relative">
@@ -175,7 +138,7 @@ const ResetPassword = () => {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       required
-                      minLength={8}
+                      autoComplete="new-password"
                     />
                     <button
                       type="button"
@@ -189,20 +152,33 @@ const ResetPassword = () => {
                       )}
                     </button>
                   </div>
+                  <p className="text-xs text-muted-foreground">{policyHint}</p>
                 </div>
+
                 <div className="space-y-2">
-                  <Label htmlFor="confirm">Confirm Password</Label>
+                  <Label htmlFor="confirmPassword">Confirm Password</Label>
                   <Input
-                    id="confirm"
+                    id="confirmPassword"
                     type={showPassword ? "text" : "password"}
                     placeholder="••••••••"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     required
+                    autoComplete="new-password"
                   />
                 </div>
+
                 <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? "Updating..." : "Update Password"}
+                  {loading ? "Updating Password..." : "Save New Password"}
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="w-full"
+                  onClick={() => navigate("/login", { replace: true })}
+                >
+                  Back to Login
                 </Button>
               </form>
             )}
@@ -213,4 +189,4 @@ const ResetPassword = () => {
   );
 };
 
-export default ResetPassword;
+export default SetupPassword;

@@ -1,32 +1,53 @@
-import { useState } from 'react';
-import { ApprovalStep, WorkflowConfig as WorkflowConfigType } from '@/types';
-import { users, currentUser, getUserById, getUserInitials } from '@/data/mock';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
+import { useState } from "react";
+import { ApprovalStep, WorkflowConfig as WorkflowConfigType } from "@/types";
+import { useAuth } from "@/context/AuthContext";
+import { useUsers } from "@/context/UserContext";
+import { getUserInitials } from "@/lib/user-utils";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from '@/components/ui/select';
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
-  Collapsible, CollapsibleContent, CollapsibleTrigger,
-} from '@/components/ui/collapsible';
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import {
-  GitBranch, Plus, X, GripVertical, Clock, AlertTriangle,
-  ChevronDown, ArrowRight, CalendarClock, Users,
-} from 'lucide-react';
-import { UserHoverCard } from '@/components/user/UserHoverCard';
+  GitBranch,
+  Plus,
+  X,
+  GripVertical,
+  Clock,
+  AlertTriangle,
+  ChevronDown,
+  ArrowRight,
+  CalendarClock,
+  Users,
+} from "lucide-react";
+import { UserHoverCard } from "@/components/user/UserHoverCard";
 
 interface WorkflowConfigProps {
   workflow: WorkflowConfigType;
   onChange: (workflow: WorkflowConfigType) => void;
 }
 
-export function WorkflowConfigPanel({ workflow, onChange }: WorkflowConfigProps) {
+export function WorkflowConfigPanel({
+  workflow,
+  onChange,
+}: WorkflowConfigProps) {
+  const { currentUser } = useAuth();
+  const { users: allUsers, getUserById } = useUsers();
   const [isOpen, setIsOpen] = useState(workflow.enabled);
-  const otherUsers = users.filter(u => u.id !== currentUser.id);
+  const otherUsers = allUsers.filter((u) => u.id !== currentUser?.id);
 
   const toggleEnabled = (enabled: boolean) => {
     onChange({ ...workflow, enabled });
@@ -34,12 +55,12 @@ export function WorkflowConfigPanel({ workflow, onChange }: WorkflowConfigProps)
   };
 
   const addApprovalStep = (userId: string) => {
-    if (workflow.approvalChain.some(s => s.approverId === userId)) return;
+    if (workflow.approvalChain.some((s) => s.approverId === userId)) return;
     const newStep: ApprovalStep = {
       id: `step-${Date.now()}-${Math.random().toString(36).slice(2, 5)}`,
       approverId: userId,
       order: workflow.approvalChain.length + 1,
-      status: 'pending',
+      status: "pending",
     };
     onChange({
       ...workflow,
@@ -49,19 +70,20 @@ export function WorkflowConfigPanel({ workflow, onChange }: WorkflowConfigProps)
 
   const removeStep = (stepId: string) => {
     const updated = workflow.approvalChain
-      .filter(s => s.id !== stepId)
+      .filter((s) => s.id !== stepId)
       .map((s, i) => ({ ...s, order: i + 1 }));
     onChange({ ...workflow, approvalChain: updated });
   };
 
-  const moveStep = (stepId: string, direction: 'up' | 'down') => {
-    const idx = workflow.approvalChain.findIndex(s => s.id === stepId);
+  const moveStep = (stepId: string, direction: "up" | "down") => {
+    const idx = workflow.approvalChain.findIndex((s) => s.id === stepId);
     if (idx === -1) return;
-    if (direction === 'up' && idx === 0) return;
-    if (direction === 'down' && idx === workflow.approvalChain.length - 1) return;
+    if (direction === "up" && idx === 0) return;
+    if (direction === "down" && idx === workflow.approvalChain.length - 1)
+      return;
 
     const newChain = [...workflow.approvalChain];
-    const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
+    const swapIdx = direction === "up" ? idx - 1 : idx + 1;
     [newChain[idx], newChain[swapIdx]] = [newChain[swapIdx], newChain[idx]];
     onChange({
       ...workflow,
@@ -85,14 +107,22 @@ export function WorkflowConfigPanel({ workflow, onChange }: WorkflowConfigProps)
     if (isNaN(h) || h < 1) return;
     onChange({
       ...workflow,
-      escalation: { ...workflow.escalation!, enabled: true, hoursUntilEscalation: h },
+      escalation: {
+        ...workflow.escalation!,
+        enabled: true,
+        hoursUntilEscalation: h,
+      },
     });
   };
 
   const updateEscalationTarget = (userId: string) => {
     onChange({
       ...workflow,
-      escalation: { ...workflow.escalation!, enabled: true, escalateToUserId: userId },
+      escalation: {
+        ...workflow.escalation!,
+        enabled: true,
+        escalateToUserId: userId,
+      },
     });
   };
 
@@ -104,7 +134,7 @@ export function WorkflowConfigPanel({ workflow, onChange }: WorkflowConfigProps)
   };
 
   const availableApprovers = otherUsers.filter(
-    u => !workflow.approvalChain.some(s => s.approverId === u.id)
+    (u) => !workflow.approvalChain.some((s) => s.approverId === u.id),
   );
 
   return (
@@ -115,7 +145,9 @@ export function WorkflowConfigPanel({ workflow, onChange }: WorkflowConfigProps)
           <CollapsibleTrigger className="flex items-center gap-2 hover:opacity-80 transition-opacity">
             <GitBranch className="h-4 w-4 text-primary" />
             <span className="text-sm font-semibold">Workflow Automation</span>
-            <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+            <ChevronDown
+              className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${isOpen ? "rotate-180" : ""}`}
+            />
           </CollapsibleTrigger>
           <Switch checked={workflow.enabled} onCheckedChange={toggleEnabled} />
         </div>
@@ -125,7 +157,9 @@ export function WorkflowConfigPanel({ workflow, onChange }: WorkflowConfigProps)
           <div className="space-y-3">
             <div className="flex items-center gap-2">
               <Users className="h-3.5 w-3.5 text-muted-foreground" />
-              <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Approval Chain</Label>
+              <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                Approval Chain
+              </Label>
             </div>
 
             {workflow.approvalChain.length > 0 ? (
@@ -140,7 +174,10 @@ export function WorkflowConfigPanel({ workflow, onChange }: WorkflowConfigProps)
                       )}
                       <div className="flex items-center gap-2 flex-1 p-2 rounded-lg bg-secondary/50 group">
                         <GripVertical className="h-3.5 w-3.5 text-muted-foreground cursor-grab shrink-0" />
-                        <Badge variant="outline" className="h-5 w-5 p-0 flex items-center justify-center text-[10px] font-bold shrink-0">
+                        <Badge
+                          variant="outline"
+                          className="h-5 w-5 p-0 flex items-center justify-center text-[10px] font-bold shrink-0"
+                        >
                           {step.order}
                         </Badge>
                         <UserHoverCard user={user}>
@@ -151,23 +188,42 @@ export function WorkflowConfigPanel({ workflow, onChange }: WorkflowConfigProps)
                               </AvatarFallback>
                             </Avatar>
                             <div className="min-w-0">
-                              <p className="text-xs font-medium truncate">{user.name}</p>
-                              <p className="text-[10px] text-muted-foreground">{user.role} · {user.department}</p>
+                              <p className="text-xs font-medium truncate">
+                                {user.name}
+                              </p>
+                              <p className="text-[10px] text-muted-foreground">
+                                {user.role} · {user.department}
+                              </p>
                             </div>
                           </div>
                         </UserHoverCard>
                         <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                           {idx > 0 && (
-                            <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => moveStep(step.id, 'up')}>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-5 w-5"
+                              onClick={() => moveStep(step.id, "up")}
+                            >
                               <span className="text-[10px]">↑</span>
                             </Button>
                           )}
                           {idx < workflow.approvalChain.length - 1 && (
-                            <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => moveStep(step.id, 'down')}>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-5 w-5"
+                              onClick={() => moveStep(step.id, "down")}
+                            >
                               <span className="text-[10px]">↓</span>
                             </Button>
                           )}
-                          <Button variant="ghost" size="icon" className="h-5 w-5 text-destructive" onClick={() => removeStep(step.id)}>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-5 w-5 text-destructive"
+                            onClick={() => removeStep(step.id)}
+                          >
                             <X className="h-3 w-3" />
                           </Button>
                         </div>
@@ -177,7 +233,9 @@ export function WorkflowConfigPanel({ workflow, onChange }: WorkflowConfigProps)
                 })}
               </div>
             ) : (
-              <p className="text-xs text-muted-foreground italic">No approval steps added yet. Add approvers in order.</p>
+              <p className="text-xs text-muted-foreground italic">
+                No approval steps added yet. Add approvers in order.
+              </p>
             )}
 
             {availableApprovers.length > 0 && (
@@ -189,7 +247,7 @@ export function WorkflowConfigPanel({ workflow, onChange }: WorkflowConfigProps)
                   </div>
                 </SelectTrigger>
                 <SelectContent>
-                  {availableApprovers.map(u => (
+                  {availableApprovers.map((u) => (
                     <SelectItem key={u.id} value={u.id} className="text-xs">
                       <span className="flex items-center gap-2">
                         <Avatar className="h-5 w-5">
@@ -197,7 +255,10 @@ export function WorkflowConfigPanel({ workflow, onChange }: WorkflowConfigProps)
                             {getUserInitials(u.name)}
                           </AvatarFallback>
                         </Avatar>
-                        {u.name} <span className="text-muted-foreground">· {u.role}</span>
+                        {u.name}{" "}
+                        <span className="text-muted-foreground">
+                          · {u.role}
+                        </span>
                       </span>
                     </SelectItem>
                   ))}
@@ -211,7 +272,9 @@ export function WorkflowConfigPanel({ workflow, onChange }: WorkflowConfigProps)
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <AlertTriangle className="h-3.5 w-3.5 text-warning" />
-                <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Auto-Escalation</Label>
+                <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  Auto-Escalation
+                </Label>
               </div>
               <Switch
                 checked={workflow.escalation?.enabled || false}
@@ -222,13 +285,15 @@ export function WorkflowConfigPanel({ workflow, onChange }: WorkflowConfigProps)
             {workflow.escalation?.enabled && (
               <div className="space-y-2 pl-5">
                 <div className="flex items-center gap-2">
-                  <Label className="text-xs whitespace-nowrap">Escalate after</Label>
+                  <Label className="text-xs whitespace-nowrap">
+                    Escalate after
+                  </Label>
                   <Input
                     type="number"
                     min={1}
                     max={168}
                     value={workflow.escalation.hoursUntilEscalation}
-                    onChange={e => updateEscalationHours(e.target.value)}
+                    onChange={(e) => updateEscalationHours(e.target.value)}
                     className="h-7 w-16 text-xs"
                   />
                   <span className="text-xs text-muted-foreground">hours</span>
@@ -236,14 +301,14 @@ export function WorkflowConfigPanel({ workflow, onChange }: WorkflowConfigProps)
                 <div className="flex items-center gap-2">
                   <Label className="text-xs whitespace-nowrap">Notify</Label>
                   <Select
-                    value={workflow.escalation.escalateToUserId || ''}
+                    value={workflow.escalation.escalateToUserId || ""}
                     onValueChange={updateEscalationTarget}
                   >
                     <SelectTrigger className="h-7 text-xs flex-1">
                       <SelectValue placeholder="Select person..." />
                     </SelectTrigger>
                     <SelectContent>
-                      {otherUsers.map(u => (
+                      {otherUsers.map((u) => (
                         <SelectItem key={u.id} value={u.id} className="text-xs">
                           {u.name} ({u.role})
                         </SelectItem>
@@ -259,12 +324,20 @@ export function WorkflowConfigPanel({ workflow, onChange }: WorkflowConfigProps)
           <div className="space-y-3 pt-2 border-t">
             <div className="flex items-center gap-2">
               <CalendarClock className="h-3.5 w-3.5 text-info" />
-              <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Scheduled Delivery</Label>
+              <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                Scheduled Delivery
+              </Label>
             </div>
             <Input
               type="datetime-local"
-              value={workflow.scheduledSendAt ? new Date(workflow.scheduledSendAt).toISOString().slice(0, 16) : ''}
-              onChange={e => updateScheduledSend(e.target.value)}
+              value={
+                workflow.scheduledSendAt
+                  ? new Date(workflow.scheduledSendAt)
+                      .toISOString()
+                      .slice(0, 16)
+                  : ""
+              }
+              onChange={(e) => updateScheduledSend(e.target.value)}
               className="h-8 text-xs"
               min={new Date().toISOString().slice(0, 16)}
             />
@@ -272,9 +345,15 @@ export function WorkflowConfigPanel({ workflow, onChange }: WorkflowConfigProps)
               <div className="flex items-center gap-2">
                 <Clock className="h-3 w-3 text-info" />
                 <p className="text-xs text-muted-foreground">
-                  Will be sent automatically on {new Date(workflow.scheduledSendAt).toLocaleString()}
+                  Will be sent automatically on{" "}
+                  {new Date(workflow.scheduledSendAt).toLocaleString()}
                 </p>
-                <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => updateScheduledSend('')}>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-5 w-5"
+                  onClick={() => updateScheduledSend("")}
+                >
                   <X className="h-3 w-3" />
                 </Button>
               </div>
