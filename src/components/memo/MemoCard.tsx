@@ -12,8 +12,9 @@ import { useRoles } from "@/context/RoleContext";
 import {
   Globe, Lock, Shield, Pin, Paperclip, MessageCircle,
   Eye, CheckCircle2, ThumbsUp,
-  Archive, EyeOff, Smile, Trash2, Play, Image as ImageIcon, Star,
+  Archive, EyeOff, Smile, Trash2, Play, Image as ImageIcon, Star, Printer,
 } from "lucide-react";
+import { printMemo } from "@/pages/Reports";
 import { formatDistanceToNow, format } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { MentionText } from "@/components/shared/MentionText";
@@ -296,6 +297,17 @@ export function MemoCard({ memo }: MemoCardProps) {
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>Hide memo from your feed</TooltipContent>
+                  </Tooltip>
+                )}
+                {memo.status !== 'draft' && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground"
+                        onClick={stopProp(() => { printMemo(memo); toast.success('Preparing print...'); })}>
+                        <Printer className="h-3.5 w-3.5" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Print memo</TooltipContent>
                   </Tooltip>
                 )}
                 {showDelete && (
