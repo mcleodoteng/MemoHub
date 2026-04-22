@@ -1,73 +1,93 @@
-# Welcome to your Lovable project
+# MemoHub
 
-## Project info
+MemoHub is an internal memo and communications platform for teams. The project includes a React frontend for the user interface and a Node.js/Express backend for authentication, memo workflows, notifications, reporting, file uploads, and realtime updates.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+## Repository Structure
 
-## How can I edit this code?
+- `src/`: frontend application source
+- `public/`: static frontend assets
+- `backend/`: API server, Prisma schema, and backend services
 
-There are several ways of editing your application.
+## Frontend Stack
 
-**Use Lovable**
+- React
+- TypeScript
+- Vite
+- Tailwind CSS
+- Radix UI
+- React Query
+- Socket.IO client
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+## Backend Stack
 
-Changes made via Lovable will be committed automatically to this repo.
+- Node.js
+- Express
+- TypeScript
+- Prisma ORM
+- MySQL
+- Socket.IO
 
-**Use your preferred IDE**
+## Local Development
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## Requirements
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+- Node.js 20+
+- npm
+- MySQL
 
-Follow these steps:
+## Frontend Setup
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+npm install
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+The frontend runs on `http://localhost:8080` by default.
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## Backend Setup
 
-**Use GitHub Codespaces**
+```sh
+cd backend
+npm install
+cp .env.example .env
+npm run dev
+```
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+The backend runs on `http://localhost:5000` by default.
 
-## What technologies are used for this project?
+## Production Build
 
-This project is built with:
+## Frontend
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+```sh
+npm run build
+```
 
-## How can I deploy this project?
+## Backend
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+```sh
+cd backend
+npm run build
+npm run start:prod
+```
 
-## Can I connect a custom domain to my Lovable project?
+## Main Features
 
-Yes, you can!
+- Memo creation, editing, pinning, archiving, and deletion
+- Public, private, and protected memo visibility
+- Workflow approvals with comments and escalations
+- Memo comments, replies, reactions, and activity history
+- Group-based collaboration and messaging
+- Reporting and printable memo/report outputs
+- Notifications, reminders, and realtime sync
+- Role-based access control for administration and reporting
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+## Environment Notes
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+- Frontend API requests are proxied to the backend during local development.
+- Backend environment variables should be configured in `backend/.env`.
+- Do not commit secrets or production credentials.
+
+## Deployment
+
+Deploy the frontend and backend as separate services, or behind a reverse proxy, with the backend connected to a production MySQL database and the frontend configured to reach the backend API and Socket.IO endpoints.
