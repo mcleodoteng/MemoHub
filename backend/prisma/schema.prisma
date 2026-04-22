@@ -1,0 +1,450 @@
+// Prisma schema for MemoHub
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                String    @id @default(cuid())
+  email             String    @unique
+  passwordHash      String
+  name              String
+  bio               String?
+  avatar            String?
+  role              String    @default("member")
+  department        String    @default("General")
+  status            String    @default("online")
+  isBlocked         Boolean   @default(false)
+  deletedAt         DateTime?
+  createdAt         DateTime  @default(now())
+  lastLoginAt       DateTime?
+  passwordResetToken String?
+  passwordResetExpires DateTime?
+  twoFactorEnabled  Boolean   @default(false)
+  sessionTimeoutMinutes Int   @default(30)
+  twoFactorCodeHash String?
+  twoFactorCodeExpires DateTime?
+
+  // Relations
+  memos           Memo[]
+  comments        Comment[]
+  reactions       Reaction[]
+  commentReactions CommentReaction[]
+  notifications   Notification[]
+  memoRecipients  MemoRecipient[]
+  attachments     Attachment[]
+  messages        Message[]
+  threads         Thread[]
+  sessions        Session[]
+  editHistories   EditHistory[]
+  activityLogs    ActivityLog[]
+  groupMemberships GroupMember[]
+  reminders       Reminder[]
+
+  @@index([email])
+  @@index([createdAt])
+  @@map("users")
+}
+
+model Department {
+  id   String @id @default(cuid())
+  name String @unique
+
+  @@map("departments")
+}
+
+model RoleConfig {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  name        String
+  description String?
+  baseRole    String
+  permissions Json
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([key])
+  @@index([baseRole])
+  @@map("role_configs")
+}
+
+model Memo {
+  id              String   @id @default(cuid())
+  slug            String?  @unique
+  title           String
+  body            String   @db.LongText
+  creatorId       String
+  groupId         String?
+  priority        String   @default("normal")  // "low" | "medium" | "high" | "urgent"
+  visibility      String   @default("public")
+  status          String   @default("sent")
+  previousStatus  String?                    // status before soft-delete, used to restore
+  pinned          Boolean  @default(false)
+  archived        Boolean  @default(false)
+  starredBy       Json     @default("[]")     // array of user IDs
+  hiddenBy        Json     @default("[]")     // array of user IDs
+  referencedMemoIds Json   @default("[]")
+  workflow        Json?                      // approval chain data
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @default(now())
+
+  // Relations
+  creator       User              @relation(fields: [creatorId], references: [id])
+  group         Group?            @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  comments      Comment[]
+  reactions     Reaction[]
+  recipients    MemoRecipient[]
+  attachments   Attachment[]
+  tags          MemoTag[]
+  editHistory   EditHistory[]
+
+  @@index([creatorId])
+  @@index([groupId])
+  @@index([createdAt])
+  @@index([status])
+  @@index([visibility])
+  @@map("memos")
+}
+
+model Comment {
+  id             String   @id @default(cuid())
+  memoId         String
+  authorId       String
+  body           String   @db.LongText
+  parentId       String?
+  pinned         Boolean  @default(false)
+  pinnedBy       String?
+  reactions      Json     @default("[]")    // [{emoji, users: []}, ...]
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @default(now())
+
+  // Relations
+  memo       Memo               @relation(fields: [memoId], references: [id])
+  author     User               @relation(fields: [authorId], references: [id])
+  attachments Attachment[]
+  commentReactions CommentReaction[]
+
+  @@index([memoId])
+  @@index([authorId])
+  @@index([createdAt])
+  @@map("comments")
+}
+
+model Reaction {
+  id       String @id @default(cuid())
+  memoId   String
+  userId   String
+  emoji    String
+  createdAt DateTime @default(now())
+
+  // Relations
+  memo Memo @relation(fields: [memoId], references: [id])
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("reactions")
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String
+  title     String
+  body      String
+  read      Boolean  @default(false)
+  actionUrl String?
+  createdAt DateTime @default(now())
+
+  // Relations
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+model MemoRecipient {
+  id             String   @id @default(cuid())
+  memoId         String
+  userId         String
+  opened         Boolean  @default(false)
+  openedAt       DateTime?
+  acknowledged   Boolean  @default(false)
+  acknowledgedAt DateTime?
+  approved       Boolean  @default(false)
+  approvedAt     DateTime?
+  replied        Boolean  @default(false)
+  repliedAt      DateTime?
+
+  // Relations
+  memo Memo @relation(fields: [memoId], references: [id])
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([memoId, userId])
+  @@index([memoId])
+  @@index([userId])
+  @@map("memo_recipients")
+}
+model Attachment {
+  id         String @id @default(cuid())
+  memoId     String?
+  commentId  String?
+  name       String
+  type       String
+  size       Int
+  url        String
+  uploadedBy String
+  createdAt  DateTime @default(now())
+
+  // Relations
+  memo    Memo?    @relation(fields: [memoId], references: [id])
+  comment Comment? @relation(fields: [commentId], references: [id])
+  uploader User    @relation(fields: [uploadedBy], references: [id])
+
+  @@index([memoId])
+  @@index([commentId])
+  @@index([uploadedBy])
+  @@map("attachments")
+}
+
+model Tag {
+  id       String @id @default(cuid())
+  name     String @unique
+  category String
+  color    String
+
+  // Relations
+  memos MemoTag[]
+
+  @@map("tags")
+}
+
+model MemoTag {
+  memoId String
+  tagId  String
+
+  // Relations
+  memo Memo @relation(fields: [memoId], references: [id])
+  tag  Tag  @relation(fields: [tagId], references: [id])
+
+  @@id([memoId, tagId])
+  @@index([memoId])
+  @@index([tagId])
+  @@map("memo_tags")
+}
+model Conversation {
+  id            String   @id @default(cuid())
+  type          String   // 'direct' or 'group'
+  participantIds Json     // array of user IDs
+  name          String?
+  groupId       String?
+  group         Group?   @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @default(now())
+
+  // Relations
+  messages Message[]
+
+  @@unique([groupId])  // one conversation per group (MySQL allows multiple NULLs)
+  @@map("conversations")
+}
+
+model Message {
+  id             String   @id @default(cuid())
+  conversationId String
+  senderId       String
+  groupId        String?
+  body           String   @db.LongText
+  attachments    Json     @default("[]")
+  reactions      Json     @default("[]")
+  sharedMemo     Json?
+  readBy         Json     @default("[]")
+  isEdited       Boolean  @default(false)
+  editedAt       DateTime?
+  isDeleted      Boolean  @default(false)
+  deletedAt      DateTime?
+  isSystem       Boolean  @default(false)
+  starred        Boolean  @default(false)
+  starredBy      Json     @default("[]")
+  createdAt      DateTime @default(now())
+
+  // Relations
+  conversation Conversation @relation(fields: [conversationId], references: [id])
+  sender       User         @relation(fields: [senderId], references: [id])
+  threads      Thread[]
+
+  @@index([conversationId])
+  @@index([senderId])
+  @@index([createdAt])
+  @@map("messages")
+}
+
+model Thread {
+  id         String @id @default(cuid())
+  messageId  String
+  replyContent String
+  userId     String
+  createdAt  DateTime @default(now())
+
+  // Relations
+  message Message @relation(fields: [messageId], references: [id])
+  user    User    @relation(fields: [userId], references: [id])
+
+  @@index([messageId])
+  @@index([userId])
+  @@map("threads")
+}
+
+model Group {
+  id           String   @id @default(cuid())
+  name         String
+  description  String?
+  type         String   // "department"|"project"|"custom"
+  avatar       String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @default(now())
+
+  // Relations
+  memos         Memo[]
+  conversations Conversation[]
+  members       GroupMember[]
+  pendingInvites GroupInvite[]
+  reminders     Reminder[]
+
+  @@map("groups")
+}
+
+model Reminder {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  userId      String
+  groupId     String?
+  dueAt       DateTime
+  fired       Boolean  @default(false)
+  firedAt     DateTime?
+  createdAt   DateTime @default(now())
+
+  // Relations
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  group Group? @relation(fields: [groupId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([groupId])
+  @@index([dueAt])
+  @@index([createdAt])
+  @@map("reminders")
+}
+
+model GroupMember {
+  id        String   @id @default(cuid())
+  groupId   String
+  userId    String
+  role      String   @default("member") // "admin"|"member"
+  joinedAt  DateTime @default(now())
+
+  // Relations
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, userId])
+  @@index([groupId])
+  @@index([userId])
+  @@map("group_members")
+}
+
+model GroupInvite {
+  id         String   @id @default(cuid())
+  groupId    String
+  userId     String
+  status     String   @default("pending") // "pending"|"accepted"|"declined"
+  invitedAt  DateTime @default(now())
+  respondedAt DateTime?
+
+  // Relations
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, userId])
+  @@index([groupId])
+  @@map("group_invites")
+}
+
+model EditHistory {
+  id        String   @id @default(cuid())
+  memoId    String
+  editedBy  String
+  oldBody   String
+  newBody   String
+  reason    String?
+  createdAt DateTime @default(now())
+
+  // Relations
+  memo Memo @relation(fields: [memoId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [editedBy], references: [id])
+
+  @@index([memoId])
+  @@index([editedBy])
+  @@map("edit_histories")
+}
+
+model ActivityLog {
+  id           String   @id @default(cuid())
+  userId       String
+  action       String   // "create"|"update"|"delete"|"login"|"logout"|etc
+  resourceType String   // "memo"|"comment"|"message"|"group"|"user"|"tag"
+  resourceId   String   // ID of the resource being acted upon
+  details      Json?    // Additional details about the action
+  ipAddress    String?
+  userAgent    String?
+  createdAt    DateTime @default(now())
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([resourceType, resourceId])
+  @@index([createdAt])
+  @@map("activity_logs")
+}
+
+model AppSetting {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt
+
+  @@map("app_settings")
+}
+
+model CommentReaction {
+  id       String @id @default(cuid())
+  commentId String
+  userId   String
+  emoji    String
+  createdAt DateTime @default(now())
+
+  // Relations
+  comment Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([commentId, userId, emoji])
+  @@index([commentId])
+  @@index([userId])
+  @@map("comment_reactions")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  // Relations
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("sessions")
+}

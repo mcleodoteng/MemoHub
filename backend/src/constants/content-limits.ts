@@ -1,0 +1,2 @@
+export const MESSAGE_BODY_MAX_LENGTH = 10000;
+export const COMMENT_BODY_MAX_LENGTH = 10000;
