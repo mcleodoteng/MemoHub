@@ -49,6 +49,7 @@ import { useGroups } from "@/context/GroupContext";
 import { useReminders } from "@/context/ReminderContext";
 import { useNotifications } from "@/context/NotificationContext";
 import { useTags } from "@/context/TagContext";
+import { useRoles } from "@/context/RoleContext";
 import { getWorkflowPendingCountForUser } from "@/lib/workflow";
 
 export function AppSidebar() {
@@ -64,8 +65,10 @@ export function AppSidebar() {
   const { reminders } = useReminders();
   const { unreadCount: unreadNotificationCount } = useNotifications();
   const { tags: systemTags } = useTags();
+  const { hasPermission } = useRoles();
 
   const userId = currentUser?.id || "";
+  const canAccessReports = hasPermission("canAccessReports");
 
   const pendingApprovals = memos.filter((m) =>
     m.recipientStatuses.some(
@@ -178,7 +181,7 @@ export function AppSidebar() {
       icon: FileBarChart,
       badge: 0,
     },
-  ];
+  ].filter((item) => item.url !== "/reports" || canAccessReports);
 
   const renderNavItem = (item: (typeof mainNav)[0]) => (
     <SidebarMenuItem key={item.title}>

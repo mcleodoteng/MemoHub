@@ -26,6 +26,21 @@ const actionConfig: Record<
   string,
   { icon: typeof Eye; label: string; className: string }
 > = {
+  created: {
+    icon: MessageCircle,
+    label: "created this memo",
+    className: "text-primary",
+  },
+  updated: {
+    icon: MessageCircle,
+    label: "updated this memo",
+    className: "text-info",
+  },
+  deleted: {
+    icon: XCircle,
+    label: "deleted this memo",
+    className: "text-destructive",
+  },
   opened: { icon: Eye, label: "opened this memo", className: "text-info" },
   acknowledged: {
     icon: CheckCircle2,

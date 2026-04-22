@@ -47,6 +47,7 @@ export interface RolePermissions {
   canAccessSystemSettings: boolean;
   canManageSecuritySettings: boolean;
   canViewAuditLogs: boolean;
+  canAccessReports: boolean;
   canManageIntegrations: boolean;
   canAccessDeveloperTools: boolean;
 
@@ -77,6 +78,7 @@ export const defaultRolePermissions: Record<UserRole, RolePermissions> = {
     canAccessSystemSettings: true,
     canManageSecuritySettings: true,
     canViewAuditLogs: true,
+    canAccessReports: true,
     canManageIntegrations: true,
     canAccessDeveloperTools: true,
     canSendBroadcasts: true,
@@ -103,6 +105,7 @@ export const defaultRolePermissions: Record<UserRole, RolePermissions> = {
     canAccessSystemSettings: true,
     canManageSecuritySettings: true,
     canViewAuditLogs: true,
+    canAccessReports: true,
     canManageIntegrations: false,
     canAccessDeveloperTools: false,
     canSendBroadcasts: true,
@@ -129,6 +132,7 @@ export const defaultRolePermissions: Record<UserRole, RolePermissions> = {
     canAccessSystemSettings: true,
     canManageSecuritySettings: false,
     canViewAuditLogs: true,
+    canAccessReports: true,
     canManageIntegrations: false,
     canAccessDeveloperTools: false,
     canSendBroadcasts: true,
@@ -155,6 +159,7 @@ export const defaultRolePermissions: Record<UserRole, RolePermissions> = {
     canAccessSystemSettings: false,
     canManageSecuritySettings: false,
     canViewAuditLogs: false,
+    canAccessReports: true,
     canManageIntegrations: false,
     canAccessDeveloperTools: false,
     canSendBroadcasts: false,
@@ -181,6 +186,7 @@ export const defaultRolePermissions: Record<UserRole, RolePermissions> = {
     canAccessSystemSettings: false,
     canManageSecuritySettings: false,
     canViewAuditLogs: false,
+    canAccessReports: true,
     canManageIntegrations: false,
     canAccessDeveloperTools: false,
     canSendBroadcasts: false,

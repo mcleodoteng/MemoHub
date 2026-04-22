@@ -67,6 +67,7 @@ import {
   Heart,
   Search,
   Users,
+  Printer,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -86,6 +87,7 @@ import { useNotifications } from "@/context/NotificationContext";
 import { useRoles } from "@/context/RoleContext";
 import { Attachment } from "@/types";
 import { memoPath } from "@/lib/memo-url";
+import { printMemo } from "@/lib/reports-print";
 
 const visConfig = {
   public: { icon: Globe, label: "Public", className: "visibility-public" },
@@ -547,6 +549,21 @@ const MemoDetail = () => {
                   </Tooltip>
                 );
               })()}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => {
+                      printMemo(memo, getUserById, memoComments);
+                    }}
+                  >
+                    <Printer className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Print memo</TooltipContent>
+              </Tooltip>
               {isCreator && !isDraft && (
                 <Tooltip>
                   <TooltipTrigger asChild>

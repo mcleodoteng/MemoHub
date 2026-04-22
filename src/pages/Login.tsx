@@ -13,7 +13,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { FileText, Eye, EyeOff, AlertCircle, ShieldCheck } from "lucide-react";
+import { Eye, EyeOff, AlertCircle, ShieldCheck } from "lucide-react";
 
 const Login = () => {
   const { login, verifyTwoFactor } = useAuth();
@@ -127,9 +127,11 @@ const Login = () => {
       <div className="w-full max-w-md space-y-6">
         {/* Logo */}
         <div className="text-center space-y-2">
-          <div className="inline-flex items-center justify-center h-14 w-14 rounded-2xl bg-primary mx-auto">
-            <FileText className="h-7 w-7 text-primary-foreground" />
-          </div>
+          <img 
+            src="/logo.png" 
+            alt="MemoHub Logo" 
+            className="h-20 w-20 mx-auto"
+          />
           <h1 className="font-display text-3xl font-bold text-foreground">
             MemoHub
           </h1>

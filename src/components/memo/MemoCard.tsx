@@ -48,7 +48,9 @@ import {
   Image as ImageIcon,
   Star,
   Users,
+  Printer,
 } from "lucide-react";
+import { printMemo } from "@/lib/reports-print";
 import { formatDistanceToNow, format } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { MentionText } from "@/components/shared/MentionText";
@@ -94,6 +96,7 @@ export function MemoCard({ memo }: MemoCardProps) {
     addReaction,
     deleteMemo,
     toggleStar,
+    getCommentsByMemoId,
   } = useMemos();
   const { hasPermission, canDeleteMemo } = useRoles();
 
@@ -124,6 +127,7 @@ export function MemoCard({ memo }: MemoCardProps) {
   const previewText = memo.body.startsWith("<")
     ? stripHtml(memo.body)
     : memo.body;
+  const memoComments = getCommentsByMemoId(memo.id);
 
   const imageAttachments = memo.attachments.filter((a) =>
     a.type.startsWith("image/"),
@@ -420,6 +424,22 @@ export function MemoCard({ memo }: MemoCardProps) {
               )}
 
               <div className="flex items-center gap-0.5 ml-auto opacity-0 group-hover/card:opacity-100 transition-opacity">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-muted-foreground"
+                      onClick={stopProp(() => {
+                        printMemo(memo, getUserById, memoComments);
+                        toast.success("Preparing print...");
+                      })}
+                    >
+                      <Printer className="h-3.5 w-3.5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Print memo</TooltipContent>
+                </Tooltip>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button

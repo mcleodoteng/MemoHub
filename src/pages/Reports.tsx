@@ -1,9 +1,10 @@
 import { AppLayout } from "@/components/layout/AppLayout";
-import { useMemos } from "@/context/MemoContext";
 import { useAuth } from "@/context/AuthContext";
-import { useGroups } from "@/context/GroupContext";
-import { useUsers } from "@/context/UserContext";
+import { useRoles } from "@/context/RoleContext";
+import { useSocket } from "@/context/SocketContext";
+import { apiRequest } from "@/lib/api";
 import { getUserInitials } from "@/lib/user-utils";
+import { printHtmlReport } from "../lib/reports-print";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,14 +22,299 @@ import {
   Clock, CheckCircle2, ThumbsUp, Eye, Globe, Lock, Shield,
   TrendingUp, Activity, FileBarChart, Download, AlertTriangle,
 } from "lucide-react";
-import { useState, useMemo } from "react";
-import { format, isWithinInterval, startOfDay, endOfDay, subDays, subMonths } from "date-fns";
+import { useState, useMemo, useEffect, useCallback } from "react";
+import { format, formatDistanceToNow, isWithinInterval, startOfDay, endOfDay, subDays, subMonths } from "date-fns";
 import { cn } from "@/lib/utils";
-import { Memo } from "@/types";
+import { Memo, MemoStatus, MemoVisibility, MemoActivityEntry, WorkflowConfig, ApprovalStep } from "@/types";
 import { toast } from "sonner";
+
+type ReportUser = {
+  id: string;
+  name: string;
+  department?: string;
+  role?: string;
+  email?: string;
+};
+
+type ReportGroup = {
+  id: string;
+  name: string;
+  type: string;
+  memberIds: string[];
+};
+
+type ReportsSourcePayload = {
+  generatedAt: string;
+  users: ReportUser[];
+  groups: ReportGroup[];
+  memos: Memo[];
+};
+
+type BackendReaction = {
+  emoji?: string;
+  userId?: string;
+};
+
+type BackendRecipient = {
+  userId?: string;
+  id?: string;
+  opened?: boolean;
+  openedAt?: string;
+  acknowledged?: boolean;
+  acknowledgedAt?: string;
+  approved?: boolean;
+  approvedAt?: string;
+  replied?: boolean;
+  repliedAt?: string;
+  repliedComment?: string;
+};
+
+type BackendTag = { name?: string } | string;
+
+type BackendAttachment = {
+  id: string;
+  name?: string;
+  filename?: string;
+  type?: string;
+  mimeType?: string;
+  size?: number;
+  url?: string;
+  thumbnailUrl?: string;
+};
+
+type BackendActivityLog = {
+  id: string;
+  userId: string;
+  action: string;
+  createdAt?: string;
+  timestamp?: string;
+  detail?: string;
+};
+
+type BackendMemoForReports = {
+  id: string;
+  title?: string;
+  body?: string;
+  creatorId: string;
+  status?: string;
+  visibility?: string;
+  groupId?: string;
+  recipients?: BackendRecipient[];
+  tags?: BackendTag[];
+  attachments?: BackendAttachment[];
+  reactions?: BackendReaction[];
+  pinned?: boolean;
+  archived?: boolean;
+  referencedMemoIds?: string[];
+  activityLogs?: BackendActivityLog[];
+  hiddenBy?: string[];
+  starredBy?: string[];
+  workflow?: unknown;
+  previousStatus?: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+type BackendUserForReports = {
+  id: string;
+  name: string;
+  department?: string;
+  role?: string;
+  email?: string;
+};
+
+type BackendGroupForReports = {
+  id: string;
+  name: string;
+  type?: string;
+  members?: Array<{ userId?: string; id?: string }>;
+};
+
+function normalizeMemoStatus(status?: string): MemoStatus {
+  switch (status) {
+    case "draft":
+    case "pinned":
+    case "archived":
+    case "deleted":
+      return status;
+    default:
+      return "sent";
+  }
+}
+
+function normalizeMemoVisibility(visibility?: string): MemoVisibility {
+  switch (visibility) {
+    case "public":
+    case "protected":
+      return visibility;
+    default:
+      return "private";
+  }
+}
+
+function normalizeActivityAction(action?: string): MemoActivityEntry["action"] {
+  switch (action) {
+    case "opened":
+    case "acknowledged":
+    case "unacknowledged":
+    case "approved":
+    case "unapproved":
+    case "commented":
+    case "replied":
+    case "edited_comment":
+    case "deleted_comment":
+    case "reacted":
+      return action;
+    default:
+      return "opened";
+  }
+}
+
+function normalizeWorkflow(workflow: unknown): WorkflowConfig | undefined {
+  if (!workflow || typeof workflow !== "object") return undefined;
+  const candidate = workflow as {
+    enabled?: unknown;
+    approvalChain?: unknown;
+    escalation?: WorkflowConfig["escalation"];
+    scheduledSendAt?: string;
+    sentBySchedule?: boolean;
+  };
+
+  if (!Array.isArray(candidate.approvalChain)) return undefined;
+
+  const approvalChain: ApprovalStep[] = candidate.approvalChain
+    .map((rawStep, index: number) => {
+      const step = rawStep as {
+        id?: string;
+        approverId?: string;
+        order?: number;
+        status?: string;
+        decidedAt?: string;
+        comment?: string;
+      };
+      const normalizedStatus: ApprovalStep["status"] =
+        step.status === "approved" || step.status === "rejected"
+          ? step.status
+          : "pending";
+      return {
+        id: String(step.id || `step-${index + 1}`),
+        approverId: String(step.approverId || ""),
+        order: Number(step.order || index + 1),
+        status: normalizedStatus,
+        decidedAt: step.decidedAt,
+        comment: step.comment,
+      };
+    })
+    .filter((step) => step.approverId);
+
+  return {
+    enabled: Boolean(candidate.enabled),
+    approvalChain,
+    escalation: candidate.escalation,
+    scheduledSendAt: candidate.scheduledSendAt,
+    sentBySchedule: candidate.sentBySchedule,
+  };
+}
+
+function mapReactionSummary(reactions: BackendReaction[] = []) {
+  const byEmoji = new Map<string, Set<string>>();
+  for (const reaction of reactions) {
+    const emoji = reaction?.emoji;
+    const userId = reaction?.userId;
+    if (!emoji || !userId) continue;
+    if (!byEmoji.has(emoji)) byEmoji.set(emoji, new Set<string>());
+    byEmoji.get(emoji)?.add(userId);
+  }
+  return Array.from(byEmoji.entries()).map(([emoji, users]) => ({
+    emoji,
+    users: Array.from(users),
+  }));
+}
+
+function mapBackendMemoForReports(memo: BackendMemoForReports): Memo {
+  const recipients = (memo.recipients || []).map((recipient: BackendRecipient) => ({
+    userId: recipient.userId || recipient.id,
+    opened: !!recipient.opened,
+    openedAt: recipient.openedAt
+      ? new Date(recipient.openedAt).toISOString()
+      : undefined,
+    acknowledged: !!recipient.acknowledged,
+    acknowledgedAt: recipient.acknowledgedAt
+      ? new Date(recipient.acknowledgedAt).toISOString()
+      : undefined,
+    approved: !!recipient.approved,
+    approvedAt: recipient.approvedAt
+      ? new Date(recipient.approvedAt).toISOString()
+      : undefined,
+    replied: !!recipient.replied,
+    repliedAt: recipient.repliedAt
+      ? new Date(recipient.repliedAt).toISOString()
+      : undefined,
+    repliedComment: recipient.repliedComment,
+  }));
+
+  return {
+    id: memo.id,
+    title: memo.title || "Untitled memo",
+    body: memo.body || "",
+    creatorId: memo.creatorId,
+    recipientIds: recipients.map((recipient) => recipient.userId),
+    recipientStatuses: recipients,
+    status: normalizeMemoStatus(memo.status),
+    visibility: normalizeMemoVisibility(memo.visibility),
+    groupId: memo.groupId || undefined,
+    tags: (memo.tags || []).map((tag) => typeof tag === "string" ? tag : tag.name || "").filter(Boolean),
+    attachments: (memo.attachments || []).map((attachment: BackendAttachment) => ({
+      id: attachment.id,
+      name: attachment.name || attachment.filename || "attachment",
+      type: attachment.type || attachment.mimeType || "file",
+      size: attachment.size || 0,
+      url: attachment.url || "#",
+      thumbnailUrl: attachment.thumbnailUrl,
+    })),
+    reactions: mapReactionSummary(memo.reactions || []),
+    pinned: !!memo.pinned,
+    archived: !!memo.archived,
+    referencedMemoIds: memo.referencedMemoIds || [],
+    editHistory: [],
+    activityLog: (memo.activityLogs || []).map((entry: BackendActivityLog) => ({
+      id: entry.id,
+      userId: entry.userId,
+      action: normalizeActivityAction(entry.action),
+      timestamp: new Date(entry.createdAt || entry.timestamp).toISOString(),
+      detail: entry.detail || undefined,
+    })),
+    hiddenBy: memo.hiddenBy || [],
+    starredBy: memo.starredBy || [],
+    workflow: normalizeWorkflow(memo.workflow),
+    previousStatus: memo.previousStatus || undefined,
+    createdAt: new Date(memo.createdAt).toISOString(),
+    updatedAt: new Date(memo.updatedAt).toISOString(),
+  };
+}
+
+function mapBackendUserForReports(user: BackendUserForReports): ReportUser {
+  return {
+    id: user.id,
+    name: user.name,
+    department: user.department || "General",
+    role: user.role || "member",
+    email: user.email,
+  };
+}
+
+function mapBackendGroupForReports(group: BackendGroupForReports): ReportGroup {
+  return {
+    id: group.id,
+    name: group.name,
+    type: (group.type || "public").toLowerCase(),
+    memberIds: (group.members || []).map((member) => member.userId || member.id || "").filter(Boolean),
+  };
+}
 
 type ReportType =
   | "memo_summary"
+  | "memo_detail"
   | "memo_activity"
   | "user_activity"
   | "acknowledgment"
@@ -50,6 +336,7 @@ interface ReportConfig {
 
 const REPORT_TYPES: ReportConfig[] = [
   { id: "memo_summary", title: "Memo Summary", description: "Overview of all memos with status, visibility, and dates", icon: FileText },
+  { id: "memo_detail", title: "Detailed Memo Report", description: "Printable full-detail report for every memo including body, recipients, workflow and attachments", icon: FileText },
   { id: "memo_activity", title: "Memo Activity Log", description: "Detailed activity log for memos (opens, acknowledges, approvals)", icon: Activity },
   { id: "user_activity", title: "User Activity Report", description: "Activity breakdown per user — memos created, received, acknowledged", icon: Users },
   { id: "acknowledgment", title: "Acknowledgment Report", description: "Track who has and hasn't acknowledged memos", icon: CheckCircle2 },
@@ -62,91 +349,121 @@ const REPORT_TYPES: ReportConfig[] = [
   { id: "user_engagement", title: "User Engagement Metrics", description: "Reactions, comments, and engagement per user", icon: Activity, adminOnly: true },
 ];
 
-function printContent(title: string, html: string) {
-  const win = window.open("", "_blank");
-  if (!win) { toast.error("Popup blocked. Please allow popups."); return; }
-  win.document.write(`<!DOCTYPE html><html><head><title>${title}</title>
-    <style>
-      * { margin: 0; padding: 0; box-sizing: border-box; }
-      body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 24px; color: #111; font-size: 13px; }
-      h1 { font-size: 20px; margin-bottom: 4px; }
-      .subtitle { color: #666; font-size: 12px; margin-bottom: 16px; }
-      table { width: 100%; border-collapse: collapse; margin-top: 12px; }
-      th, td { border: 1px solid #ddd; padding: 6px 10px; text-align: left; font-size: 12px; }
-      th { background: #f5f5f5; font-weight: 600; }
-      tr:nth-child(even) { background: #fafafa; }
-      .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 600; }
-      .badge-public { background: #dbeafe; color: #1e40af; }
-      .badge-private { background: #fce7f3; color: #9d174d; }
-      .badge-protected { background: #fef3c7; color: #92400e; }
-      .badge-sent { background: #d1fae5; color: #065f46; }
-      .badge-draft { background: #fef3c7; color: #92400e; }
-      .badge-approved { background: #d1fae5; color: #065f46; }
-      .badge-pending { background: #fef3c7; color: #92400e; }
-      .badge-rejected { background: #fee2e2; color: #991b1b; }
-      .summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px; }
-      .summary-card { border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px; }
-      .summary-card .label { font-size: 11px; color: #6b7280; }
-      .summary-card .value { font-size: 22px; font-weight: 700; margin-top: 2px; }
-      @media print { body { padding: 12px; } }
-    </style>
-  </head><body>${html}</body></html>`);
-  win.document.close();
-  setTimeout(() => win.print(), 300);
-}
-
-export function printMemo(
-  memo: Memo,
-  resolveUserById?: (userId: string) => { name?: string } | undefined,
-) {
-  const creator = resolveUserById?.(memo.creatorId);
-  const recipients = memo.recipientIds
-    .map((id) => resolveUserById?.(id)?.name || "Unknown")
-    .join(", ");
-  const openedCount = memo.recipientStatuses.filter(s => s.opened).length;
-  const ackCount = memo.recipientStatuses.filter(s => s.acknowledged).length;
-  const approvedCount = memo.recipientStatuses.filter(s => s.approved).length;
-  const total = memo.recipientStatuses.length;
-
-  const html = `
-    <h1>${memo.title}</h1>
-    <div class="subtitle">
-      Created by ${creator?.name || "Unknown"} · ${format(new Date(memo.createdAt), "PPP 'at' p")}
-      · <span class="badge badge-${memo.visibility}">${memo.visibility}</span>
-      · <span class="badge badge-${memo.status}">${memo.status}</span>
-    </div>
-    <div class="subtitle">To: ${recipients || "—"}</div>
-    ${memo.tags.length > 0 ? `<div class="subtitle">Tags: ${memo.tags.join(", ")}</div>` : ""}
-    <hr style="margin: 12px 0; border: none; border-top: 1px solid #e5e7eb;" />
-    <div style="line-height: 1.7;">${memo.body}</div>
-    <hr style="margin: 16px 0; border: none; border-top: 1px solid #e5e7eb;" />
-    <div class="summary-grid" style="grid-template-columns: repeat(4, 1fr);">
-      <div class="summary-card"><div class="label">Opened</div><div class="value">${openedCount}/${total}</div></div>
-      <div class="summary-card"><div class="label">Acknowledged</div><div class="value">${ackCount}/${total}</div></div>
-      <div class="summary-card"><div class="label">Approved</div><div class="value">${approvedCount}/${total}</div></div>
-      <div class="summary-card"><div class="label">Attachments</div><div class="value">${memo.attachments.length}</div></div>
-    </div>
-    ${memo.recipientStatuses.length > 0 ? `
-    <h3 style="font-size: 14px; margin-top: 16px; margin-bottom: 8px;">Recipient Status</h3>
-    <table>
-      <thead><tr><th>Recipient</th><th>Opened</th><th>Acknowledged</th><th>Approved</th><th>Replied</th></tr></thead>
-      <tbody>
-        ${memo.recipientStatuses.map(s => {
-          const u = resolveUserById?.(s.userId);
-          return `<tr><td>${u?.name || s.userId}</td><td>${s.opened ? "✓" : "—"}</td><td>${s.acknowledged ? "✓" : "—"}</td><td>${s.approved ? "✓" : "—"}</td><td>${s.replied ? "✓" : "—"}</td></tr>`;
-        }).join("")}
-      </tbody>
-    </table>` : ""}
-  `;
-  printContent(`Memo - ${memo.title}`, html);
-}
-
 const Reports = () => {
   const { currentUser } = useAuth();
-  const { memos } = useMemos();
-  const { groups } = useGroups();
-  const { users: allUsers, getUserById } = useUsers();
-  const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'super_admin';
+  const { hasPermission } = useRoles();
+  const { onEvent, offEvent } = useSocket();
+  const [memos, setMemos] = useState<Memo[]>([]);
+  const [groups, setGroups] = useState<ReportGroup[]>([]);
+  const [allUsers, setAllUsers] = useState<ReportUser[]>([]);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
+  const canAccessReports = hasPermission("canAccessReports");
+  const isAdmin =
+    hasPermission("canManageUsers") || hasPermission("canViewAuditLogs");
+
+  const getUserById = useCallback(
+    (userId: string) => allUsers.find((user) => user.id === userId),
+    [allUsers],
+  );
+
+  const getMemoReferenceLabel = useCallback(
+    (memoId: string) => {
+      const referencedMemo = memos.find((memo) => memo.id === memoId);
+      if (!referencedMemo) {
+        return `Memo (${memoId.slice(0, 8)})`;
+      }
+
+      const trimmedTitle = referencedMemo.title.trim();
+      return trimmedTitle || `Untitled memo (${memoId.slice(0, 8)})`;
+    },
+    [memos],
+  );
+
+  const escapeHtml = useCallback((value: string) => {
+    return value
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/\"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }, []);
+
+  const formatExactComment = useCallback(
+    (comment?: string) => {
+      if (typeof comment !== "string" || comment.length === 0) return "-";
+      return escapeHtml(comment);
+    },
+    [escapeHtml],
+  );
+
+  const refreshReportData = useCallback(async () => {
+    if (!currentUser || !canAccessReports) return;
+    setIsSyncing(true);
+    try {
+      const response = await apiRequest<{
+        success: boolean;
+        data: ReportsSourcePayload;
+      }>("/reports/source");
+
+      setMemos(response.data.memos || []);
+      setAllUsers(response.data.users || []);
+      setGroups(response.data.groups || []);
+      setLastSyncedAt(response.data.generatedAt || new Date().toISOString());
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Failed to sync live report data from database";
+      toast.error(message);
+    } finally {
+      setIsSyncing(false);
+    }
+  }, [canAccessReports, currentUser]);
+
+  useEffect(() => {
+    if (!canAccessReports) return;
+    void refreshReportData();
+  }, [canAccessReports, refreshReportData]);
+
+  useEffect(() => {
+    if (!canAccessReports) return;
+    const interval = window.setInterval(() => {
+      void refreshReportData();
+    }, 15000);
+    return () => window.clearInterval(interval);
+  }, [canAccessReports, refreshReportData]);
+
+  useEffect(() => {
+    if (!canAccessReports) return;
+    const syncLiveReports = () => {
+      void refreshReportData();
+    };
+
+    const events = [
+      "reports:data_updated",
+      "memo_created",
+      "memo_updated",
+      "memo_deleted",
+      "memo_archived",
+      "memo_pinned",
+      "memo_unpinned",
+      "memo_status_updated",
+      "memo_reaction_added",
+      "memo_reaction_removed",
+      "memo_workflow_approved",
+      "memo_acknowledged_by_user",
+      "comment_created",
+      "group:member_updated",
+      "notification:new",
+    ];
+
+    events.forEach((eventName) => onEvent(eventName, syncLiveReports));
+
+    return () => {
+      events.forEach((eventName) => offEvent(eventName, syncLiveReports));
+    };
+  }, [canAccessReports, offEvent, onEvent, refreshReportData]);
 
   const [selectedReport, setSelectedReport] = useState<ReportType>("memo_summary");
   const [filterUser, setFilterUser] = useState<string>("all");
@@ -159,7 +476,7 @@ const Reports = () => {
   const availableReports = REPORT_TYPES.filter(r => !r.adminOnly || isAdmin);
 
   const filteredMemos = useMemo(() => {
-    let result = memos.filter(m => m.status !== 'deleted' && m.status !== 'draft');
+    let result = memos.filter(m => m.status !== 'deleted');
 
     if (!isAdmin) {
       result = result.filter(m =>
@@ -172,7 +489,13 @@ const Reports = () => {
     if (filterUser !== "all") result = result.filter(m => m.creatorId === filterUser || m.recipientIds.includes(filterUser));
     if (filterVisibility !== "all") result = result.filter(m => m.visibility === filterVisibility);
     if (filterGroup !== "all") result = result.filter(m => m.groupId === filterGroup);
-    if (filterStatus !== "all") result = result.filter(m => m.status === filterStatus);
+    if (filterStatus !== "all") {
+      result = result.filter((memo) => {
+        if (filterStatus === "pinned") return memo.pinned;
+        if (filterStatus === "archived") return memo.archived;
+        return memo.status === filterStatus;
+      });
+    }
 
     if (dateFrom && dateTo) {
       result = result.filter(m => {
@@ -195,6 +518,69 @@ const Reports = () => {
     const reportConfig = REPORT_TYPES.find(r => r.id === selectedReport)!;
 
     switch (selectedReport) {
+      case "memo_detail": {
+        return {
+          title: "Detailed Memo Report",
+          html: `
+            <h1>Detailed Memo Report</h1>
+            <div class="subtitle">${dateRange}${filterInfo ? " · " + filterInfo : ""} · ${filteredMemos.length} memos · Generated ${format(new Date(), "PPP 'at' p")}</div>
+            ${filteredMemos.map((memo, index) => {
+              const creator = getUserById(memo.creatorId);
+              const group = memo.groupId ? groups.find(g => g.id === memo.groupId) : undefined;
+              const recipients = memo.recipientStatuses
+                .map((recipient) => {
+                  const user = getUserById(recipient.userId);
+                  return `<tr><td>${user?.name || recipient.userId}</td><td>${recipient.opened ? "Yes" : "No"}</td><td>${recipient.acknowledged ? "Yes" : "No"}</td><td>${recipient.approved ? "Yes" : "No"}</td><td>${recipient.replied ? "Yes" : "No"}</td><td style="white-space: pre-wrap;">${recipient.replied ? formatExactComment(recipient.repliedComment) : "-"}</td></tr>`;
+                })
+                .join("");
+              const referencedMemos = memo.referencedMemoIds
+                .map((memoId) => getMemoReferenceLabel(memoId))
+                .join(", ");
+              const workflowSteps = memo.workflow?.approvalChain?.length
+                ? `<table><thead><tr><th>Step</th><th>Approver</th><th>Status</th><th>Decision Time</th><th>Comment</th></tr></thead><tbody>${memo.workflow.approvalChain.map((step) => {
+                    const approver = getUserById(step.approverId);
+                    return `<tr><td>${step.order}</td><td>${approver?.name || step.approverId}</td><td>${step.status}</td><td>${step.decidedAt ? format(new Date(step.decidedAt), "MMM d, yyyy p") : "-"}</td><td style="white-space: pre-wrap;">${formatExactComment(step.comment)}</td></tr>`;
+                  }).join("")}</tbody></table>`
+                : "<p>No workflow configured.</p>";
+
+              return `
+                <section style="margin-bottom: 28px; padding-bottom: 20px; border-bottom: 2px solid #e5e7eb; page-break-inside: avoid;">
+                  <h2 style="font-size: 18px; margin-bottom: 6px;">${index + 1}. ${memo.title}</h2>
+                  <div class="subtitle">
+                    Created by ${creator?.name || memo.creatorId} · ${format(new Date(memo.createdAt), "PPP 'at' p")}
+                    · <span class="badge badge-${memo.visibility}">${memo.visibility}</span>
+                    · <span class="badge badge-${memo.status}">${memo.status}</span>
+                    ${memo.pinned ? ' · <span class="badge badge-approved">pinned</span>' : ''}
+                    ${memo.archived ? ' · <span class="badge badge-pending">archived</span>' : ''}
+                  </div>
+                  ${group ? `<div class="subtitle">Group: ${group.name} (${group.type})</div>` : ""}
+                  ${memo.tags.length > 0 ? `<div class="subtitle">Tags: ${memo.tags.join(", ")}</div>` : ""}
+                  ${memo.attachments.length > 0 ? `<div class="subtitle">Attachments: ${memo.attachments.map((attachment) => `${attachment.name} (${attachment.type}, ${attachment.size} bytes)`).join(", ")}</div>` : ""}
+                  ${memo.referencedMemoIds.length > 0 ? `<div class="subtitle">Referenced memos: ${referencedMemos}</div>` : ""}
+                  <div style="margin: 14px 0; line-height: 1.7; white-space: pre-wrap;">${memo.body}</div>
+                  <h3 style="font-size: 14px; margin: 14px 0 8px;">Recipients</h3>
+                  <table>
+                    <thead><tr><th>Recipient</th><th>Opened</th><th>Acknowledged</th><th>Approved</th><th>Replied</th><th>Comment</th></tr></thead>
+                    <tbody>${recipients || `<tr><td colspan="6">No recipients</td></tr>`}</tbody>
+                  </table>
+                  <h3 style="font-size: 14px; margin: 14px 0 8px;">Workflow</h3>
+                  ${workflowSteps}
+                  <h3 style="font-size: 14px; margin: 14px 0 8px;">Activity Summary</h3>
+                  <table>
+                    <thead><tr><th>Time</th><th>User</th><th>Action</th><th>Detail</th></tr></thead>
+                    <tbody>
+                      ${memo.activityLog.length > 0 ? memo.activityLog.map((entry) => {
+                        const actor = getUserById(entry.userId);
+                        return `<tr><td>${format(new Date(entry.timestamp), "MMM d, yyyy p")}</td><td>${actor?.name || entry.userId}</td><td>${entry.action}</td><td>${entry.detail || "-"}</td></tr>`;
+                      }).join("") : `<tr><td colspan="4">No recorded activity</td></tr>`}
+                    </tbody>
+                  </table>
+                </section>
+              `;
+            }).join("")}
+          `,
+        };
+      }
       case "memo_summary": {
         return {
           title: "Memo Summary Report",
@@ -396,18 +782,35 @@ const Reports = () => {
 
   const handlePrint = () => {
     const { title, html } = generateReportHtml();
-    printContent(title, html);
+    printHtmlReport(title, html);
     toast.success("Report sent to printer");
   };
 
   const handlePrintAllMemos = () => {
     if (!isAdmin) return;
     const { title, html } = generateReportHtml();
-    printContent(`All Memos - ${title}`, html);
+    printHtmlReport(`All Memos - ${title}`, html);
     toast.success("Printing all memos report");
   };
 
   const currentReport = REPORT_TYPES.find(r => r.id === selectedReport)!;
+
+  if (!canAccessReports) {
+    return (
+      <AppLayout title="Reports">
+        <div className="max-w-3xl mx-auto">
+          <Card>
+            <CardHeader>
+              <CardTitle>Reports Access Required</CardTitle>
+              <CardDescription>
+                Your current role does not have permission to access reports.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout title="Reports">
@@ -415,7 +818,16 @@ const Reports = () => {
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <div>
             <h1 className="text-2xl font-bold">Reports</h1>
-            <p className="text-sm text-muted-foreground mt-1">Generate and print reports with custom filters</p>
+            <p className="text-sm text-muted-foreground mt-1">
+              Live database-backed reports with realtime sync
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {isSyncing
+                ? "Syncing from database..."
+                : lastSyncedAt
+                  ? `Last synced ${formatDistanceToNow(new Date(lastSyncedAt), { addSuffix: true })}`
+                  : "Waiting for first sync..."}
+            </p>
           </div>
           <div className="flex items-center gap-2">
             {isAdmin && (
@@ -553,6 +965,7 @@ const Reports = () => {
                       <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">All</SelectItem>
+                        <SelectItem value="draft">Draft</SelectItem>
                         <SelectItem value="sent">Sent</SelectItem>
                         <SelectItem value="pinned">Pinned</SelectItem>
                         <SelectItem value="archived">Archived</SelectItem>

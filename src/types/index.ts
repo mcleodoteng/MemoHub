@@ -31,6 +31,7 @@ export interface MemoRecipientStatus {
   approvedAt?: string;
   replied: boolean;
   repliedAt?: string;
+  repliedComment?: string;
 }
 
 export interface Attachment {
@@ -62,6 +63,9 @@ export interface MemoActivityEntry {
   id: string;
   userId: string;
   action:
+    | "created"
+    | "updated"
+    | "deleted"
     | "opened"
     | "acknowledged"
     | "unacknowledged"

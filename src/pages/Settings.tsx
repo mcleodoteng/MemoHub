@@ -728,6 +728,10 @@ const Settings = () => {
       ],
     },
     {
+      title: "Reports",
+      keys: ["canAccessReports"],
+    },
+    {
       title: "System",
       keys: [
         "canAccessSystemSettings",

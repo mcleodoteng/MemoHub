@@ -8,6 +8,7 @@ import {
   Navigate,
 } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
+import { useRoles } from "@/context/RoleContext";
 import { UserProvider } from "@/context/UserContext";
 import { SocketProvider } from "@/context/SocketContext";
 import { MemoProvider } from "@/context/MemoContext";
@@ -89,6 +90,16 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     );
   }
   if (!isAuthenticated) return <Navigate to="/login" replace />;
+  return <>{children}</>;
+}
+
+function ReportsRouteGuard({ children }: { children: React.ReactNode }) {
+  const { hasPermission } = useRoles();
+
+  if (!hasPermission("canAccessReports")) {
+    return <Navigate to="/" replace />;
+  }
+
   return <>{children}</>;
 }
 
@@ -253,7 +264,9 @@ const router = createBrowserRouter([
     path: "/reports",
     element: (
       <ProtectedRoute>
-        <Reports />
+        <ReportsRouteGuard>
+          <Reports />
+        </ReportsRouteGuard>
       </ProtectedRoute>
     ),
     errorElement: <RouteErrorBoundary />,
