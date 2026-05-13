@@ -41,6 +41,7 @@ interface MessageContextType {
   deleteMessage: (messageId: string) => Promise<void>;
   starMessage: (messageId: string, userId: string) => void;
   starredMessages: Message[];
+  loadStarredMessages: () => Promise<void>;
   getUnreadCount: (conversationId: string, userId: string) => number;
 }
 
@@ -290,11 +291,20 @@ export function MessageProvider({ children }: { children: React.ReactNode }) {
       );
       const mapped = (res.data.messages || []).map(mapMsg);
       setMessages((prev) => {
-        const existing = new Set(prev.map((message) => message.id));
-        return [
-          ...prev,
-          ...mapped.filter((message) => !existing.has(message.id)),
-        ];
+        const mappedById = new Map(mapped.map((message) => [message.id, message]));
+
+        const next = prev.map((message) =>
+          mappedById.get(message.id) ?? message,
+        );
+
+        const existing = new Set(next.map((message) => message.id));
+        for (const message of mapped) {
+          if (!existing.has(message.id)) {
+            next.push(message);
+          }
+        }
+
+        return next;
       });
     } catch (err) {
       console.error("Failed to load starred messages:", err);
@@ -1343,9 +1353,6 @@ export function MessageProvider({ children }: { children: React.ReactNode }) {
 
   const starMessage = useCallback(
     (messageId: string, userId: string) => {
-      const conversationId = messages.find(
-        (message) => message.id === messageId,
-      )?.conversationId;
       setMessages((prev) =>
         prev.map((msg) => {
           if (msg.id !== messageId) return msg;
@@ -1362,15 +1369,8 @@ export function MessageProvider({ children }: { children: React.ReactNode }) {
           return { ...msg, starredBy: [...starred, userId] };
         }),
       );
-
-      if (socket && conversationId) {
-        socket.emit("toggle_star", {
-          messageId,
-          conversationId,
-        });
-      }
     },
-    [messages, socket],
+    [messages],
   );
 
   return (
@@ -1391,6 +1391,7 @@ export function MessageProvider({ children }: { children: React.ReactNode }) {
         deleteMessage,
         starMessage,
         starredMessages,
+        loadStarredMessages,
         getUnreadCount,
       }}
     >

@@ -127,9 +127,9 @@ const Login = () => {
       <div className="w-full max-w-md space-y-6">
         {/* Logo */}
         <div className="text-center space-y-2">
-          <img 
-            src="/logo.png" 
-            alt="MemoHub Logo" 
+          <img
+            src="/logo.png"
+            alt="MemoHub Logo"
             className="h-20 w-20 mx-auto"
           />
           <h1 className="font-display text-3xl font-bold text-foreground">

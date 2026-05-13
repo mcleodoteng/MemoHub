@@ -89,7 +89,7 @@ const Compose = () => {
   } = useUsers();
   const { addMemo, getMemoById, updateMemo, editMemo } = useMemos();
   const { notifyMentions } = useNotifications();
-  const { templates, addTemplate } = useTemplates();
+  const { templates, addTemplate, getTemplateById } = useTemplates();
   const canCreateMemo = hasPermission("canCreateMemo");
   const canManageTemplates = hasPermission("canManageTemplates");
 
@@ -472,11 +472,12 @@ const Compose = () => {
                   key={tpl.id}
                   className="text-left p-3 rounded-lg border border-border hover:border-primary/50 hover:bg-primary/5 transition-all group"
                   onClick={() => {
-                    setTitle(tpl.title);
-                    setBody(tpl.body);
-                    setSelectedTags(tpl.tags);
-                    setVisibility(tpl.visibility);
-                    toast.success(`Template "${tpl.name}" applied`);
+                    const latestTemplate = getTemplateById(tpl.id) || tpl;
+                    setTitle(latestTemplate.title);
+                    setBody(latestTemplate.body);
+                    setSelectedTags(latestTemplate.tags);
+                    setVisibility(latestTemplate.visibility);
+                    toast.success(`Template "${latestTemplate.name}" applied`);
                   }}
                 >
                   <p className="text-xs font-semibold group-hover:text-primary transition-colors truncate">

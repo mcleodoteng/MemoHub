@@ -15,6 +15,7 @@ import {
   PanelLeft,
   GitMerge,
   Settings,
+  LayoutTemplate,
   LogOut,
   FileBarChart,
 } from "lucide-react";
@@ -69,6 +70,7 @@ export function AppSidebar() {
 
   const userId = currentUser?.id || "";
   const canAccessReports = hasPermission("canAccessReports");
+  const canManageTemplates = hasPermission("canManageTemplates");
 
   const pendingApprovals = memos.filter((m) =>
     m.recipientStatuses.some(
@@ -388,6 +390,24 @@ export function AppSidebar() {
                       </NavLink>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
+                  {canManageTemplates && (
+                    <SidebarMenuItem>
+                      <SidebarMenuButton
+                        asChild
+                        isActive={isActive("/templates")}
+                        tooltip="Templates"
+                      >
+                        <NavLink
+                          to="/templates"
+                          className="nav-item text-sidebar-foreground"
+                          activeClassName="nav-item-active"
+                        >
+                          <LayoutTemplate className="h-4 w-4 shrink-0" />
+                          {!collapsed && <span>Templates</span>}
+                        </NavLink>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  )}
                   <SidebarMenuItem>
                     <SidebarMenuButton
                       asChild

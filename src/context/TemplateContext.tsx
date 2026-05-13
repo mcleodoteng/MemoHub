@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback } from "react";
+import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 
 export interface MemoTemplate {
@@ -72,8 +72,17 @@ interface TemplateContextType {
       MemoTemplate,
       "id" | "createdAt" | "isBuiltIn" | "createdBy"
     >,
-  ) => void;
-  deleteTemplate: (id: string) => void;
+  ) => Promise<void>;
+  editTemplate: (
+    id: string,
+    data: Partial<
+      Omit<
+        MemoTemplate,
+        "id" | "createdAt" | "isBuiltIn" | "createdBy"
+      >
+    >,
+  ) => Promise<void>;
+  deleteTemplate: (id: string) => Promise<void>;
   getTemplateById: (id: string) => MemoTemplate | undefined;
 }
 
@@ -82,12 +91,43 @@ const TemplateContext = createContext<TemplateContextType | undefined>(
 );
 
 export function TemplateProvider({ children }: { children: React.ReactNode }) {
-  const { currentUser } = useAuth();
+  const { currentUser, isAuthenticated } = useAuth();
   const [templates, setTemplates] = useState<MemoTemplate[]>(builtInTemplates);
+  const storageKey = currentUser?.id
+    ? `memohub_custom_templates_${currentUser.id}`
+    : "memohub_custom_templates_anonymous";
+
+  useEffect(() => {
+    if (!isAuthenticated || !currentUser?.id) {
+      setTemplates(builtInTemplates);
+      return;
+    }
+
+    try {
+      const raw = localStorage.getItem(storageKey);
+      const parsed = raw ? JSON.parse(raw) : [];
+      const customTemplates = Array.isArray(parsed)
+        ? parsed.filter((t) => t && typeof t.id === "string")
+        : [];
+      setTemplates([...builtInTemplates, ...customTemplates]);
+    } catch {
+      setTemplates(builtInTemplates);
+    }
+  }, [isAuthenticated, currentUser?.id, storageKey]);
+
+  useEffect(() => {
+    if (!currentUser?.id) return;
+
+    const customTemplates = templates.filter((t) => !t.isBuiltIn);
+    localStorage.setItem(storageKey, JSON.stringify(customTemplates));
+  }, [templates, currentUser?.id, storageKey]);
 
   const addTemplate = useCallback(
-    (
-      data: Omit<MemoTemplate, "id" | "createdAt" | "isBuiltIn" | "createdBy">,
+    async (
+      data: Omit<
+        MemoTemplate,
+        "id" | "createdAt" | "isBuiltIn" | "createdBy"
+      >,
     ) => {
       const newTemplate: MemoTemplate = {
         ...data,
@@ -96,12 +136,38 @@ export function TemplateProvider({ children }: { children: React.ReactNode }) {
         createdBy: currentUser?.id || "",
         createdAt: new Date().toISOString(),
       };
+
       setTemplates((prev) => [...prev, newTemplate]);
     },
     [currentUser?.id],
   );
 
-  const deleteTemplate = useCallback((id: string) => {
+  const editTemplate = useCallback(
+    async (
+      id: string,
+      data: Partial<
+        Omit<
+          MemoTemplate,
+          "id" | "createdAt" | "isBuiltIn" | "createdBy"
+        >
+      >,
+    ) => {
+      setTemplates((prev) =>
+        prev.map((t) => {
+          if (t.id !== id || t.isBuiltIn) return t;
+          return {
+            ...t,
+            ...data,
+            createdBy: t.createdBy,
+            isBuiltIn: false,
+          };
+        }),
+      );
+    },
+    [],
+  );
+
+  const deleteTemplate = useCallback(async (id: string) => {
     setTemplates((prev) => prev.filter((t) => !(t.id === id && !t.isBuiltIn)));
   }, []);
 
@@ -114,7 +180,13 @@ export function TemplateProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <TemplateContext.Provider
-      value={{ templates, addTemplate, deleteTemplate, getTemplateById }}
+      value={{
+        templates,
+        addTemplate,
+        editTemplate,
+        deleteTemplate,
+        getTemplateById,
+      }}
     >
       {children}
     </TemplateContext.Provider>

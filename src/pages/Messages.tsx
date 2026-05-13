@@ -118,6 +118,7 @@ const Messages = () => {
     deleteMessage,
     starMessage,
     starredMessages,
+    loadStarredMessages,
     getUnreadCount,
   } = useMessages();
   const { onlineUsers } = useSocket();
@@ -166,6 +167,13 @@ const Messages = () => {
   const dragCounter = useRef(0);
   const messageRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const observerRef = useRef<IntersectionObserver | null>(null);
+
+  // Load starred messages when starred tab is selected
+  useEffect(() => {
+    if (tab === "starred") {
+      void loadStarredMessages();
+    }
+  }, [tab, loadStarredMessages]);
 
   const activeConv = conversations.find((c) => c.id === selectedConv);
   const requestedConversationId = searchParams.get("conversationId");

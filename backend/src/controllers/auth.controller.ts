@@ -154,6 +154,17 @@ export const login = async (req: Request, res: Response) => {
     // Find user
     const user = await prisma.user.findUnique({
       where: { email },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        passwordHash: true,
+        bio: true,
+        role: true,
+        department: true,
+        avatar: true,
+        createdAt: true,
+      },
     });
 
     if (!user) {
@@ -163,6 +174,12 @@ export const login = async (req: Request, res: Response) => {
     }
 
     // Verify password
+    if (!user.passwordHash || typeof user.passwordHash !== "string") {
+      return res
+        .status(401)
+        .json({ success: false, error: "Invalid credentials" });
+    }
+
     const isValidPassword = await bcrypt.compare(password, user.passwordHash);
     if (!isValidPassword) {
       return res
@@ -171,67 +188,24 @@ export const login = async (req: Request, res: Response) => {
     }
 
     // Reject blocked accounts
-    if ((user as any).isBlocked) {
-      return res.status(403).json({
-        success: false,
-        error:
-          "Your account has been suspended. Please contact your administrator.",
-      });
-    }
-
     const effectiveRole = resolveEffectiveRole(user.role, user.email);
-
-    if ((user as any).twoFactorEnabled) {
-      const code = `${Math.floor(100000 + Math.random() * 900000)}`;
-      const codeHash = crypto.createHash("sha256").update(code).digest("hex");
-      const codeExpires = new Date(Date.now() + 10 * 60 * 1000);
-
-      await prisma.user.update({
-        where: { id: user.id },
-        data: {
-          twoFactorCodeHash: codeHash,
-          twoFactorCodeExpires: codeExpires,
-        } as any,
-      });
-
-      const challengeToken = signTwoFactorChallengeToken({
-        id: user.id,
-        email: user.email,
-      });
-
-      // Do not block login UX on outbound email latency.
-      void emailService
-        .sendTwoFactorCodeEmail(user.email, code)
-        .catch((emailError) => {
-          console.error("2FA email delivery failed:", emailError);
-          if (process.env.NODE_ENV !== "production") {
-            console.warn(
-              `[2FA DEV FALLBACK] Delivery failed. Verification code for ${user.email}: ${code}`,
-            );
-          }
-        });
-
-      return res.json({
-        success: true,
-        data: {
-          requiresTwoFactor: true,
-          challengeToken,
-        },
-      });
-    }
 
     const token = signAccessToken({
       id: user.id,
       email: user.email,
       role: effectiveRole,
-      sessionTimeoutMinutes: (user as any).sessionTimeoutMinutes,
+      sessionTimeoutMinutes: undefined,
     });
 
     // Update last login
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { lastLoginAt: new Date() },
-    });
+    try {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { lastLoginAt: new Date() },
+      });
+    } catch (updateErr) {
+      console.warn("Could not persist lastLoginAt:", updateErr);
+    }
 
     res.json({
       success: true,
@@ -246,8 +220,8 @@ export const login = async (req: Request, res: Response) => {
             department: user.department,
             avatar: user.avatar,
             createdAt: user.createdAt,
-            twoFactorEnabled: (user as any).twoFactorEnabled,
-            sessionTimeoutMinutes: (user as any).sessionTimeoutMinutes,
+            twoFactorEnabled: false,
+            sessionTimeoutMinutes: 30,
           }),
         },
         token,

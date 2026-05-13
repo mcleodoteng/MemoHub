@@ -34,6 +34,7 @@ import Drafts from "./pages/Drafts";
 import Reminders from "./pages/Reminders";
 import WorkflowDashboard from "./pages/WorkflowDashboard";
 import Settings from "./pages/Settings";
+import Templates from "./pages/Templates";
 import Reports from "./pages/Reports";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -256,6 +257,15 @@ const router = createBrowserRouter([
     element: (
       <ProtectedRoute>
         <Settings />
+      </ProtectedRoute>
+    ),
+    errorElement: <RouteErrorBoundary />,
+  },
+  {
+    path: "/templates",
+    element: (
+      <ProtectedRoute>
+        <Templates />
       </ProtectedRoute>
     ),
     errorElement: <RouteErrorBoundary />,

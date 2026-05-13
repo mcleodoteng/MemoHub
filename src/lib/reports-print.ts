@@ -75,8 +75,7 @@ export function printMemo(
   const approvedCount = memo.recipientStatuses.filter((s) => s.approved).length;
   const total = memo.recipientStatuses.length;
   const sortedComments = [...memoComments].sort(
-    (a, b) =>
-      new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+    (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
   );
   const latestCommentByAuthor = new Map<string, string>();
   sortedComments.forEach((comment) => {
@@ -103,7 +102,9 @@ export function printMemo(
       <div class="summary-card"><div class="label">Approved</div><div class="value">${approvedCount}/${total}</div></div>
       <div class="summary-card"><div class="label">Attachments</div><div class="value">${memo.attachments.length}</div></div>
     </div>
-    ${memo.recipientStatuses.length > 0 ? `
+    ${
+      memo.recipientStatuses.length > 0
+        ? `
     <h3 style="font-size: 14px; margin-top: 16px; margin-bottom: 8px;">Recipient Status</h3>
     <table>
       <thead><tr><th>Recipient</th><th>Opened</th><th>Acknowledged</th><th>Approved</th><th>Replied</th><th>Comment</th></tr></thead>
@@ -122,8 +123,12 @@ export function printMemo(
           })
           .join("")}
       </tbody>
-    </table>` : ""}
-    ${sortedComments.length > 0 ? `
+    </table>`
+        : ""
+    }
+    ${
+      sortedComments.length > 0
+        ? `
     <h3 style="font-size: 14px; margin-top: 16px; margin-bottom: 8px;">Comments</h3>
     <table>
       <thead><tr><th>#</th><th>Author</th><th>Type</th><th>Date</th><th>Comment</th></tr></thead>
@@ -137,7 +142,9 @@ export function printMemo(
           })
           .join("")}
       </tbody>
-    </table>` : ""}
+    </table>`
+        : ""
+    }
   `;
 
   printHtmlReport(`Memo - ${memo.title}`, html);

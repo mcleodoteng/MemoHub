@@ -38,37 +38,42 @@ export class MessageRepository {
   async findStarredByUser(userId: string, page = 1, limit = 100) {
     const skip = (page - 1) * limit;
 
-    const where: any = {
-      starredBy: {
-        array_contains: userId,
+    const allStarredMessages = await prisma.message.findMany({
+      where: {
+        starred: true,
       },
-      conversation: {
-        participantIds: {
-          array_contains: userId,
-        },
-      },
-    };
-
-    const [messages, total] = await Promise.all([
-      prisma.message.findMany({
-        where,
-        include: {
-          sender: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-              avatar: true,
-              department: true,
-            },
+      include: {
+        sender: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            avatar: true,
+            department: true,
           },
         },
-        orderBy: { createdAt: "desc" },
-        skip,
-        take: limit,
-      }),
-      prisma.message.count({ where }),
-    ]);
+        conversation: {
+          select: {
+            participantIds: true,
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    const matchingMessages = allStarredMessages.filter((message) => {
+      const starredBy = Array.isArray(message.starredBy)
+        ? (message.starredBy as string[])
+        : [];
+      const participantIds = Array.isArray(message.conversation?.participantIds)
+        ? (message.conversation.participantIds as string[])
+        : [];
+
+      return starredBy.includes(userId) && participantIds.includes(userId);
+    });
+
+    const messages = matchingMessages.slice(skip, skip + limit);
+    const total = matchingMessages.length;
 
     return {
       messages,
@@ -221,7 +226,8 @@ export class MessageRepository {
   }
 
   async update(id: string, data: UpdateMessageData) {
-    const { attachmentIds, attachments, ...messageData } = data;
+    const { attachmentIds, attachments, isStarred, starredBy, ...messageData } =
+      data;
 
     const updateData: any = { ...messageData };
 
@@ -231,11 +237,12 @@ export class MessageRepository {
       updateData.attachments = [];
     }
 
-    if (data.isStarred !== undefined) {
-      updateData.starred = data.isStarred;
-      if (data.isStarred) {
-        updateData.starredBy = data.starredBy || [];
-      }
+    if (isStarred !== undefined) {
+      updateData.starred = isStarred;
+    }
+
+    if (starredBy !== undefined) {
+      updateData.starredBy = starredBy;
     }
 
     return prisma.message.update({
